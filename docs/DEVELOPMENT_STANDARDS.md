@@ -146,6 +146,18 @@ vol.Required(const.CFOF_USERS_INPUT_NAME, default=name): str
   - `ENTITY_REGISTRY` in `custom_components/choreops/const.py` is the primary source of truth for requirement categories.
   - Runtime platforms/managers must consume centralized gating helpers and must not define duplicated requirement maps.
 
+#### Terminology mapping (user vs assignee)
+
+The codebase still uses role-oriented variable names in many workflow paths. Read names by **context**, not by historical model assumptions:
+
+| Variable / Key | What it usually means now          | Notes                                               |
+| -------------- | ---------------------------------- | --------------------------------------------------- |
+| `user_id`      | UUID of a user record              | Canonical lifecycle identity                        |
+| `assignee_id`  | `user_id` in assignee role context | Common in chore/reward/statistics method signatures |
+| `approver_id`  | `user_id` in approver role context | Role projection, not a separate lifecycle record    |
+
+Rule: if the value keys into `DATA_USERS`, treat it as a user UUID with role-scoped naming.
+
 #### Internal Scanner API Patterns
 
 **`<ITEM_TYPE>_SCAN_<STRUCTURE>_<FIELD>`** = **Internal method signatures and return structures**
@@ -191,6 +203,17 @@ All entity platforms MUST provide both human-readable (`*_EID_*`) and machine-re
 - **Organization**: Defined in dedicated section at bottom of `const.py` after `_DEPRECATED` section
 - **Deletion**: Remove when migration support dropped (typically 2+ major versions, <1% users)
 
+#### Pre-v50 migration sunset policy
+
+`migration_pre_v50.py` is frozen compatibility code and must not accumulate new feature logic.
+
+Delete it only when all conditions are met:
+
+1. Current storage schema is at least 10 versions beyond the pre-v50 boundary (v60+).
+2. No active bootstrap/restore path references pre-v50 constants or migration helpers.
+3. Release notes include one explicit deprecation window before removal.
+4. Regression tests confirm modern (v50+) migration paths remain intact after deletion.
+
 ---
 
 ### 4. Data Write Standards (CRUD Ownership)
@@ -214,6 +237,8 @@ async def update_assignee_points(self, assignee_id: str, points: int) -> None:
     # 3. Emit signal for listeners
     async_dispatcher_send(self.hass, SIGNAL_SUFFIX_ASSIGNEE_UPDATED)
 ```
+
+**Ordering invariant**: For event-driven writes, maintain `ensure structures` → `persist` → `emit` in the same manager workflow path. Never emit before required containers exist.
 
 **Two Persist Methods**:
 
@@ -337,6 +362,33 @@ class RewardManager(BaseManager):
         periods = reward_entry[const.DATA_KID_REWARD_DATA_PERIODS]
         self.coordinator.stats.record_transaction(periods, {"approved": 1})  # ❌ Violates boundary
 ```
+
+**Temporal contract (non-negotiable)**:
+
+1. Landlord manager calls `_ensure_*_structures(...)` for affected assignee/item.
+2. Manager persists write path (`_persist_and_update()` by default).
+3. Manager emits signal consumed by tenant listeners.
+
+If step 1 is skipped, tenant listeners may fail because expected containers are absent.
+
+### 4d. Entry-only scope contract (non-negotiable)
+
+This is an integration-wide scope contract, not an event-only rule.
+
+- Applies to: storage, backups, config/options flows, services, event dispatch, and config entry lifecycle operations.
+- Never route by "first loaded entry" assumptions.
+- Service and workflow operations must resolve one explicit entry context (`config_entry_id` preferred) or use current entry-scoped flow context.
+- Import/restore operations must always write into the current entry-scoped storage key.
+- Unload/remove/reload paths must mutate only the owning/current entry scope.
+
+Enforcement checklist (required for all new changes):
+
+- Storage pathing uses entry-scoped key helpers, never shared active-key assumptions.
+- Backup discovery/cleanup default remains entry-scoped; broader import visibility is explicit and user-invoked.
+- Flow restore/recovery operations mutate only current entry scope.
+- Service handlers reject ambiguous multi-entry target resolution.
+- Event listeners and downstream writes do not cause cross-entry mutations.
+- Any intentional cross-entry behavior includes tests proving no out-of-scope data mutation.
 
 ---
 
@@ -797,6 +849,8 @@ signal = entity_helpers.get_event_signal(entry_id, const.SIGNAL_SUFFIX_POINTS_CH
 # Instance A: "choreops_abc123_points_changed"
 # Instance B: "choreops_xyz789_points_changed"
 ```
+
+Scope note: Full entry-only scope requirements live in **§4d Entry-only scope contract**.
 
 ##### BaseManager Pattern
 

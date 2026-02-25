@@ -77,6 +77,20 @@ For ongoing reference and to maintain Platinum certification, consult:
 
 **Automatic Metadata**: All data builders must set `updated_at` timestamps. Managers never manually set timestamps.
 
+**Entry-Only Scope Contract (Critical)**
+
+- All runtime reads/writes must be scoped to one config entry context.
+- Storage access must use entry-scoped keys (`choreops_data_<entry_id>` pattern) and must never fall back to cross-entry active-data behavior.
+- Backup discovery and cleanup must operate on the current entry scope by default; cross-entry import is allowed only as an explicit restore action.
+- Service and workflow routing must use explicit target resolution (`config_entry_id` preferred) or current flow context; "first loaded entry" routing is prohibited.
+- Entry removal and restore operations must only mutate the owning/current entry scope.
+
+**Architecture review checks for this contract**
+
+- New code introduces no helper that infers target scope from load order.
+- New backup/storage code paths preserve entry isolation in default behavior.
+- New restore/import code paths end by writing into current entry-scoped storage.
+
 ### Infrastructure Coordinator Pattern
 
 The Coordinator is a **pure infrastructure hub** with zero domain knowledge:
@@ -386,6 +400,8 @@ The **`meta.schema_version`** field in storage data determines the integration's
 
 **Pattern**: Managers create empty period containers (Landlord role), StatisticsEngine populates counter data (Tenant role).
 
+**Temporal coupling invariant (critical)**: Landlord managers must create/verify required containers synchronously **immediately before** emitting related workflow signals. In practice, call the relevant `_ensure_*_structures(...)` method in the same manager method and event-loop turn before `emit(...)`. Tenant listeners assume containers already exist.
+
 ### Ownership Division
 
 **Domain Managers (Landlords)** responsible for ownership, creation, and deletion top-level period containers:
@@ -425,6 +441,25 @@ The **`meta.schema_version`** field in storage data determines the integration's
 | **EconomyManager** | `assignee["point_stats"]["transaction_history"]`       | deposits, withdrawals (via StatisticsEngine) |
 
 **Analogy**: Manager builds the empty apartment building (landlord), StatisticsManager rents it and furnishes every room (tenant). No landlord should be doing interior decorating.
+
+---
+
+## Chore state resolution contract (FSM)
+
+Assignee display state uses first-match-wins priority in `ChoreEngine.resolve_assignee_chore_state(...)`. Any new state must be inserted deliberately into this order.
+
+| Priority | State         | Meaning / Effect                                             |
+| -------- | ------------- | ------------------------------------------------------------ |
+| P1       | `approved`    | Completed and approved in current period; highest precedence |
+| P2       | `claimed`     | Pending approver action                                      |
+| P3       | `not_my_turn` | Rotation lock (unless steal window opens)                    |
+| P4       | `missed`      | Strict missed lock (non-claimable)                           |
+| P5       | `overdue`     | Relaxed overdue (claimable)                                  |
+| P6       | `waiting`     | Claim window not open yet                                    |
+| P7       | `due`         | In claim window                                              |
+| P8       | `pending`     | Default fallback                                             |
+
+**Rotation steal exception**: For `at_due_date_allow_steal`, once past due the P3 lock lifts and resolves to overdue (implemented as a dedicated branch between P4 and P5).
 
 ---
 
@@ -529,6 +564,12 @@ The `engines/schedule.py` module provides a unified scheduling system for chores
 - **rrule (RFC 5545)**: Standard patterns (DAILY, WEEKLY, BIWEEKLY, MONTHLY, YEARLY) generate RFC 5545 RRULE strings for iCal export
 - **relativedelta**: Period-end clamping (Jan 31 + 1 month = Feb 28) and DST-aware calculations
 - **Why both?** rrule lacks month-end semantics; relativedelta lacks iCal compliance
+
+**Non-negotiable time semantics**:
+
+- Do not replace month/year recurrence math with fixed-day arithmetic (for example, `timedelta(days=30)`).
+- Keep `relativedelta` for clamp-safe period ends and `rrule` for standards-compliant recurrence/export.
+- Treat these as paired primitives: changing one side requires validating period-end and calendar-export behavior together.
 
 ### RecurrenceEngine Class
 
@@ -757,6 +798,12 @@ The configuration process follows a streamlined four-step path:
 2. **System Settings**: Configuration of global labels, icons, and polling intervals.
 3. **Entity Setup**: Direct creation of assignees, approvers, chores, badges, rewards, and other entities.
 4. **Summary**: A final review before the storage data is committed and the entry is created.
+
+**Multi-instance activation notes**
+
+- Config Flow no longer aborts when another ChoreOps entry already exists.
+- Data recovery remains the first step so each new entry can start fresh, import, or restore.
+- Restore writes to the current entry-scoped storage key, even when importing backup data from other entries or legacy files.
 
 #### Options Flow (Management)
 

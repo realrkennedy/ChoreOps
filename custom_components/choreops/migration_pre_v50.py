@@ -56,6 +56,43 @@ def has_legacy_migration_performed_marker(data: dict[str, Any]) -> bool:
     return LEGACY_MIGRATION_PERFORMED_KEY in data
 
 
+def _detect_or_stamp_legacy_schema_version(data: dict[str, Any]) -> int:
+    """Return schema version and stamp unstamped legacy payloads to baseline.
+
+    Migration code paths should always operate on payloads with an explicit
+    schema marker. Legacy payloads occasionally omit both top-level and
+    `meta.schema_version`; when detected, stamp baseline schema 31 so the
+    pre-v50 migration cascade can run deterministically.
+
+    Args:
+        data: Storage payload dictionary.
+
+    Returns:
+        Detected or stamped schema version.
+    """
+    meta_raw = data.get(const.DATA_META)
+    if isinstance(meta_raw, dict):
+        meta_version = meta_raw.get(const.DATA_META_SCHEMA_VERSION)
+        if isinstance(meta_version, int):
+            return meta_version
+
+    top_level_version = data.get(const.DATA_SCHEMA_VERSION)
+    if isinstance(top_level_version, int):
+        return top_level_version
+
+    if not data:
+        return const.DEFAULT_ZERO
+
+    meta: dict[str, Any] = meta_raw if isinstance(meta_raw, dict) else {}
+    meta[const.DATA_META_SCHEMA_VERSION] = const.SCHEMA_VERSION_LEGACY_BASELINE
+    data[const.DATA_META] = meta
+    const.LOGGER.warning(
+        "Missing schema version detected; stamped legacy baseline schema %s",
+        const.SCHEMA_VERSION_LEGACY_BASELINE,
+    )
+    return const.SCHEMA_VERSION_LEGACY_BASELINE
+
+
 def _remap_legacy_key_in_record(
     record: dict[str, Any],
     legacy_key: str,
@@ -461,6 +498,136 @@ def _looks_like_choreops_storage_data(data: dict[str, Any]) -> bool:
     )
 
 
+def normalize_bonus_penalty_apply_shapes(data: dict[str, Any]) -> dict[str, int]:
+    """Normalize assignee bonus/penalty apply counters to period dict records.
+
+    This is a schema-agnostic safety normalization for imported payloads where
+    `bonus_applies` / `penalty_applies` may still contain integer counters.
+
+    Returns summary counts for transformed entries.
+    """
+    bonuses_data = data.get(const.DATA_BONUSES, {})
+    penalties_data = data.get(const.DATA_PENALTIES, {})
+
+    users_raw = data.get(const.DATA_USERS)
+    if isinstance(users_raw, dict):
+        users = users_raw
+    else:
+        legacy_users = data.get("kids")
+        users = legacy_users if isinstance(legacy_users, dict) else {}
+
+    transformed_bonus = 0
+    transformed_penalty = 0
+
+    for user_info_raw in users.values():
+        if not isinstance(user_info_raw, dict):
+            continue
+        user_info = cast("dict[str, Any]", user_info_raw)
+
+        bonus_applies_raw = user_info.get(const.DATA_USER_BONUS_APPLIES)
+        bonus_applies: dict[str, Any]
+        if isinstance(bonus_applies_raw, dict):
+            bonus_applies = bonus_applies_raw
+        else:
+            bonus_applies = {}
+            user_info[const.DATA_USER_BONUS_APPLIES] = bonus_applies
+
+        for bonus_id, entry in list(bonus_applies.items()):
+            if isinstance(entry, dict):
+                periods = entry.get(const.DATA_USER_BONUS_PERIODS)
+                if not isinstance(periods, dict):
+                    periods = {}
+                    entry[const.DATA_USER_BONUS_PERIODS] = periods
+                for period_type in (
+                    const.PERIOD_DAILY,
+                    const.PERIOD_WEEKLY,
+                    const.PERIOD_MONTHLY,
+                    const.PERIOD_YEARLY,
+                    const.PERIOD_ALL_TIME,
+                ):
+                    periods.setdefault(period_type, {})
+                continue
+
+            apply_count = int(entry) if isinstance(entry, (int, float)) else 0
+            bonus_points = 0.0
+            bonus_info = bonuses_data.get(bonus_id)
+            if isinstance(bonus_info, dict):
+                bonus_points = float(bonus_info.get(const.DATA_BONUS_POINTS, 0.0))
+
+            bonus_applies[bonus_id] = {
+                const.DATA_USER_BONUS_PERIODS: {
+                    const.PERIOD_DAILY: {},
+                    const.PERIOD_WEEKLY: {},
+                    const.PERIOD_MONTHLY: {},
+                    const.PERIOD_YEARLY: {},
+                    const.PERIOD_ALL_TIME: {
+                        const.PERIOD_ALL_TIME: {
+                            const.DATA_USER_BONUS_PERIOD_APPLIES: apply_count,
+                            const.DATA_USER_BONUS_PERIOD_POINTS: round(
+                                bonus_points * apply_count,
+                                const.DATA_FLOAT_PRECISION,
+                            ),
+                        }
+                    },
+                }
+            }
+            transformed_bonus += 1
+
+        penalty_applies_raw = user_info.get(const.DATA_USER_PENALTY_APPLIES)
+        penalty_applies: dict[str, Any]
+        if isinstance(penalty_applies_raw, dict):
+            penalty_applies = penalty_applies_raw
+        else:
+            penalty_applies = {}
+            user_info[const.DATA_USER_PENALTY_APPLIES] = penalty_applies
+
+        for penalty_id, entry in list(penalty_applies.items()):
+            if isinstance(entry, dict):
+                periods = entry.get(const.DATA_USER_PENALTY_PERIODS)
+                if not isinstance(periods, dict):
+                    periods = {}
+                    entry[const.DATA_USER_PENALTY_PERIODS] = periods
+                for period_type in (
+                    const.PERIOD_DAILY,
+                    const.PERIOD_WEEKLY,
+                    const.PERIOD_MONTHLY,
+                    const.PERIOD_YEARLY,
+                    const.PERIOD_ALL_TIME,
+                ):
+                    periods.setdefault(period_type, {})
+                continue
+
+            apply_count = int(entry) if isinstance(entry, (int, float)) else 0
+            penalty_points = 0.0
+            penalty_info = penalties_data.get(penalty_id)
+            if isinstance(penalty_info, dict):
+                penalty_points = float(penalty_info.get(const.DATA_PENALTY_POINTS, 0.0))
+
+            penalty_applies[penalty_id] = {
+                const.DATA_USER_PENALTY_PERIODS: {
+                    const.PERIOD_DAILY: {},
+                    const.PERIOD_WEEKLY: {},
+                    const.PERIOD_MONTHLY: {},
+                    const.PERIOD_YEARLY: {},
+                    const.PERIOD_ALL_TIME: {
+                        const.PERIOD_ALL_TIME: {
+                            const.DATA_USER_PENALTY_PERIOD_APPLIES: apply_count,
+                            const.DATA_USER_PENALTY_PERIOD_POINTS: round(
+                                penalty_points * apply_count,
+                                const.DATA_FLOAT_PRECISION,
+                            ),
+                        }
+                    },
+                }
+            }
+            transformed_penalty += 1
+
+    return {
+        "bonus_entries_transformed": transformed_bonus,
+        "penalty_entries_transformed": transformed_penalty,
+    }
+
+
 async def async_discover_legacy_choreops_artifacts(
     hass: HomeAssistant,
 ) -> dict[str, Any]:
@@ -541,6 +708,7 @@ async def async_get_data_recovery_capabilities(
 
 async def async_prepare_current_active_storage(
     hass: HomeAssistant,
+    destination_storage_key: str = const.STORAGE_KEY,
 ) -> dict[str, Any]:
     """Validate and normalize current active data file into scoped storage.
 
@@ -562,7 +730,7 @@ async def async_prepare_current_active_storage(
     from .store import ChoreOpsStore
 
     try:
-        store = ChoreOpsStore(hass)
+        store = ChoreOpsStore(hass, destination_storage_key)
         destination_path = Path(store.get_storage_path())
         legacy_storage_path = Path(
             hass.config.path(const.STORAGE_PATH_SEGMENT, LEGACY_STORAGE_KEY)
@@ -626,10 +794,21 @@ async def async_prepare_current_active_storage(
                 "error": "invalid_structure",
             }
 
+        summary = normalize_bonus_penalty_apply_shapes(payload)
+        if (
+            summary["bonus_entries_transformed"]
+            or summary["penalty_entries_transformed"]
+        ):
+            const.LOGGER.info(
+                "Normalized imported apply counters during prepare_current_active: bonus=%d penalty=%d",
+                summary["bonus_entries_transformed"],
+                summary["penalty_entries_transformed"],
+            )
+
         wrapped_data = {
             const.DATA_KEY_VERSION: 1,
             "minor_version": 1,
-            const.DATA_KEY_KEY: const.STORAGE_KEY,
+            const.DATA_KEY_KEY: destination_storage_key,
             const.DATA_KEY_DATA: payload,
         }
 
@@ -664,6 +843,7 @@ async def async_prepare_current_active_storage(
 
 async def async_migrate_from_legacy_choreops_storage(
     hass: HomeAssistant,
+    destination_storage_key: str = const.STORAGE_KEY,
 ) -> dict[str, Any]:
     """Migrate legacy ChoreOps storage into ChoreOps storage.
 
@@ -744,9 +924,17 @@ async def async_migrate_from_legacy_choreops_storage(
             "error": "invalid_structure",
         }
 
+    summary = normalize_bonus_penalty_apply_shapes(payload)
+    if summary["bonus_entries_transformed"] or summary["penalty_entries_transformed"]:
+        const.LOGGER.info(
+            "Normalized imported apply counters during migrate_from_legacy: bonus=%d penalty=%d",
+            summary["bonus_entries_transformed"],
+            summary["penalty_entries_transformed"],
+        )
+
     from .store import ChoreOpsStore
 
-    store = ChoreOpsStore(hass)
+    store = ChoreOpsStore(hass, destination_storage_key)
     destination_path = Path(store.get_storage_path())
     destination_dir = destination_path.parent
 
@@ -772,7 +960,7 @@ async def async_migrate_from_legacy_choreops_storage(
     wrapped_data = {
         const.DATA_KEY_VERSION: 1,
         "minor_version": 1,
-        const.DATA_KEY_KEY: const.STORAGE_KEY,
+        const.DATA_KEY_KEY: destination_storage_key,
         const.DATA_KEY_DATA: payload,
     }
 
@@ -841,11 +1029,8 @@ async def migrate_config_to_storage(
     # Check schema version - support both v41 (top-level) and v42+ (meta section)
     # v41 format: {"schema_version": 41, "assignees": {...}}
     # v42+ format: {"meta": {"schema_version": 42}, "assignees": {...}}
-    meta_section = storage_data.get(const.DATA_META, {})
-    storage_version = meta_section.get(
-        const.DATA_META_SCHEMA_VERSION,
-        storage_data.get(const.DATA_SCHEMA_VERSION, const.DEFAULT_ZERO),
-    )
+    # If schema marker is missing, stamp legacy baseline version 31.
+    storage_version = _detect_or_stamp_legacy_schema_version(storage_data)
 
     # Check if migration is needed
     # Skip if version is at or past the transitional stamp (42+)
@@ -1110,6 +1295,33 @@ class PreV50Migrator:
         """
         self.coordinator = coordinator
 
+    def _normalize_legacy_assignee_buckets(self) -> None:
+        """Normalize legacy assignee buckets into canonical users bucket.
+
+        Pre-v50 phase methods read and clean assignee records from
+        ``DATA_USERS``. Legacy imports can still provide assignees in
+        ``assignees`` or ``kids`` buckets. Normalize once at pipeline start
+        so all subsequent migration phases operate on the canonical container.
+        """
+        data = self.coordinator._data
+
+        users_raw = data.get(const.DATA_USERS)
+        users: dict[str, Any] = users_raw if isinstance(users_raw, dict) else {}
+
+        legacy_assignee_keys = (
+            "assignees",
+            const.CONF_ASSIGNEES_LEGACY,
+        )
+
+        for legacy_key in legacy_assignee_keys:
+            legacy_assignees = data.get(legacy_key)
+            if isinstance(legacy_assignees, dict):
+                for assignee_id, assignee_data in legacy_assignees.items():
+                    users.setdefault(assignee_id, assignee_data)
+            data.pop(legacy_key, None)
+
+        data[const.DATA_USERS] = users
+
     async def run_all_migrations(self) -> None:
         """Execute all pre-v50 migrations in the correct order.
 
@@ -1152,6 +1364,10 @@ class PreV50Migrator:
         snapshot = copy.deepcopy(self.coordinator._data)
 
         try:
+            # Normalize legacy assignee buckets early so all migration phases,
+            # especially legacy-field cleanup, run against canonical users.
+            self._normalize_legacy_assignee_buckets()
+
             # Phase 1: Schema migrations (data structure transformations)
             self._migrate_datetime_wrapper()
             self._migrate_stored_datetimes()
@@ -1301,6 +1517,12 @@ class PreV50Migrator:
         Args:
             current_version: Schema version detected by Coordinator
         """
+        detected_version = _detect_or_stamp_legacy_schema_version(
+            self.coordinator._data
+        )
+        if detected_version != const.DEFAULT_ZERO:
+            current_version = detected_version
+
         # Step 0: Detect premature stamp from v0.5.0b3 bug
         current_version = self._detect_premature_stamp(current_version)
 
@@ -4294,7 +4516,10 @@ class PreV50Migrator:
                 if field in badge_info:
                     del badge_info[field]
 
-        self.coordinator._persist(immediate=True)  # Migration must be immediate
+        self.coordinator._persist(
+            immediate=True,
+            enforce_schema=False,
+        )  # Migration must be immediate
         self.coordinator.async_set_updated_data(self.coordinator._data)
 
         const.LOGGER.info(
@@ -4411,7 +4636,10 @@ class PreV50Migrator:
             if const.DATA_ASSIGNEE_BADGES_LEGACY in assignee_info:
                 del assignee_info[const.DATA_ASSIGNEE_BADGES_LEGACY]  # type: ignore[typeddict-item]
 
-        self.coordinator._persist(immediate=True)  # Migration must be immediate
+        self.coordinator._persist(
+            immediate=True,
+            enforce_schema=False,
+        )  # Migration must be immediate
         self.coordinator.async_set_updated_data(self.coordinator._data)
 
     def _migrate_legacy_point_stats(self) -> None:
@@ -5833,8 +6061,12 @@ class PreV50Migrator:
                 allowed_uids.add(uid)
 
         # --- Now remove any button entity whose unique_id is not in allowed_uids ---
-        for entity_entry in list(ent_reg.entities.values()):
-            # Only check buttons from our platform (assigneeschores)
+        entry_entities = er.async_entries_for_config_entry(
+            ent_reg,
+            self.coordinator.config_entry.entry_id,
+        )
+        for entity_entry in entry_entities:
+            # Only check buttons from our platform (choreops)
             if entity_entry.platform != const.DOMAIN or entity_entry.domain != "button":
                 continue
 
@@ -5962,8 +6194,12 @@ class PreV50Migrator:
         )
 
         # --- Now remove any sensor entity whose unique_id is not in allowed_uids ---
-        for entity_entry in list(ent_reg.entities.values()):
-            # Only check sensors from our platform (assigneeschores)
+        entry_entities = er.async_entries_for_config_entry(
+            ent_reg,
+            self.coordinator.config_entry.entry_id,
+        )
+        for entity_entry in entry_entities:
+            # Only check sensors from our platform (choreops)
             if entity_entry.platform != const.DOMAIN or entity_entry.domain != "sensor":
                 continue
 
@@ -5990,8 +6226,12 @@ class PreV50Migrator:
             allowed_uids.add(uid)
 
         # --- Now remove any calendar entity whose unique_id is not in allowed_uids ---
-        for entity_entry in list(ent_reg.entities.values()):
-            # Only check calendars from our platform (assigneeschores)
+        entry_entities = er.async_entries_for_config_entry(
+            ent_reg,
+            self.coordinator.config_entry.entry_id,
+        )
+        for entity_entry in entry_entities:
+            # Only check calendars from our platform (choreops)
             if (
                 entity_entry.platform != const.DOMAIN
                 or entity_entry.domain != "calendar"
@@ -6020,8 +6260,12 @@ class PreV50Migrator:
             allowed_uids.add(uid)
 
         # --- Now remove any datetime entity whose unique_id is not in allowed_uids ---
-        for entity_entry in list(ent_reg.entities.values()):
-            # Only check datetime from our platform (assigneeschores)
+        entry_entities = er.async_entries_for_config_entry(
+            ent_reg,
+            self.coordinator.config_entry.entry_id,
+        )
+        for entity_entry in entry_entities:
+            # Only check datetime from our platform (choreops)
             if (
                 entity_entry.platform != const.DOMAIN
                 or entity_entry.domain != "datetime"
@@ -6065,8 +6309,12 @@ class PreV50Migrator:
             allowed_uids.add(uid)
 
         # --- Now remove any select entity whose unique_id is not in allowed_uids ---
-        for entity_entry in list(ent_reg.entities.values()):
-            # Only check selects from our platform (assigneeschores)
+        entry_entities = er.async_entries_for_config_entry(
+            ent_reg,
+            self.coordinator.config_entry.entry_id,
+        )
+        for entity_entry in entry_entities:
+            # Only check selects from our platform (choreops)
             if entity_entry.platform != const.DOMAIN or entity_entry.domain != "select":
                 continue
 

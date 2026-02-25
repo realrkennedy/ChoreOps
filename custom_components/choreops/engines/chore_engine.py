@@ -565,6 +565,24 @@ class ChoreEngine:
         )
 
     @staticmethod
+    def uses_chore_level_due_date(chore_data: ChoreData | dict[str, Any]) -> bool:
+        """Check if chore uses a single chore-level due date.
+
+        Returns True for completion criteria where due dates are shared across
+        all assigned assignees.
+        """
+        criteria = chore_data.get(
+            const.DATA_CHORE_COMPLETION_CRITERIA,
+            const.COMPLETION_CRITERIA_INDEPENDENT,
+        )
+        return criteria in (
+            const.COMPLETION_CRITERIA_SHARED,
+            const.COMPLETION_CRITERIA_SHARED_FIRST,
+            const.COMPLETION_CRITERIA_ROTATION_SIMPLE,
+            const.COMPLETION_CRITERIA_ROTATION_SMART,
+        )
+
+    @staticmethod
     def is_rotation_mode(chore_data: ChoreData | dict[str, Any]) -> bool:
         """Check if chore uses rotation completion criteria.
 
@@ -1393,6 +1411,17 @@ class ChoreEngine:
             # NEVER_OVERDUE = shouldn't be in OVERDUE state, but skip if so
             if overdue_handling == const.OVERDUE_HANDLING_NEVER_OVERDUE:
                 return "skip"
+
+        # MISSED state = strict-overdue lock mode only
+        # For mark_missed_and_lock, boundary processing should clear/reset the locked
+        # missed state for the next cycle.
+        if current_state == const.CHORE_STATE_MISSED:
+            if (
+                overdue_handling
+                == const.OVERDUE_HANDLING_AT_DUE_DATE_MARK_MISSED_AND_LOCK
+            ):
+                return "reset_and_reschedule" if has_due_date else "reset_only"
+            return "skip"
 
         # Default: skip unknown states
         return "skip"

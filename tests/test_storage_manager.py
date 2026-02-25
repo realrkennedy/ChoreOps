@@ -69,6 +69,45 @@ async def test_async_initialize_loads_existing_data(
     assert store.data[const.DATA_CHORES] == {"chore_1": {"name": "Clean room"}}
 
 
+async def test_async_initialize_skips_legacy_fallback_when_disabled(
+    hass: HomeAssistant,
+    store: ChoreOpsStore,
+) -> None:
+    """Store should not import legacy root data when fallback is disabled."""
+    with (
+        patch.object(store._store, "async_load", return_value=None),
+        patch("custom_components.choreops.store.Store") as mock_store_cls,
+    ):
+        await store.async_initialize(allow_legacy_fallback=False)
+
+    assert mock_store_cls.call_count == 0
+    assert store.data[const.DATA_USERS] == {}
+    assert store.data[const.DATA_CHORES] == {}
+
+
+async def test_async_initialize_uses_legacy_fallback_when_enabled(
+    hass: HomeAssistant,
+    store: ChoreOpsStore,
+) -> None:
+    """Store should import legacy root data when fallback is enabled."""
+    legacy_payload = {
+        const.DATA_USERS: {"legacy_user": {"name": "Legacy"}},
+        const.DATA_CHORES: {"legacy_chore": {"name": "Legacy chore"}},
+    }
+    legacy_store = AsyncMock()
+    legacy_store.async_load = AsyncMock(return_value=legacy_payload)
+
+    with (
+        patch.object(store._store, "async_load", return_value=None),
+        patch.object(store._store, "async_save", new=AsyncMock()) as scoped_save,
+        patch("custom_components.choreops.store.Store", return_value=legacy_store),
+    ):
+        await store.async_initialize(allow_legacy_fallback=True)
+
+    assert store.data == legacy_payload
+    scoped_save.assert_called_once_with(legacy_payload)
+
+
 async def test_getter_methods_return_correct_data(
     hass: HomeAssistant,
     store: ChoreOpsStore,
@@ -394,17 +433,78 @@ async def test_set_data_replaces_entire_structure(
     store: ChoreOpsStore,
 ) -> None:
     """Test set_data completely replaces the data structure."""
-    original_data = {const.DATA_USERS: {"assignee_1": {}}}
+    original_data = ChoreOpsStore.get_default_structure()
     store.set_data(original_data)
 
-    new_data = {
-        const.DATA_USERS: {"assignee_2": {}},
-        const.DATA_CHORES: {"chore_1": {}},
+    new_data = ChoreOpsStore.get_default_structure()
+    new_data[const.DATA_USERS] = {
+        "assignee_2": {const.DATA_USER_INTERNAL_ID: "assignee_2"}
     }
-    store.set_data(new_data)
+    new_data[const.DATA_CHORES] = {"chore_1": {const.DATA_CHORE_INTERNAL_ID: "chore_1"}}
+    assert store.set_data(new_data)
 
     assert store.data == new_data
     assert store.data is not original_data
+
+
+async def test_set_data_accepts_partial_payload_without_shape_expansion(
+    hass: HomeAssistant,
+    store: ChoreOpsStore,
+) -> None:
+    """Test set_data accepts partial payloads without forcing default keys."""
+    payload = {const.DATA_USERS: {}}
+    assert store.set_data(payload)
+
+    assert store.data == payload
+
+
+async def test_set_data_repairs_mismatched_internal_id(
+    hass: HomeAssistant,
+    store: ChoreOpsStore,
+) -> None:
+    """Test set_data repairs records whose internal_id does not match key."""
+    invalid_data = ChoreOpsStore.get_default_structure()
+    invalid_data[const.DATA_USERS] = {
+        "user_a": {const.DATA_USER_INTERNAL_ID: "wrong_key"}
+    }
+
+    assert store.set_data(invalid_data)
+    assert (
+        store.data[const.DATA_USERS]["user_a"][const.DATA_USER_INTERNAL_ID] == "user_a"
+    )
+
+
+async def test_set_data_rejects_invalid_bucket_type(
+    hass: HomeAssistant,
+    store: ChoreOpsStore,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test set_data rejects invalid canonical bucket types."""
+    baseline = ChoreOpsStore.get_default_structure()
+    assert store.set_data(baseline)
+
+    invalid_data = ChoreOpsStore.get_default_structure()
+    invalid_data[const.DATA_USERS] = []
+
+    assert not store.set_data(invalid_data)
+    assert store.data == baseline
+    assert "Rejected invalid storage payload in set_data" in caplog.text
+
+
+async def test_async_initialize_repairs_internal_id_mismatch(
+    hass: HomeAssistant,
+    store: ChoreOpsStore,
+) -> None:
+    """Test async_initialize repairs modern payloads with internal_id mismatch."""
+    invalid_data = ChoreOpsStore.get_default_structure()
+    invalid_data[const.DATA_USERS] = {"user_a": {const.DATA_USER_INTERNAL_ID: "bad"}}
+
+    with patch.object(store._store, "async_load", return_value=invalid_data):
+        await store.async_initialize()
+
+    assert (
+        store.data[const.DATA_USERS]["user_a"][const.DATA_USER_INTERNAL_ID] == "user_a"
+    )
 
 
 async def test_custom_storage_key(hass: HomeAssistant) -> None:

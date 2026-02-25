@@ -162,6 +162,10 @@ class NotificationManager(BaseManager):
         )
         self.listen(const.SIGNAL_SUFFIX_CHORE_APPROVED, self._handle_chore_approved)
         self.listen(
+            const.SIGNAL_SUFFIX_CHORE_POINTS_AWARDED,
+            self._handle_chore_points_awarded,
+        )
+        self.listen(
             const.SIGNAL_SUFFIX_CHORE_DISAPPROVED, self._handle_chore_disapproved
         )
 
@@ -1745,7 +1749,7 @@ class NotificationManager(BaseManager):
 
         if not assignee_name:
             const.LOGGER.warning(
-                "BADGE_EARNED notification missing assignee_name in payload for assignee_id=%s",
+                "BADGE_EARNED notification missing user_name in payload for user_id=%s",
                 assignee_id,
             )
             # Fallback to lookup
@@ -1799,7 +1803,7 @@ class NotificationManager(BaseManager):
 
         if not assignee_name:
             const.LOGGER.warning(
-                "ACHIEVEMENT_EARNED notification missing assignee_name in payload for assignee_id=%s",
+                "ACHIEVEMENT_EARNED notification missing user_name in payload for user_id=%s",
                 assignee_id,
             )
             # Fallback to lookup
@@ -1856,7 +1860,7 @@ class NotificationManager(BaseManager):
 
         if not assignee_name:
             const.LOGGER.warning(
-                "CHALLENGE_COMPLETED notification missing assignee_name in payload for assignee_id=%s",
+                "CHALLENGE_COMPLETED notification missing user_name in payload for user_id=%s",
                 assignee_id,
             )
             # Fallback to lookup
@@ -1937,7 +1941,7 @@ class NotificationManager(BaseManager):
         assignee_name = payload.get("user_name", "")
         if not assignee_name:
             const.LOGGER.warning(
-                "CHORE_CLAIMED notification missing assignee_name in payload for assignee_id=%s",
+                "CHORE_CLAIMED notification missing user_name in payload for user_id=%s",
                 assignee_id,
             )
             # Fallback to lookup
@@ -2033,7 +2037,7 @@ class NotificationManager(BaseManager):
 
         if not assignee_name:
             const.LOGGER.warning(
-                "REWARD_CLAIMED notification missing assignee_name in payload for assignee_id=%s",
+                "REWARD_CLAIMED notification missing user_name in payload for user_id=%s",
                 assignee_id,
             )
             # Fallback to lookup
@@ -2244,43 +2248,19 @@ class NotificationManager(BaseManager):
     async def _handle_chore_approved(self, payload: dict[str, Any]) -> None:
         """Handle CHORE_APPROVED event - notify assignee and clear pending notifications.
 
-        Sends approval notification to assignee if notify_on_approval is enabled.
-        Clears both approver claim notifications and assignee overdue notifications.
+        Clears approver claim and assignee due/overdue notifications.
+        Approval notification is sent from CHORE_POINTS_AWARDED so it uses
+        EconomyManager's authoritative awarded points.
 
         Args:
-            payload: Event data containing assignee_id, chore_id, chore_name, points_awarded
+            payload: Event data containing assignee_id and chore metadata
         """
         assignee_id = payload.get("user_id", "")
         chore_id = payload.get("chore_id", "")
         chore_name = payload.get("chore_name", "Unknown Chore")
-        points = payload.get(
-            "points_awarded", 0
-        )  # Use points_awarded from ChoreManager
-        notify_assignee = bool(payload.get("notify_assignee", True))
 
         if not assignee_id or not chore_id:
             return
-
-        # Check if approval notifications are enabled for this chore
-        chore_info: ChoreData | None = self.coordinator.chores_data.get(chore_id)
-        if (
-            notify_assignee
-            and chore_info
-            and chore_info.get(
-                const.DATA_CHORE_NOTIFY_ON_APPROVAL,
-                const.DEFAULT_NOTIFY_ON_APPROVAL,
-            )
-        ):
-            # Notify assignee of approval
-            await self.notify_assignee_translated(
-                assignee_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_APPROVED_ASSIGNEE,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_APPROVED_ASSIGNEE,
-                message_data={
-                    "chore_name": chore_name,
-                    "points": points,
-                },
-            )
 
         # Clear claim notification for approvers
         await self.clear_notification_for_approvers(
@@ -2305,6 +2285,36 @@ class NotificationManager(BaseManager):
             chore_name,
             assignee_id,
         )
+
+    async def _handle_chore_points_awarded(self, payload: dict[str, Any]) -> None:
+        """Handle CHORE_POINTS_AWARDED event - notify assignee with awarded points."""
+        assignee_id = payload.get("user_id", "")
+        chore_id = payload.get("chore_id", "")
+        chore_name = payload.get("chore_name", "Unknown Chore")
+        points = payload.get("points_awarded", 0)
+        notify_assignee = bool(payload.get("notify_assignee", True))
+
+        if not assignee_id or not chore_id:
+            return
+
+        chore_info: ChoreData | None = self.coordinator.chores_data.get(chore_id)
+        if (
+            notify_assignee
+            and chore_info
+            and chore_info.get(
+                const.DATA_CHORE_NOTIFY_ON_APPROVAL,
+                const.DEFAULT_NOTIFY_ON_APPROVAL,
+            )
+        ):
+            await self.notify_assignee_translated(
+                assignee_id,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_APPROVED_ASSIGNEE,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_APPROVED_ASSIGNEE,
+                message_data={
+                    "chore_name": chore_name,
+                    "points": points,
+                },
+            )
 
     async def _handle_bonus_applied(self, payload: dict[str, Any]) -> None:
         """Handle BONUS_APPLIED event - send notification to assignee.
@@ -2706,7 +2716,7 @@ class NotificationManager(BaseManager):
         original_assignee_name = payload.get("user_name", "")
         if not original_assignee_name:
             const.LOGGER.error(
-                "CHORE_OVERDUE notification missing assignee_name in payload for target_assignee=%s, chore_id=%s",
+                "CHORE_OVERDUE notification missing user_name in payload for target_user=%s, chore_id=%s",
                 target_assignee_id,
                 chore_id,
             )
@@ -2833,7 +2843,7 @@ class NotificationManager(BaseManager):
         assignee_name_payload = payload.get("user_name", "")
         if not assignee_name_payload:
             const.LOGGER.error(
-                "CHORE_MISSED notification missing assignee_name in payload for assignee_id=%s, chore_id=%s",
+                "CHORE_MISSED notification missing user_name in payload for user_id=%s, chore_id=%s",
                 assignee_id,
                 chore_id,
             )

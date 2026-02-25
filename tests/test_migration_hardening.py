@@ -131,6 +131,10 @@ def migrate_payload_to_schema45_users() -> Any:
 class TestSchemaStampFix:
     """Test transitional version stamp prevents premature schema=43."""
 
+    def test_legacy_baseline_version_constant(self) -> None:
+        """Verify legacy baseline schema constant is 31."""
+        assert const.SCHEMA_VERSION_LEGACY_BASELINE == 31
+
     def test_transitional_version_constant(self) -> None:
         """Verify SCHEMA_VERSION_TRANSITIONAL is 42."""
         assert const.SCHEMA_VERSION_TRANSITIONAL == 42
@@ -146,10 +150,82 @@ class TestSchemaStampFix:
     def test_version_ordering(self) -> None:
         """Verify version constants are in correct order."""
         assert (
-            const.SCHEMA_VERSION_TRANSITIONAL
+            const.SCHEMA_VERSION_LEGACY_BASELINE
+            < const.SCHEMA_VERSION_TRANSITIONAL
             < const.SCHEMA_VERSION_STORAGE_ONLY
             < const.SCHEMA_VERSION_BETA4
         )
+
+    def test_missing_schema_is_stamped_to_legacy_baseline(self) -> None:
+        """Unstamped non-empty payload is stamped to schema 31."""
+        payload: dict[str, Any] = {
+            const.DATA_USERS: {
+                "user-1": {
+                    const.DATA_USER_INTERNAL_ID: "user-1",
+                    const.DATA_USER_NAME: "Alice",
+                }
+            }
+        }
+
+        detected = mp50._detect_or_stamp_legacy_schema_version(payload)
+
+        assert detected == const.SCHEMA_VERSION_LEGACY_BASELINE
+        assert payload[const.DATA_META][const.DATA_META_SCHEMA_VERSION] == detected
+
+    def test_missing_schema_empty_payload_remains_zero(self) -> None:
+        """Empty payload remains schema 0 and is not baseline-stamped."""
+        payload: dict[str, Any] = {}
+
+        detected = mp50._detect_or_stamp_legacy_schema_version(payload)
+
+        assert detected == const.DEFAULT_ZERO
+        assert const.DATA_META not in payload
+
+    def test_existing_top_level_schema_is_preserved(self) -> None:
+        """Legacy top-level schema is respected without stamping."""
+        payload: dict[str, Any] = {
+            const.DATA_SCHEMA_VERSION: 41,
+            const.DATA_USERS: {},
+        }
+
+        detected = mp50._detect_or_stamp_legacy_schema_version(payload)
+
+        assert detected == 41
+        assert const.DATA_META not in payload
+
+    async def test_cascade_stamps_missing_schema_before_migration(
+        self, hass: HomeAssistant, migrator
+    ) -> None:
+        """Cascade entry stamps schema 31 when version markers are missing."""
+        migrator.coordinator._data = {
+            const.DATA_USERS: {
+                "user-1": {
+                    const.DATA_USER_INTERNAL_ID: "user-1",
+                    const.DATA_USER_NAME: "Alice",
+                }
+            },
+            const.DATA_CHORES: {},
+            const.DATA_REWARDS: {},
+            const.DATA_BADGES: {},
+            const.DATA_PENALTIES: {},
+            const.DATA_BONUSES: {},
+            const.DATA_ACHIEVEMENTS: {},
+            const.DATA_CHALLENGES: {},
+            const.DATA_APPROVERS: {},
+        }
+
+        with patch.object(
+            migrator,
+            "_run_migration_with_fallback",
+            new_callable=AsyncMock,
+        ) as mock_fallback:
+            await migrator.run_full_pre_v50_cascade(current_version=0)
+
+        stamped = migrator.coordinator._data[const.DATA_META][
+            const.DATA_META_SCHEMA_VERSION
+        ]
+        assert stamped == const.SCHEMA_VERSION_LEGACY_BASELINE
+        mock_fallback.assert_called_once_with(const.SCHEMA_VERSION_LEGACY_BASELINE)
 
     async def test_schema45_wrapper_promotes_legacy_assignees_to_users(
         self,
@@ -170,6 +246,144 @@ class TestSchemaStampFix:
         assert alice[const.DATA_USER_CAN_BE_ASSIGNED] is True
         assert alice[const.DATA_USER_ENABLE_CHORE_WORKFLOW] is True
         assert alice[const.DATA_USER_ENABLE_GAMIFICATION] is True
+
+    async def test_pre_v50_pipeline_canonicalizes_kids_before_cleanup(
+        self, hass: HomeAssistant
+    ) -> None:
+        """Legacy `kids` records are normalized before legacy-field cleanup runs."""
+        coordinator = MagicMock()
+        coordinator.hass = hass
+        coordinator._data = {
+            const.DATA_META: {
+                const.DATA_META_SCHEMA_VERSION: const.SCHEMA_VERSION_TRANSITIONAL,
+                const.DATA_META_MIGRATIONS_APPLIED: [],
+            },
+            const.CONF_ASSIGNEES_LEGACY: {
+                "kid-1": {
+                    const.DATA_USER_INTERNAL_ID: "kid-1",
+                    const.DATA_USER_NAME: "Kid One",
+                    const.DATA_ASSIGNEE_CLAIMED_CHORES_LEGACY: ["chore-1"],
+                    const.DATA_ASSIGNEE_APPROVED_CHORES_LEGACY: ["chore-1"],
+                    const.DATA_ASSIGNEE_COMPLETED_CHORES_TODAY_LEGACY: 1,
+                    const.DATA_ASSIGNEE_CHORE_CLAIMS_LEGACY: {"chore-1": 2},
+                }
+            },
+            const.DATA_CHORES: {},
+            const.DATA_REWARDS: {},
+            const.DATA_BADGES: {},
+            const.DATA_PENALTIES: {},
+            const.DATA_BONUSES: {},
+            const.DATA_ACHIEVEMENTS: {},
+            const.DATA_CHALLENGES: {},
+            const.DATA_APPROVERS: {},
+        }
+        coordinator.config_entry = MockConfigEntry(
+            domain=const.DOMAIN,
+            title="ChoreOps",
+            data={},
+            options={},
+        )
+        coordinator.config_entry.add_to_hass(hass)
+        coordinator.store = MagicMock(spec=ChoreOpsStore)
+
+        migrator = mp50.PreV50Migrator(coordinator)
+
+        for method_name in [
+            "_migrate_datetime_wrapper",
+            "_migrate_stored_datetimes",
+            "_migrate_chore_data",
+            "_migrate_assignee_data",
+            "_migrate_legacy_assignee_chore_data_and_streaks",
+            "_migrate_badges",
+            "_migrate_assignee_legacy_badges_to_cumulative_progress",
+            "_migrate_assignee_legacy_badges_to_badges_earned",
+            "_migrate_legacy_point_stats",
+            "_migrate_independent_chores",
+            "_migrate_per_assignee_applicable_days",
+            "_migrate_approval_reset_type",
+            "_migrate_reward_data_to_periods",
+            "_initialize_data_from_config",
+            "_add_chore_optional_fields",
+            "_consolidate_point_stats",
+            "_round_float_precision",
+            "_cleanup_assignee_chore_data_due_dates_v50",
+            "_simplify_notification_config_v50",
+            "remove_deprecated_button_entities",
+            "remove_deprecated_sensor_entities",
+            "_strip_temporal_stats",
+            "_migrate_completed_metric",
+            "_migrate_badge_award_count_to_periods",
+            "_migrate_point_periods_v43",
+            "_migrate_chore_periods_v43",
+            "_migrate_reward_periods_v43",
+            "_migrate_bonus_penalty_periods_v43",
+        ]:
+            setattr(migrator, method_name, MagicMock())
+
+        await migrator.run_all_migrations()
+
+        users = coordinator._data.get(const.DATA_USERS, {})
+        assert "kid-1" in users
+        assert const.CONF_ASSIGNEES_LEGACY not in coordinator._data
+
+        migrated_user = users["kid-1"]
+        assert const.DATA_ASSIGNEE_CLAIMED_CHORES_LEGACY not in migrated_user
+        assert const.DATA_ASSIGNEE_APPROVED_CHORES_LEGACY not in migrated_user
+        assert const.DATA_ASSIGNEE_COMPLETED_CHORES_TODAY_LEGACY not in migrated_user
+        assert const.DATA_ASSIGNEE_CHORE_CLAIMS_LEGACY not in migrated_user
+
+    def test_remove_deprecated_sensor_entities_is_entry_scoped(self, migrator) -> None:
+        """Cleanup must not remove entities from other config entries."""
+        migrator.coordinator._data[const.DATA_USERS] = {
+            "user-a": {const.DATA_USER_NAME: "User A"}
+        }
+        migrator.coordinator._data[const.DATA_CHORES] = {
+            "chore-a": {
+                const.DATA_CHORE_NAME: "Chore A",
+                const.DATA_CHORE_ASSIGNED_USER_IDS: ["user-a"],
+                const.DATA_CHORE_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_INDEPENDENT,
+            }
+        }
+        migrator.coordinator._data[const.DATA_REWARDS] = {}
+        migrator.coordinator._data[const.DATA_PENALTIES] = {}
+        migrator.coordinator._data[const.DATA_BONUSES] = {}
+        migrator.coordinator._data[const.DATA_BADGES] = {}
+        migrator.coordinator._data[const.DATA_ACHIEVEMENTS] = {}
+        migrator.coordinator._data[const.DATA_CHALLENGES] = {}
+
+        own_stale = SimpleNamespace(
+            platform=const.DOMAIN,
+            domain="sensor",
+            entity_id="sensor.own_stale",
+            unique_id="entry-a_stale_sensor_uid",
+        )
+        other_entry_sensor = SimpleNamespace(
+            platform=const.DOMAIN,
+            domain="sensor",
+            entity_id="sensor.other_entry",
+            unique_id="entry-b_other_sensor_uid",
+        )
+
+        entity_registry = MagicMock()
+
+        with (
+            patch(
+                "custom_components.choreops.migration_pre_v50.er.async_get",
+                return_value=entity_registry,
+            ),
+            patch(
+                "custom_components.choreops.migration_pre_v50.er.async_entries_for_config_entry",
+                return_value=[own_stale],
+            ),
+        ):
+            migrator.remove_deprecated_sensor_entities()
+
+        removed_entity_ids = [
+            call.args[0] for call in entity_registry.async_remove.call_args_list
+        ]
+        assert "sensor.own_stale" in removed_entity_ids
+        assert "sensor.other_entry" not in removed_entity_ids
+        assert other_entry_sensor.entity_id not in removed_entity_ids
 
 
 # =============================================================================
