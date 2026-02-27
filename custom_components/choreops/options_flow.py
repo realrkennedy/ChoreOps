@@ -26,6 +26,7 @@ from .utils.dt_utils import dt_now_utc, dt_parse, validate_daily_multi_times
 from .utils.math_utils import parse_points_adjust_values
 
 if TYPE_CHECKING:
+    from .helpers.dashboard_helpers import DashboardTemplateDefinition
     from .type_defs import BadgeData
 
 # ----------------------------------------------------------------------------------
@@ -75,10 +76,10 @@ class ChoreOpsOptionsFlowHandler(config_entries.OptionsFlow):
         # Dashboard generator state
         self._dashboard_name: str = const.DASHBOARD_DEFAULT_NAME
         self._dashboard_selected_assignees: list[str] = []
-        self._dashboard_template_profile: str = const.DASHBOARD_STYLE_FULL
+        self._dashboard_template_profile: str = ""
         self._dashboard_admin_mode: str = const.DASHBOARD_ADMIN_MODE_GLOBAL
-        self._dashboard_admin_template_global: str = const.DASHBOARD_STYLE_ADMIN
-        self._dashboard_admin_template_per_assignee: str = const.DASHBOARD_STYLE_ADMIN
+        self._dashboard_admin_template_global: str = ""
+        self._dashboard_admin_template_per_assignee: str = ""
         self._dashboard_admin_view_visibility: str = (
             const.DASHBOARD_ADMIN_VIEW_VISIBILITY_ALL
         )
@@ -96,6 +97,14 @@ class ChoreOpsOptionsFlowHandler(config_entries.OptionsFlow):
         self._dashboard_update_url_path: str | None = None
         self._dashboard_delete_selection: list[str] = []
         self._dashboard_dedupe_removed: dict[str, int] = {}
+        self._dashboard_template_details_review: bool = True
+        self._dashboard_template_details_markdown: str = "- None"
+        self._dashboard_skip_template_details_once: bool = False
+        self._dashboard_skip_dependency_validation_once: bool = False
+        self._dashboard_pending_configure_input: dict[str, Any] | None = None
+        self._dashboard_missing_required_dependencies: list[str] = []
+        self._dashboard_missing_recommended_dependencies: list[str] = []
+        self._dashboard_missing_dependency_metadata: dict[str, dict[str, str]] = {}
 
     @staticmethod
     def _normalize_dashboard_admin_mode(admin_mode: str) -> str:
@@ -113,12 +122,107 @@ class ChoreOpsOptionsFlowHandler(config_entries.OptionsFlow):
         }
         return alias_map.get(normalized, const.DASHBOARD_ADMIN_MODE_GLOBAL)
 
+    @staticmethod
+    def _format_dashboard_dependency_line(
+        dependency_id: str,
+        dependency_metadata: dict[str, str] | None,
+    ) -> str:
+        """Format one dependency line for translated markdown placeholders."""
+        dependency_key = (
+            dependency_id.split(":", 1)[1] if ":" in dependency_id else dependency_id
+        )
+        card_id = f"custom:{dependency_key}"
+
+        display_name = dependency_id
+        dependency_url: str | None = None
+        if dependency_metadata:
+            metadata_name = dependency_metadata.get("name")
+            metadata_url = dependency_metadata.get("url")
+            if isinstance(metadata_name, str) and metadata_name.strip():
+                display_name = metadata_name.strip()
+            if isinstance(metadata_url, str) and metadata_url.strip():
+                dependency_url = metadata_url.strip()
+
+        if dependency_url:
+            return f"- [{display_name}]({dependency_url}) (`{card_id}`)"
+        return f"- {display_name} (`{card_id}`)"
+
+    def _build_dashboard_dependency_markdown_lines(
+        self,
+        dependency_ids: list[str],
+    ) -> str:
+        """Build markdown list for dependency placeholders."""
+        if not dependency_ids:
+            return "- None"
+
+        return "\n".join(
+            self._format_dashboard_dependency_line(
+                dependency_id,
+                self._dashboard_missing_dependency_metadata.get(dependency_id),
+            )
+            for dependency_id in dependency_ids
+        )
+
+    def _build_dashboard_template_details_markdown_lines(
+        self,
+        template_ids: list[str],
+        template_definitions: list["DashboardTemplateDefinition"],
+    ) -> str:
+        """Build markdown summary for selected template details."""
+        definition_by_template_id = {
+            definition["template_id"]: definition for definition in template_definitions
+        }
+
+        lines: list[str] = []
+        for template_id in template_ids:
+            definition = definition_by_template_id.get(template_id)
+            if definition is None:
+                lines.append(f"- **{template_id}**")
+                lines.append("  - No manifest metadata available")
+                continue
+
+            display_name = definition.get("display_name") or template_id
+            description = definition.get("description") or "No description provided"
+            required_count = len(definition.get("dependencies_required", []))
+            recommended_count = len(definition.get("dependencies_recommended", []))
+            preferences_doc_asset_path = definition.get("preferences_doc_asset_path")
+
+            lines.append(f"- **{display_name}** (`{template_id}`)")
+            lines.append(f"  - {description}")
+            lines.append(
+                f"  - Dependencies: required={required_count}, recommended={recommended_count}"
+            )
+
+            if preferences_doc_asset_path:
+                preferences_url = (
+                    f"https://github.com/{const.DASHBOARD_RELEASE_REPO_OWNER}/"
+                    f"{const.DASHBOARD_RELEASE_REPO_NAME}/blob/main/"
+                    f"{preferences_doc_asset_path}"
+                )
+                lines.append(f"  - Preferences: [View guide]({preferences_url})")
+            else:
+                lines.append("  - Preferences: Not provided")
+
+        return "\n".join(lines) if lines else "- None"
+
     # ----------------------------------------------------------------------------------
     # MAIN MENU
     # ----------------------------------------------------------------------------------
 
     async def async_step_init(self, user_input=None):
         """Display the main menu for the Options Flow."""
+        from .helpers import dashboard_helpers as dh
+
+        await dh.async_prime_manifest_template_definitions(self.hass)
+        if not self._dashboard_template_profile:
+            self._dashboard_template_profile = dh.get_default_assignee_template_id()
+        if not self._dashboard_admin_template_global:
+            self._dashboard_admin_template_global = dh.get_default_admin_template_id()
+        if not self._dashboard_admin_template_per_assignee:
+            self._dashboard_admin_template_per_assignee = (
+                dh.get_default_admin_template_id()
+            )
+
         # Check if reload is needed from previous entity add/edit operations
         if self._reload_needed and user_input is None:
             const.LOGGER.debug("Performing deferred reload after entity changes")
@@ -2063,7 +2167,10 @@ class ChoreOpsOptionsFlowHandler(config_entries.OptionsFlow):
             ] = selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=[
-                        {"value": key, "label": f"{assignee_name}: {label}"}
+                        selector.SelectOptionDict(
+                            value=key,
+                            label=f"{assignee_name}: {label}",
+                        )
                         for key, label in const.WEEKDAY_OPTIONS.items()
                     ],
                     multiple=True,
@@ -4052,49 +4159,6 @@ class ChoreOpsOptionsFlowHandler(config_entries.OptionsFlow):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            # Check if user wants to verify card installation
-            check_cards = user_input.get(const.CFOF_DASHBOARD_INPUT_CHECK_CARDS, False)
-
-            if check_cards:
-                # Run detection and show results
-                card_status = await dh.check_custom_cards_installed(self.hass)
-
-                # Build status message
-                status_lines = ["Custom Card Installation Status:"]
-                all_installed = True
-                for card_name, installed in card_status.items():
-                    status_icon = "✅" if installed else "❌"
-                    card_display = {
-                        "mushroom": "Mushroom Cards",
-                        "auto_entities": "Auto-Entities",
-                        "mini_graph": "Mini Graph Card",
-                        "button_card": "Button Card",
-                    }.get(card_name, card_name)
-
-                    status_lines.append(f"{status_icon} {card_display}")
-                    if not installed:
-                        all_installed = False
-
-                # Only show error and re-display form if cards are missing
-                if not all_installed:
-                    status_lines.append("")
-                    status_lines.append(
-                        "⚠️ Missing cards detected. Install via HACS → Frontend."
-                    )
-
-                    # Show results as an error and block progression
-                    errors["base"] = "\n".join(status_lines)
-
-                    # Re-show form with status - keep checkbox checked
-                    schema = dh.build_dashboard_action_schema(check_cards_default=True)
-                    return self.async_show_form(
-                        step_id=const.OPTIONS_FLOW_STEP_DASHBOARD_GENERATOR,
-                        data_schema=schema,
-                        errors=errors,
-                    )
-
-                # All cards installed - proceed normally (fall through to action handling)
-
             # Proceed with selected action
             action = str(
                 user_input.get(
@@ -4121,10 +4185,6 @@ class ChoreOpsOptionsFlowHandler(config_entries.OptionsFlow):
             errors=errors,
             description_placeholders={
                 const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_DASHBOARD_GENERATION,
-                const.PLACEHOLDER_DASHBOARD_CARD_MUSHROOM_URL: const.DOC_URL_CARD_MUSHROOM,
-                const.PLACEHOLDER_DASHBOARD_CARD_AUTO_ENTITIES_URL: const.DOC_URL_CARD_AUTO_ENTITIES,
-                const.PLACEHOLDER_DASHBOARD_CARD_MINI_GRAPH_URL: const.DOC_URL_CARD_MINI_GRAPH,
-                const.PLACEHOLDER_DASHBOARD_CARD_BUTTON_URL: const.DOC_URL_CARD_BUTTON,
             },
         )
 
@@ -4223,7 +4283,7 @@ class ChoreOpsOptionsFlowHandler(config_entries.OptionsFlow):
                 available_release_tags = (
                     await builder.discover_compatible_dashboard_release_tags(self.hass)
                 )
-            except (TimeoutError, HomeAssistantError, ValueError) as err:
+            except (TimeoutError, HomeAssistantError, ValueError, Exception) as err:
                 const.LOGGER.debug(
                     "Release tags unavailable while building dashboard update schema: %s",
                     err,
@@ -4231,6 +4291,10 @@ class ChoreOpsOptionsFlowHandler(config_entries.OptionsFlow):
 
         if user_input is not None:
             user_input = dh.normalize_dashboard_configure_input(user_input)
+            skip_template_details = self._dashboard_skip_template_details_once
+            self._dashboard_skip_template_details_once = False
+            skip_dependency_validation = self._dashboard_skip_dependency_validation_once
+            self._dashboard_skip_dependency_validation_once = False
             self._dashboard_dedupe_removed = {}
             selected_assignees_input = user_input.get(
                 const.CFOF_DASHBOARD_INPUT_ASSIGNEE_SELECTION,
@@ -4245,6 +4309,10 @@ class ChoreOpsOptionsFlowHandler(config_entries.OptionsFlow):
                     const.CFOF_DASHBOARD_INPUT_TEMPLATE_PROFILE,
                     self._dashboard_template_profile,
                 )
+            )
+            template_profile = dh.normalize_template_id(
+                template_profile,
+                admin_template=False,
             )
             admin_mode = str(
                 user_input.get(
@@ -4265,12 +4333,20 @@ class ChoreOpsOptionsFlowHandler(config_entries.OptionsFlow):
                     self._dashboard_admin_template_global,
                 )
             ).strip()
+            admin_template_global = dh.normalize_template_id(
+                admin_template_global,
+                admin_template=True,
+            )
             admin_template_per_assignee = str(
                 user_input.get(
                     const.CFOF_DASHBOARD_INPUT_ADMIN_TEMPLATE_PER_ASSIGNEE,
                     self._dashboard_admin_template_per_assignee,
                 )
             ).strip()
+            admin_template_per_assignee = dh.normalize_template_id(
+                admin_template_per_assignee,
+                admin_template=True,
+            )
             admin_view_visibility = str(
                 user_input.get(
                     const.CFOF_DASHBOARD_INPUT_ADMIN_VIEW_VISIBILITY,
@@ -4303,6 +4379,12 @@ class ChoreOpsOptionsFlowHandler(config_entries.OptionsFlow):
                 user_input.get(
                     const.CFOF_DASHBOARD_INPUT_INCLUDE_PRERELEASES,
                     self._dashboard_include_prereleases,
+                )
+            )
+            template_details_review = bool(
+                user_input.get(
+                    const.CFOF_DASHBOARD_INPUT_TEMPLATE_DETAILS_REVIEW,
+                    self._dashboard_template_details_review,
                 )
             )
 
@@ -4344,6 +4426,7 @@ class ChoreOpsOptionsFlowHandler(config_entries.OptionsFlow):
                     self._dashboard_icon = icon or "mdi:clipboard-list"
                     self._dashboard_release_selection = release_selection
                     self._dashboard_include_prereleases = include_prereleases
+                    self._dashboard_template_details_review = template_details_review
                     return await self.async_step_dashboard_configure()
 
             if not selected_assignees and admin_mode == const.DASHBOARD_ADMIN_MODE_NONE:
@@ -4394,11 +4477,148 @@ class ChoreOpsOptionsFlowHandler(config_entries.OptionsFlow):
                 )
 
             if not errors:
+                pinned_release_tag = (
+                    release_selection
+                    if release_selection
+                    != const.DASHBOARD_RELEASE_MODE_LATEST_COMPATIBLE
+                    else None
+                )
+                selected_template_ids: set[str] = {template_profile}
+                if (
+                    admin_mode
+                    in (
+                        const.DASHBOARD_ADMIN_MODE_GLOBAL,
+                        const.DASHBOARD_ADMIN_MODE_BOTH,
+                    )
+                    and admin_template_global
+                ):
+                    selected_template_ids.add(admin_template_global)
+                if (
+                    admin_mode
+                    in (
+                        const.DASHBOARD_ADMIN_MODE_PER_ASSIGNEE,
+                        const.DASHBOARD_ADMIN_MODE_BOTH,
+                    )
+                    and admin_template_per_assignee
+                ):
+                    selected_template_ids.add(admin_template_per_assignee)
+
+                template_definitions = dh.get_dashboard_template_definitions()
+                if pinned_release_tag is not None:
+                    remote_definitions = (
+                        await dh.fetch_remote_manifest_template_definitions(
+                            self.hass,
+                            pinned_release_tag,
+                        )
+                    )
+                    if remote_definitions:
+                        template_definitions = dh.merge_manifest_template_definitions(
+                            template_definitions,
+                            remote_definitions,
+                        )
+
+                if template_details_review and not skip_template_details:
+                    self._dashboard_pending_configure_input = user_input
+                    self._dashboard_template_details_markdown = (
+                        self._build_dashboard_template_details_markdown_lines(
+                            sorted(selected_template_ids),
+                            template_definitions,
+                        )
+                    )
+                    return await self.async_step_dashboard_template_details()
+
+                should_validate_dependencies = not skip_dependency_validation
+                if should_validate_dependencies:
+                    nonselectable_templates = (
+                        dh.get_nonselectable_template_ids_from_definitions(
+                            list(selected_template_ids),
+                            template_definitions,
+                        )
+                    )
+                    if nonselectable_templates:
+                        errors[const.CFOP_ERROR_BASE] = (
+                            "Selected templates are unavailable for generation:\n"
+                            + "\n".join(
+                                f"- {template_id}"
+                                for template_id in nonselectable_templates
+                            )
+                        )
+
+                    required_dependency_ids: set[str] = set()
+                    recommended_dependency_ids: set[str] = set()
+                    if not errors:
+                        (
+                            required_dependency_ids,
+                            recommended_dependency_ids,
+                        ) = dh.get_dependency_ids_for_templates_from_definitions(
+                            list(selected_template_ids),
+                            template_definitions,
+                        )
+
+                        dependency_metadata = (
+                            dh.get_dependency_metadata_for_templates_from_definitions(
+                                list(selected_template_ids),
+                                template_definitions,
+                            )
+                        )
+
+                        dependency_status = (
+                            await dh.check_dashboard_dependency_ids_installed(
+                                self.hass,
+                                required_dependency_ids | recommended_dependency_ids,
+                            )
+                        )
+
+                        missing_required = sorted(
+                            dependency_id
+                            for dependency_id in required_dependency_ids
+                            if not dependency_status.get(dependency_id, False)
+                        )
+                        missing_recommended = sorted(
+                            dependency_id
+                            for dependency_id in recommended_dependency_ids
+                            if not dependency_status.get(dependency_id, False)
+                        )
+
+                        if missing_required:
+                            self._dashboard_pending_configure_input = user_input
+                            self._dashboard_missing_required_dependencies = (
+                                missing_required
+                            )
+                            self._dashboard_missing_recommended_dependencies = (
+                                missing_recommended
+                            )
+                            self._dashboard_missing_dependency_metadata = {
+                                dependency_id: {
+                                    key: value
+                                    for key, value in dependency_metadata.get(
+                                        dependency_id,
+                                        {},
+                                    ).items()
+                                    if isinstance(value, str)
+                                }
+                                for dependency_id in (
+                                    missing_required + missing_recommended
+                                )
+                            }
+                            return (
+                                await self.async_step_dashboard_missing_dependencies()
+                            )
+                        if missing_recommended:
+                            const.LOGGER.warning(
+                                "Missing recommended dashboard card dependencies: %s",
+                                ", ".join(missing_recommended),
+                            )
+                            self._dashboard_status_message = (
+                                "Missing recommended dependencies (generation will continue): "
+                                + ", ".join(missing_recommended)
+                            )
+
+            if not errors:
                 include_admin = admin_mode != const.DASHBOARD_ADMIN_MODE_NONE
                 pinned_release_tag = (
                     release_selection
-                    if is_update_flow
-                    and release_selection
+                    if release_selection
                     != const.DASHBOARD_RELEASE_MODE_LATEST_COMPATIBLE
                     else None
                 )
@@ -4416,12 +4636,19 @@ class ChoreOpsOptionsFlowHandler(config_entries.OptionsFlow):
                 self._dashboard_admin_view_visibility = admin_view_visibility
                 self._dashboard_release_selection = release_selection
                 self._dashboard_include_prereleases = include_prereleases
+                self._dashboard_template_details_review = template_details_review
                 admin_visible_user_ids = (
                     self._get_user_ha_user_ids()
                     if admin_view_visibility
                     == const.DASHBOARD_ADMIN_VIEW_VISIBILITY_LINKED_APPROVERS
                     else None
                 )
+                selected_assignee_ids_by_name = {
+                    assignee_data.get(const.DATA_USER_NAME): assignee_id
+                    for assignee_id, assignee_data in self._get_coordinator().assignees_data.items()
+                    if isinstance(assignee_data.get(const.DATA_USER_NAME), str)
+                    and assignee_data.get(const.DATA_USER_NAME) in selected_assignees
+                }
 
                 try:
                     if is_update_flow:
@@ -4431,8 +4658,10 @@ class ChoreOpsOptionsFlowHandler(config_entries.OptionsFlow):
 
                         view_count = await builder.update_choreops_dashboard_views(
                             self.hass,
+                            integration_entry_id=self.config_entry.entry_id,
                             url_path=url_path,
                             assignee_names=selected_assignees,
+                            assignee_ids_by_name=selected_assignee_ids_by_name,
                             template_profile=template_profile,
                             include_admin=include_admin,
                             admin_mode=admin_mode,
@@ -4456,8 +4685,10 @@ class ChoreOpsOptionsFlowHandler(config_entries.OptionsFlow):
 
                         url_path = await builder.create_choreops_dashboard(
                             self.hass,
+                            integration_entry_id=self.config_entry.entry_id,
                             dashboard_name=self._dashboard_name,
                             assignee_names=selected_assignees,
+                            assignee_ids_by_name=selected_assignee_ids_by_name,
                             style=template_profile,
                             assignee_template_profiles=dict.fromkeys(
                                 selected_assignees, template_profile
@@ -4472,6 +4703,8 @@ class ChoreOpsOptionsFlowHandler(config_entries.OptionsFlow):
                             icon=self._dashboard_icon,
                             admin_view_visibility=admin_view_visibility,
                             admin_visible_user_ids=admin_visible_user_ids,
+                            pinned_release_tag=pinned_release_tag,
+                            include_prereleases=include_prereleases,
                         )
                         self._dashboard_status_message = f"Created {url_path} (assignees={len(selected_assignees)}, admin_mode={admin_mode})"
 
@@ -4514,6 +4747,7 @@ class ChoreOpsOptionsFlowHandler(config_entries.OptionsFlow):
             icon_default=self._dashboard_icon,
             include_prereleases_default=self._dashboard_include_prereleases,
             release_selection_default=self._dashboard_release_selection,
+            template_details_review_default=self._dashboard_template_details_review,
         )
 
         return self.async_show_form(
@@ -4524,6 +4758,91 @@ class ChoreOpsOptionsFlowHandler(config_entries.OptionsFlow):
                 "mode": self._dashboard_flow_mode,
                 "dashboard": self._dashboard_update_url_path or self._dashboard_name,
                 const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_DASHBOARD_GENERATION,
+            },
+        )
+
+    async def async_step_dashboard_template_details(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Review selected template metadata before generation/update."""
+        from .helpers import dashboard_helpers as dh
+
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            continue_anyway = bool(
+                user_input.get(const.CFOF_DASHBOARD_INPUT_TEMPLATE_DETAILS_ACK, False)
+            )
+            if not continue_anyway:
+                errors[const.CFOP_ERROR_BASE] = (
+                    const.TRANS_KEY_CFOF_DASHBOARD_TEMPLATE_DETAILS_ACK_REQUIRED
+                )
+            elif self._dashboard_pending_configure_input is None:
+                return await self.async_step_dashboard_configure()
+            else:
+                pending_input = self._dashboard_pending_configure_input
+                self._dashboard_pending_configure_input = None
+                self._dashboard_skip_template_details_once = True
+                return await self.async_step_dashboard_configure(pending_input)
+
+        schema = dh.build_dashboard_template_details_schema()
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_DASHBOARD_TEMPLATE_DETAILS,
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={
+                const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_DASHBOARD_GENERATION,
+                const.PLACEHOLDER_DASHBOARD_TEMPLATE_DETAILS: (
+                    self._dashboard_template_details_markdown
+                ),
+            },
+        )
+
+    async def async_step_dashboard_missing_dependencies(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle missing dashboard dependency confirmation with dynamic details."""
+        from .helpers import dashboard_helpers as dh
+
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            continue_anyway = bool(
+                user_input.get(const.CFOF_DASHBOARD_INPUT_DEPENDENCY_BYPASS, False)
+            )
+            if not continue_anyway:
+                errors[const.CFOP_ERROR_BASE] = (
+                    const.TRANS_KEY_CFOF_DASHBOARD_DEPENDENCY_ACK_REQUIRED
+                )
+            elif self._dashboard_pending_configure_input is None:
+                return await self.async_step_dashboard_configure()
+            else:
+                pending_input = self._dashboard_pending_configure_input
+                self._dashboard_pending_configure_input = None
+                self._dashboard_skip_template_details_once = True
+                self._dashboard_skip_dependency_validation_once = True
+                self._dashboard_status_message = (
+                    "Missing required dependencies bypassed by user"
+                )
+                return await self.async_step_dashboard_configure(pending_input)
+
+        schema = dh.build_dashboard_missing_dependencies_schema()
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_DASHBOARD_MISSING_DEPENDENCIES,
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={
+                const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_DASHBOARD_GENERATION,
+                const.PLACEHOLDER_DASHBOARD_MISSING_REQUIRED_DEPENDENCIES: (
+                    self._build_dashboard_dependency_markdown_lines(
+                        self._dashboard_missing_required_dependencies
+                    )
+                ),
+                const.PLACEHOLDER_DASHBOARD_MISSING_RECOMMENDED_DEPENDENCIES: (
+                    self._build_dashboard_dependency_markdown_lines(
+                        self._dashboard_missing_recommended_dependencies
+                    )
+                ),
             },
         )
 

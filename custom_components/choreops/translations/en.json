@@ -1527,14 +1527,32 @@
       },
       "dashboard_generator": {
         "title": "Dashboard Actions",
-        "description": "Create, update, or delete ChoreOps Lovelace dashboards.\n\n[Dashboard configuration guide]({documentation_url})\n\n**Required Custom Cards** (install via HACS Frontend):\n- [Mushroom Cards]({dashboard_card_mushroom_url}) (`custom:mushroom-template-card`)\n- [Auto-Entities]({dashboard_card_auto_entities_url}) (`custom:auto-entities`)\n- [Mini Graph Card]({dashboard_card_mini_graph_url}) (`custom:mini-graph-card`)\n- [Button Card]({dashboard_card_button_url}) (`custom:button-card`)\n\nWithout these cards, dashboards will show errors. Install them first from HACS before generating dashboards.",
+        "description": "Create, update, or delete ChoreOps Lovelace dashboards.\n\n[Dashboard configuration guide]({documentation_url})",
         "data": {
-          "dashboard_action": "Action",
-          "dashboard_check_cards": "Check Card Installation"
+          "dashboard_action": "Action"
         },
         "data_description": {
-          "dashboard_action": "Choose one action: create a new dashboard, update views on an existing dashboard, or delete dashboards.",
-          "dashboard_check_cards": "Enable to verify that required custom cards are installed before proceeding."
+          "dashboard_action": "Choose one action: create a new dashboard, update views on an existing dashboard, or delete dashboards."
+        }
+      },
+      "dashboard_missing_dependencies": {
+        "title": "Missing dashboard dependencies",
+        "description": "Some required dashboard cards are missing for your selected templates.\n\n[Dashboard configuration guide]({documentation_url})\n\n**Missing required dependencies**\n{dashboard_missing_required_dependencies}\n\n**Missing recommended dependencies**\n{dashboard_missing_recommended_dependencies}\n\nInstall required cards via HACS Frontend before continuing.",
+        "data": {
+          "dashboard_dependency_bypass": "Continue anyway"
+        },
+        "data_description": {
+          "dashboard_dependency_bypass": "Acknowledge missing required dependencies and continue generation anyway. Dashboard cards may fail to render until dependencies are installed."
+        }
+      },
+      "dashboard_template_details": {
+        "title": "Template details review",
+        "description": "Review details for selected templates before applying dashboard changes.\n\n[Dashboard configuration guide]({documentation_url})\n\n{dashboard_template_details}",
+        "data": {
+          "dashboard_template_details_ack": "Continue with these templates"
+        },
+        "data_description": {
+          "dashboard_template_details_ack": "Acknowledge the selected template details and continue to dependency checks and generation."
         }
       },
       "dashboard_create": {
@@ -1562,15 +1580,15 @@
         "description": "Configure dashboard sections for **{dashboard}** (mode: {mode}).\n\n[Configuration Guide]({documentation_url})",
         "sections": {
           "section_assignee_views": {
-            "name": "Assignee views",
-            "description": "Choose the assignee template style and which assignees to include.",
+            "name": "User views",
+            "description": "Choose the dashboard template and which users to include.",
             "data": {
-              "dashboard_template_profile": "Assignee Template Profile",
-              "dashboard_assignee_selection": "Assignees"
+              "dashboard_template_profile": "User Dashboard Template",
+              "dashboard_assignee_selection": "Users"
             },
             "data_description": {
-              "dashboard_template_profile": "Template profile applied to selected assignee views.",
-              "dashboard_assignee_selection": "Select assignees to include in this dashboard."
+              "dashboard_template_profile": "Manifest-defined template used for selected user views.",
+              "dashboard_assignee_selection": "Select users to include in this dashboard."
             }
           },
           "section_admin_views": {
@@ -1578,14 +1596,14 @@
             "description": "Choose which admin layout to generate and who can see it.",
             "data": {
               "dashboard_admin_mode": "Admin Layout",
-              "dashboard_admin_template_global": "Shared Admin Template",
-              "dashboard_admin_template_per_assignee": "Per-Assignee Admin Template",
+              "dashboard_admin_template_global": "Shared Admin Dashboard Template",
+              "dashboard_admin_template_per_assignee": "Per-User Admin Dashboard Template",
               "dashboard_admin_view_visibility": "Admin View Visibility"
             },
             "data_description": {
-              "dashboard_admin_mode": "Choose the admin layout: none, shared, per assignee, or both.",
-              "dashboard_admin_template_global": "Template used when Admin Layout includes Shared.",
-              "dashboard_admin_template_per_assignee": "Template used when Admin Layout includes Per Assignee.",
+              "dashboard_admin_mode": "Choose the admin layout: none, shared, per user, or both.",
+              "dashboard_admin_template_global": "Manifest-defined template used when Admin Layout includes Shared.",
+              "dashboard_admin_template_per_assignee": "Manifest-defined template used when Admin Layout includes Per user.",
               "dashboard_admin_view_visibility": "Control who can see admin views. Approver-linked visibility uses linked approver HA users."
             }
           },
@@ -1595,12 +1613,14 @@
             "data": {
               "dashboard_icon": "Dashboard Icon",
               "dashboard_require_admin": "Admin Only",
-              "dashboard_show_in_sidebar": "Add to Sidebar"
+              "dashboard_show_in_sidebar": "Add to Sidebar",
+              "dashboard_template_details_review": "Review template details before apply"
             },
             "data_description": {
               "dashboard_icon": "Sidebar icon for this dashboard.",
               "dashboard_require_admin": "Restrict dashboard access to admin users.",
-              "dashboard_show_in_sidebar": "Show this dashboard in the Home Assistant sidebar."
+              "dashboard_show_in_sidebar": "Show this dashboard in the Home Assistant sidebar.",
+              "dashboard_template_details_review": "Show a review step with template descriptions, dependencies, and preference guide links before applying changes."
             }
           },
           "section_template_version": {
@@ -1617,11 +1637,11 @@
           }
         },
         "data": {
-          "dashboard_template_profile": "Assignee Template Profile",
+          "dashboard_template_profile": "Assignee Dashboard Template",
           "dashboard_assignee_selection": "Assignees",
           "dashboard_admin_mode": "Admin Layout",
-          "dashboard_admin_template_global": "Shared Admin Template",
-          "dashboard_admin_template_per_assignee": "Per-Assignee Admin Template",
+          "dashboard_admin_template_global": "Shared Admin Dashboard Template",
+          "dashboard_admin_template_per_assignee": "Per-Assignee Admin Dashboard Template",
           "dashboard_admin_view_visibility": "Admin View Visibility",
           "dashboard_icon": "Dashboard Icon",
           "dashboard_require_admin": "Admin Only",
@@ -1630,11 +1650,11 @@
           "dashboard_release_selection": "Dashboard Template Version"
         },
         "data_description": {
-          "dashboard_template_profile": "Template profile applied to selected assignee views.",
+          "dashboard_template_profile": "Manifest-defined template used for selected assignee views.",
           "dashboard_assignee_selection": "Select assignees to include in this dashboard.",
           "dashboard_admin_mode": "Choose the admin layout: none, shared, per assignee, or both.",
-          "dashboard_admin_template_global": "Template used when Admin Layout includes Shared.",
-          "dashboard_admin_template_per_assignee": "Template used when Admin Layout includes Per Assignee.",
+          "dashboard_admin_template_global": "Manifest-defined template used when Admin Layout includes Shared.",
+          "dashboard_admin_template_per_assignee": "Manifest-defined template used when Admin Layout includes Per Assignee.",
           "dashboard_admin_view_visibility": "Control who can see admin views. Approver-linked visibility uses linked approver HA users.",
           "dashboard_icon": "Sidebar icon for this dashboard.",
           "dashboard_require_admin": "Restrict dashboard access to admin users.",
@@ -1865,7 +1885,9 @@
       "dashboard_no_assignees_no_admin": "Select at least one assignee, or choose an Admin Layout other than 'none'.",
       "dashboard_admin_global_template_required": "Shared admin template is required when Admin Layout includes Shared.",
       "dashboard_admin_per_assignee_template_required": "Per-assignee admin template is required when Admin Layout includes Per Assignee.",
-      "dashboard_admin_per_assignee_needs_assignees": "Per Assignee Admin Layout requires at least one selected assignee."
+      "dashboard_admin_per_assignee_needs_assignees": "Per Assignee Admin Layout requires at least one selected assignee.",
+      "dashboard_dependency_ack_required": "Enable 'Continue anyway' to proceed, or go back and install missing required dependencies first.",
+      "dashboard_template_details_ack_required": "Enable 'Continue with these templates' to proceed, or go back and adjust template selections."
     },
     "abort": {
       "invalid_action": "Invalid Action",
@@ -1927,11 +1949,7 @@
       "options": {}
     },
     "dashboard_template_profile": {
-      "options": {
-        "full": "Full (All features)",
-        "minimal": "Minimal (Essentials only)",
-        "compact": "Compact (Dense layout)"
-      }
+      "options": {}
     },
     "dashboard_admin_mode": {
       "options": {

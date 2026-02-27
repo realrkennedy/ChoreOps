@@ -25,6 +25,20 @@ To maintain a clean history and stable environment use a **Traffic Controller** 
 - **Sync Protocol**: Regularly merge `l10n-staging` back into your active feature branches to receive the latest translations from Crowdin.
 - **Commit Style**: Use **Conventional Commits** (e.g., `feat:`, `fix:`, `refactor:`, `chore(l10n):`) to ensure a readable, professional history.
 
+### 1.0 Release tag versioning standard (all repos)
+
+Use SemVer-style Git tags with a required `v` prefix for all ChoreOps repositories.
+
+- **Stable tags**: `vX.Y.Z` (example: `v1.5.0`)
+- **Prerelease tags**: `vX.Y.Z-beta.N`, `vX.Y.Z-rc.N` (examples: `v1.5.0-beta.1`, `v1.5.0-rc.1`)
+- **Tag immutability**: Published tags are immutable; never retag an existing version.
+- **Consistency rule**: The same format applies to both the integration repo and the dashboard registry repo.
+
+Cross-repository coordination rule:
+
+- Integration and dashboard registry versions may evolve independently.
+- Compatibility must be enforced by explicit manifest compatibility fields and schema contracts, not by assuming equal version numbers across repositories.
+
 ### 1.1 Development environment lock (VS Code)
 
 To keep editor diagnostics stable across contributors, this repository uses a locked interpreter in workspace settings:
@@ -52,6 +66,14 @@ To keep editor diagnostics stable across contributors, this repository uses a lo
 - **Architecture enforcement**: `utils/check_boundaries.py` is a required gate, not optional.
 - **Test default behavior**: Pytest excludes `performance` and `stress` markers unless explicitly requested.
 - **Definition of done**: Lint gate + zero MyPy errors + relevant pytest pass.
+
+### 1.3 Dashboard asset governance (required)
+
+- **Single source of truth**: Dashboard authoring assets live in `choreops-dashboards`.
+- **Registry filename contract**: Use `dashboard_registry.json` for dashboard template metadata.
+- **Vendored runtime mirror**: Runtime assets in `custom_components/choreops/dashboards/` are sync outputs, not hand-edited sources.
+- **No hardcoded registry filename strings**: Use constants/path derivation in runtime code.
+- **Required update flow**: canonical edit → `python utils/sync_dashboard_assets.py` → `python utils/sync_dashboard_assets.py --check` → integration validation.
 
 ---
 
