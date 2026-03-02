@@ -47,16 +47,16 @@ Emphasis rules:
 
 Use these emoji for inline text contexts (for example markdown summaries, compact status strings, or helper text). Use the MDI icon in Lovelace card `icon` fields.
 
-| Item type | Standard emoji | Closest MDI icon | Alternate MDI icon | Usage note |
-| --- | --- | --- | --- | --- |
-| Points | `⭐` | `mdi:star` | `mdi:star-circle` | Numeric point totals and score highlights |
-| Chores | `🧹` | `mdi:broom` | `mdi:clipboard-list` | Chore lists and chore section headings |
-| Badges | `🥇` | `mdi:medal` | `mdi:shield-star` | Badge progress and earned badge summaries |
-| Rewards | `🎁` | `mdi:gift` | `mdi:gift-open` | Reward catalogs and reward claim status |
-| Bonuses | `✨` | `mdi:sparkles` | `mdi:star-plus` | Positive admin adjustments and bonus callouts |
-| Penalties | `💥` | `mdi:alert-octagon` | `mdi:minus-circle` | Negative admin adjustments and penalty alerts |
-| Achievements | `🏆` | `mdi:trophy` | `mdi:trophy-award` | Achievement milestones and unlock cards |
-| Challenges | `🏁` | `mdi:flag-checkered` | `mdi:flag-variant` | Challenge start/finish states and challenge sections |
+| Item type    | Standard emoji | Closest MDI icon     | Alternate MDI icon   | Usage note                                           |
+| ------------ | -------------- | -------------------- | -------------------- | ---------------------------------------------------- |
+| Points       | `⭐`           | `mdi:star`           | `mdi:star-circle`    | Numeric point totals and score highlights            |
+| Chores       | `🧹`           | `mdi:broom`          | `mdi:clipboard-list` | Chore lists and chore section headings               |
+| Badges       | `🥇`           | `mdi:medal`          | `mdi:shield-star`    | Badge progress and earned badge summaries            |
+| Rewards      | `🎁`           | `mdi:gift`           | `mdi:gift-open`      | Reward catalogs and reward claim status              |
+| Bonuses      | `✨`           | `mdi:sparkles`       | `mdi:star-plus`      | Positive admin adjustments and bonus callouts        |
+| Penalties    | `💥`           | `mdi:alert-octagon`  | `mdi:minus-circle`   | Negative admin adjustments and penalty alerts        |
+| Achievements | `🏆`           | `mdi:trophy`         | `mdi:trophy-award`   | Achievement milestones and unlock cards              |
+| Challenges   | `🏁`           | `mdi:flag-checkered` | `mdi:flag-variant`   | Challenge start/finish states and challenge sections |
 
 > [!TIP]
 > Prefer MDI icons for interactive cards and controls; reserve emoji for text-first contexts where quick scanning is more important than strict icon uniformity.
@@ -74,6 +74,21 @@ For high-attention states (`due`, `overdue`):
 
 - Apply state color to icon and border accent
 - Keep contrast high for label legibility
+
+## Metadata stamp presentation
+
+Use metadata stamps as lightweight troubleshooting context, not as a primary UX signal.
+
+Stamp content contract:
+
+- `META STAMP: {template_id} • {release} • {generated_at}`
+
+Placement and visual rules:
+
+- Place the metadata stamp at the top of each card template block immediately after the card header comment marker.
+- Keep stamp text in de-emphasized styling relative to `primary`/`secondary` card text.
+- Do not replace state communication channels with stamp text.
+- Keep stamp formatting compact and consistent across user and admin templates.
 
 ## Core per-user states (actionable)
 

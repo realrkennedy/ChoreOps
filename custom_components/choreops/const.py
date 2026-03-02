@@ -871,6 +871,8 @@ DASHBOARD_RELEASE_MODE_LATEST_STABLE: Final = "latest_stable"
 
 # Dashboard generated config metadata keys (not helper sensor attributes)
 DASHBOARD_CONFIG_KEY_PROVENANCE: Final = "dashboard_provenance"
+DASHBOARD_CONTEXT_KEY_META: Final = "dashboard_meta"
+DASHBOARD_CONTEXT_KEY_SNIPPETS: Final = "template_snippets"
 DASHBOARD_PROVENANCE_KEY_TEMPLATE_ID: Final = "template_id"
 DASHBOARD_PROVENANCE_KEY_SOURCE_TYPE: Final = "source_type"
 DASHBOARD_PROVENANCE_KEY_SELECTED_REF: Final = "selected_ref"
@@ -879,6 +881,24 @@ DASHBOARD_PROVENANCE_KEY_EFFECTIVE_REF: Final = "effective_ref"
 DASHBOARD_PROVENANCE_KEY_RESOLUTION_REASON: Final = "resolution_reason"
 DASHBOARD_PROVENANCE_KEY_GENERATED_AT: Final = "generated_at"
 DASHBOARD_PROVENANCE_KEY_INCLUDE_PRERELEASES: Final = "include_prereleases"
+DASHBOARD_META_KEY_RELEASE_VERSION: Final = "release_version"
+
+# Dashboard template snippet keys (context-injected)
+DASHBOARD_SNIPPET_KEY_USER_SETUP: Final = "user_setup"
+DASHBOARD_SNIPPET_KEY_USER_VALIDATION: Final = "user_validation"
+DASHBOARD_SNIPPET_KEY_ADMIN_SETUP_SHARED: Final = "admin_setup_shared"
+DASHBOARD_SNIPPET_KEY_ADMIN_SETUP_PERUSER: Final = "admin_setup_peruser"
+DASHBOARD_SNIPPET_KEY_ADMIN_VALIDATION_MISSING_SELECTOR: Final = (
+    "admin_validation_missing_selector"
+)
+DASHBOARD_SNIPPET_KEY_ADMIN_VALIDATION_INVALID_SELECTION: Final = (
+    "admin_validation_invalid_selection"
+)
+DASHBOARD_SNIPPET_KEY_ADMIN_VALIDATION_DASHBOARD_HELPER: Final = (
+    "admin_validation_dashboard_helper"
+)
+DASHBOARD_SNIPPET_KEY_USER_OVERRIDE_HELPER: Final = "user_override_helper"
+DASHBOARD_SNIPPET_KEY_META_STAMP: Final = "meta_stamp"
 
 # Chore Custom Interval Reset Periods
 CUSTOM_INTERVAL_UNIT_OPTIONS: Final = [

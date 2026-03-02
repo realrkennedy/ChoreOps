@@ -1,6 +1,6 @@
 # Dashboard Template Guide
 
-**Version**: 0.5.0-beta.5 | **Last Updated**: 2026-02-27
+**Version**: 0.5.0-beta.5 | **Last Updated**: 2026-03-02
 
 This guide documents the rules and patterns for creating, modifying, and managing ChoreOps dashboard templates.
 
@@ -237,6 +237,83 @@ Processed by the integration when generating the dashboard.
 ```
 
 Admin templates can be shared-selector or per-user-tab models, but all helper lookup logic must still use identity-scoped contracts (`integration.entry_id` + `user.user_id`).
+
+### Metadata stamp and reusable snippet contract
+
+Templates now receive two additional build-time context objects:
+
+- `dashboard_meta` for per-render metadata values
+- `template_snippets` for canonical reusable setup/validation blocks
+
+#### `dashboard_meta` fields
+
+```python
+{
+  "dashboard_meta": {
+    "integration_entry_id": "<config-entry-id>",
+    "template_id": "<template-id>",
+    "effective_ref": "<resolved-release-ref-or-none>",
+    "release_version": "<local-release-version-or-none>",
+    "generated_at": "<iso-utc-timestamp>"
+  }
+}
+```
+
+#### `template_snippets` keys (canonical)
+
+- `template_snippets.user_setup`
+- `template_snippets.user_validation`
+- `template_snippets.user_override_helper`
+- `template_snippets.admin_setup_shared`
+- `template_snippets.admin_setup_peruser`
+- `template_snippets.admin_validation_missing_selector`
+- `template_snippets.admin_validation_invalid_selection`
+- `template_snippets.meta_stamp`
+
+Required usage rules:
+
+1. Use canonical snippet keys only (no ad-hoc snippet variants).
+2. Keep card header comment first, then place snippet insertions.
+3. Keep numbered section order (configuration before validation, then render/data).
+
+Canonical insertion pattern (user cards):
+
+```jinja
+{#-- ===== <CARD NAME> CARD ===== --#}
+<< template_snippets.meta_stamp >>
+
+{#-- 1. User Configuration --#}
+<< template_snippets.user_override_helper >>
+
+{#-- 2. Dynamic Lookups & Validations --#}
+<< template_snippets.user_setup >>
+<< template_snippets.user_validation >>
+```
+
+Canonical insertion pattern (admin cards):
+
+```jinja
+{#-- ===== <CARD NAME> CARD ===== --#}
+<< template_snippets.meta_stamp >>
+
+{#-- 1. User Configuration --#}
+<< template_snippets.user_override_helper >>
+
+{#-- 2. Dynamic Lookups & Validations --#}
+<< template_snippets.admin_setup_shared >>
+<< template_snippets.admin_validation_missing_selector >>
+<< template_snippets.admin_validation_invalid_selection >>
+```
+
+#### Metadata stamp format and placement
+
+Stamp format is canonical and compact:
+
+- `META STAMP: {template_id} • {release} • {generated_at}`
+
+Placement rule:
+
+- Put `template_snippets.meta_stamp` as the first inserted line inside each card template block, directly under the card header comment.
 
 ### Runtime (Home Assistant Jinja2) - `{{ }}`
 
@@ -643,45 +720,5 @@ Release-based fetch keeps template selection deterministic; local fallback prese
 │ When: Dashboard generation   When: Dashboard render     │
 └─────────────────────────────────────────────────────────┘
 ```
-
-## Chore State General UX Design
-
-### 1. Core Chore States
-
-These represent the standard lifecycle of an actionable chore.
-
-| State        | Display Label | Standard Hex          | Lovelace CSS Variable       | Icon                | UI Behavior                                                  |
-| ------------ | ------------- | --------------------- | --------------------------- | ------------------- | ------------------------------------------------------------ |
-| **pending**  | Pending       | `#4A4A4A (Dark Grey)` | `var(--primary-text-color)` | `mdi:arrow-right`   | Neutral text. Standard interactive button.                   |
-| **due**      | Due           | `#FF9800 (Orange)`    | `var(--warning-color)`      | `mdi:arrow-right`   | Border and text highlight to grab attention.                 |
-| **caimed**   | Claimed       | `#9C27B0 (Purple)`    | `var(--primary-color)` \*   | `mdi:check-all`     | Button fills solid. Undo action becomes available.           |
-| **approved** | Approved      | `#4CAF50 (Green)`     | `var(--success-color)`      | `mdi:check`         | Success highlight. Card flattens and action button disables. |
-| **overdue**  | Overdue       | `#F44336 (Red)`       | `var(--error-color)`        | `mdi:alert-octagon` | High-alert red border and icons. Prominent display.          |
-
-\*_ Note: Home Assistant's default `var(--primary-color)` is blue. To maintain the purple aesthetic from the original setup, define a custom variable like `var(--choreops-claimed-color): #9C27B0` in your global theme._
-
-### 2. Blocked / Exception States
-
-These represent states where the assignee cannot take action. The UI standardizes these by dropping card opacity to `0.6`, flattening drop-shadows, and disabling the primary action button.
-
-| State                  | Display Label      | Standard Hex            | Lovelace CSS Variable        | Icon                        | UI Behavior / Meaning                                       |
-| ---------------------- | ------------------ | ----------------------- | ---------------------------- | --------------------------- | ----------------------------------------------------------- |
-| **waiting**            | Waiting            | `#9E9E9E (Medium Grey)` | `var(--disabled-text-color)` | `mdi:clock-outline`         | Blocked by a dependency (e.g., sibling must finish first).  |
-| **missed**             | Missed             | `#F44336 (Red)`         | `var(--error-color)`         | `mdi:lock-outline`          | Window closed. Retains red alert color, but becomes locked. |
-| **completed_by_other** | Completed by Other | `#9E9E9E (Medium Grey)` | `var(--disabled-text-color)` | `mdi:account-check-outline` | A shared chore claimed and finished by a sibling.           |
-| **not_my_turn**        | Not My Turn        | `#9E9E9E (Medium Grey)` | `var(--disabled-text-color)` | `mdi:lock-outline`          | Rotating chore currently assigned to someone else.          |
-
-### 3. UI Modifiers & Badges
-
-These are appended inline to chore names or meta-text to provide immediate context without requiring the user to open a detail view.
-
-| Modifier Type      | Description                     | Standard Hex            | Lovelace CSS Variable        | Icon                                     | Location                    |
-| ------------------ | ------------------------------- | ----------------------- | ---------------------------- | ---------------------------------------- | --------------------------- |
-| **Shared (All)**   | All assignees must complete     | `#9E9E9E (Medium Grey)` | `var(--disabled-text-color)` | `mdi:account-group`                      | Appended to Name            |
-| **Shared (First)** | First assignee to claim wins    | `#9E9E9E (Medium Grey)` | `var(--disabled-text-color)` | `mdi:flag-checkered`                     | Appended to Name            |
-| **Rotating**       | Assignment shifts on a schedule | `#9E9E9E (Medium Grey)` | `var(--disabled-text-color)` | `mdi:account-sync`                       | Appended to Name            |
-| **Recurring**      | Chore repeats automatically     | `#9E9E9E (Medium Grey)` | `var(--disabled-text-color)` | `mdi:repeat`                             | Prepended to Frequency Text |
-| **Bonus**          | Admin-awarded positive points   | `#4CAF50 (Green)`       | `var(--success-color)`       | `mdi:star-plus` / `mdi:gift`             | Admin Action Grids          |
-| **Penalty**        | Admin-awarded negative points   | `#F44336 (Red)`         | `var(--error-color)`         | `mdi:alert-circle` / `mdi:alert-octagon` | Admin Action Grids          |
 
 ---

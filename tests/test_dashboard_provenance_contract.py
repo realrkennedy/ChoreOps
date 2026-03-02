@@ -28,6 +28,28 @@ def test_build_multi_view_dashboard_stamps_provenance() -> None:
     assert config[const.DASHBOARD_CONFIG_KEY_PROVENANCE] == provenance
 
 
+def test_build_dashboard_provenance_includes_required_metadata_keys() -> None:
+    """Provenance builder returns required metadata keys for stamped dashboards."""
+    provenance = builder._build_dashboard_provenance(
+        integration_entry_id="entry-123",
+        template_id="user-minimal-v1",
+        requested_release_selection=const.DASHBOARD_RELEASE_MODE_LATEST_STABLE,
+        effective_release_ref="0.0.1-beta.3",
+        resolution_reason="pinned_tag",
+        pinned_release_tag="0.0.1-beta.3",
+        include_prereleases=False,
+        generated_at="2026-03-02T00:00:00+00:00",
+    )
+
+    assert provenance[const.ATTR_INTEGRATION_ENTRY_ID] == "entry-123"
+    assert provenance[const.DASHBOARD_PROVENANCE_KEY_TEMPLATE_ID] == "user-minimal-v1"
+    assert provenance[const.DASHBOARD_PROVENANCE_KEY_SOURCE_TYPE] == "remote_release"
+    assert provenance[const.DASHBOARD_PROVENANCE_KEY_EFFECTIVE_REF] == "0.0.1-beta.3"
+    assert provenance[const.DASHBOARD_PROVENANCE_KEY_GENERATED_AT] == (
+        "2026-03-02T00:00:00+00:00"
+    )
+
+
 @pytest.fixture
 async def scenario_minimal(
     hass: HomeAssistant,

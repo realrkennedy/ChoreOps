@@ -113,6 +113,16 @@ registry artifacts.
 - [ ] If custom cards are referenced, confirm they point to dedicated frontend card repositories (not dashboard registry source).
 - [ ] Update compatibility matrix entry after vendoring validation passes.
 
+## 11) Dashboard metadata stamp verification
+
+Use this section when template snippet/stamp contracts are changed.
+
+- [ ] Confirm canonical snippet markers remain present in source templates (`template_snippets.user_setup`, `template_snippets.user_validation`, admin setup/validation, `template_snippets.meta_stamp`).
+- [ ] Confirm vendored templates are synchronized from canonical sources and parity check passes.
+- [ ] Confirm metadata stamp format remains canonical: `META STAMP: {template_id} • {release} • {generated_at}`.
+- [ ] Confirm stamp placement remains first inserted line in each card template block after the card header comment.
+- [ ] Confirm render smoke tests pass for at least one user template and one admin template.
+
 ## Rollback readiness
 
 If a critical issue appears after release:

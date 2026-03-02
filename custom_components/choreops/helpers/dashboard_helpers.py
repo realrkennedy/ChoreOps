@@ -24,6 +24,7 @@ from homeassistant.util import slugify
 import voluptuous as vol
 
 from .. import const
+from ..utils.dt_utils import dt_now_iso
 
 if TYPE_CHECKING:
     from ..coordinator import ChoreOpsDataCoordinator
@@ -1075,6 +1076,33 @@ class DashboardUserContext(TypedDict):
     user_id: str
 
 
+class DashboardMetaContext(TypedDict):
+    """Metadata context injected into dashboard templates."""
+
+    integration_entry_id: str
+    template_id: str
+    release_ref: str | None
+    release_version: str | None
+    generated_at: str
+
+
+class DashboardTemplateSnippetsContext(TypedDict):
+    """Reusable snippet strings injected into dashboard templates."""
+
+    user_setup: str
+    user_validation: str
+    user_validation_compact: str
+    admin_setup_shared: str
+    admin_setup_peruser: str
+    admin_validation_missing_selector: str
+    admin_validation_invalid_selection: str
+    admin_validation_dashboard_helper: str
+    admin_validation_missing_selector_compact: str
+    admin_validation_invalid_selection_compact: str
+    user_override_helper: str
+    meta_stamp: str
+
+
 class DashboardContext(TypedDict):
     """Full context for dashboard template rendering.
 
@@ -1086,6 +1114,8 @@ class DashboardContext(TypedDict):
     assignee: DashboardAssigneeContext
     user: DashboardUserContext
     integration: dict[str, str]
+    dashboard_meta: DashboardMetaContext
+    template_snippets: DashboardTemplateSnippetsContext
 
 
 # ==============================================================================
@@ -1114,12 +1144,243 @@ def build_assignee_context(assignee_name: str) -> DashboardAssigneeContext:
     )
 
 
+def _escape_jinja_single_quote(value: str) -> str:
+    """Escape value for embedding in single-quoted Jinja set statements."""
+    return value.replace("\\", "\\\\").replace("'", "\\'")
+
+
+def _indent_for_yaml_template_block(snippet: str) -> str:
+    """Indent snippet newlines so inserted Jinja stays inside YAML block scalars."""
+    yaml_block_content_indent = " " * 18
+    return snippet.replace("\n", f"\n{yaml_block_content_indent}")
+
+
+def _format_template_snippet(snippet: str) -> str:
+    """Apply YAML-safety formatting to inserted snippets without inner blank lines."""
+    return _indent_for_yaml_template_block(snippet)
+
+
+def _build_template_snippets(
+    *,
+    assignee_name: str,
+    assignee_id: str,
+    integration_entry_id: str,
+    template_id: str,
+    release_ref: str | None,
+    release_version: str | None,
+    generated_at: str,
+) -> DashboardTemplateSnippetsContext:
+    """Build reusable insertable snippet payloads for templates."""
+    escaped_name = _escape_jinja_single_quote(assignee_name)
+    escaped_assignee_id = _escape_jinja_single_quote(assignee_id)
+    escaped_entry_id = _escape_jinja_single_quote(integration_entry_id)
+    effective_release = release_ref or release_version or "local"
+    meta_stamp = (
+        "{#-- META STAMP: "
+        f"{_escape_jinja_single_quote(template_id)} • "
+        f"{_escape_jinja_single_quote(effective_release)} • "
+        f"{_escape_jinja_single_quote(generated_at)}"
+        " --#}"
+    )
+
+    user_setup = (
+        f"{{%- set fallback_name = '{escaped_name}' -%}}\n"
+        "{%- set name = fallback_name -%}\n"
+        f"{{%- set user_id = '{escaped_assignee_id}' -%}}\n"
+        f"{{%- set entry_id = '{escaped_entry_id}' -%}}\n"
+        "{%- set lookup_key = entry_id ~ ':' ~ user_id -%}\n"
+        "{%- if not (use_override_dashboard_helper | default(false, true)) -%}\n"
+        "  {%- set dashboard_helper = integration_entities('choreops')\n"
+        "      | select('search', '^sensor\\\\.')\n"
+        "      | list\n"
+        "      | expand\n"
+        "      | selectattr('attributes.purpose', 'defined')\n"
+        "      | selectattr('attributes.purpose', 'eq', 'purpose_dashboard_helper')\n"
+        "      | selectattr('attributes.dashboard_lookup_key', 'eq', lookup_key)\n"
+        "      | map(attribute='entity_id')\n"
+        "      | first\n"
+        '      | default("err-dashboard_helper_missing", true) -%}\n'
+        "{%- endif -%}"
+        "\n"
+        "{%- set resolved_name = (state_attr(dashboard_helper, 'user_name') if dashboard_helper not in ['err-dashboard_helper_missing', '', None] else '') | default('', true) -%}\n"
+        "{%- if resolved_name != '' -%}\n"
+        "  {%- set name = resolved_name -%}\n"
+        "{%- endif -%}"
+    )
+
+    user_validation = (
+        "{#-- Validation: Check if user context is configured --#}\n"
+        "{%- if name == '' -%}\n"
+        "  {{\n"
+        "    {\n"
+        "      'type': 'markdown',\n"
+        "      'content': \"⚠️ **Dashboard Not Configured**\\n\\nNo user context is available for this card.\\n\\nReload ChoreOps and regenerate dashboards if this persists.\"\n"
+        "    }\n"
+        "  }},\n"
+        "  {%- set skip_render = true -%}\n"
+        "{%- elif states(dashboard_helper) in ['unknown', 'unavailable'] -%}\n"
+        "  {{\n"
+        "    {\n"
+        "      'type': 'markdown',\n"
+        '      \'content\': "⚠️ **Dashboard Configuration Error**\\n\\nCannot find: `" ~ dashboard_helper ~ "`\\n\\nThe dashboard helper is unavailable for this user."\n'
+        "    }\n"
+        "  }},\n"
+        "  {%- set skip_render = true -%}\n"
+        "{%- else -%}\n"
+        "  {%- set skip_render = false -%}\n"
+        "{%- endif -%}"
+    )
+
+    user_validation_compact = (
+        "{%- if name == '' or states(dashboard_helper) in ['unknown', 'unavailable'] -%}\n"
+        "  {%- set skip_render = true -%}\n"
+        "{%- else -%}\n"
+        "  {%- set skip_render = false -%}\n"
+        "{%- endif -%}"
+    )
+
+    admin_setup_shared = (
+        f"{{%- set entry_id = '{escaped_entry_id}' -%}}\n"
+        "{%- if use_override_dashboard_helper | default(false, true) -%}\n"
+        "  {%- set admin_selector_eid = dashboard_helper -%}\n"
+        "{%- else -%}\n"
+        "  {%- set admin_selector_eid = integration_entities('choreops')\n"
+        "      | select('match', '^select\\\\.')\n"
+        "      | list\n"
+        "      | expand\n"
+        "      | selectattr('attributes.purpose', 'defined')\n"
+        "      | selectattr('attributes.purpose', 'eq', 'purpose_system_dashboard_admin_user')\n"
+        "      | selectattr('attributes.integration_entry_id', 'eq', entry_id)\n"
+        "      | map(attribute='entity_id')\n"
+        "      | first\n"
+        "      | default('', true) -%}\n"
+        "{%- endif -%}"
+    )
+
+    admin_setup_peruser = (
+        f"{{%- set fallback_name = '{escaped_name}' -%}}\n"
+        "{%- set name = fallback_name -%}\n"
+        f"{{%- set user_id = '{escaped_assignee_id}' -%}}\n"
+        f"{{%- set entry_id = '{escaped_entry_id}' -%}}\n"
+        "{%- set lookup_key = entry_id ~ ':' ~ user_id -%}\n"
+        "{%- if use_override_dashboard_helper | default(false, true) -%}\n"
+        "  {%- set admin_selector_eid = dashboard_helper -%}\n"
+        "{%- else -%}\n"
+        "  {%- set admin_selector_eid = integration_entities('choreops')\n"
+        "      | select('search', '^sensor\\\\.')\n"
+        "      | list\n"
+        "      | expand\n"
+        "      | selectattr('attributes.purpose', 'defined')\n"
+        "      | selectattr('attributes.purpose', 'eq', 'purpose_dashboard_helper')\n"
+        "      | selectattr('attributes.dashboard_lookup_key', 'eq', lookup_key)\n"
+        "      | map(attribute='entity_id')\n"
+        "      | first\n"
+        "      | default('', true) -%}\n"
+        "{%- endif -%}"
+        "\n"
+        "{%- set resolved_name = (state_attr(admin_selector_eid, 'user_name') if admin_selector_eid not in ['', None] else '') | default('', true) -%}\n"
+        "{%- if resolved_name != '' -%}\n"
+        "  {%- set name = resolved_name -%}\n"
+        "{%- endif -%}"
+    )
+
+    admin_validation_missing_selector = (
+        "{%- if admin_selector_eid == '' -%}\n"
+        "  {{\n"
+        "    {\n"
+        "      'type': 'markdown',\n"
+        "      'content': \"⚠️ **Admin Selector Not Found**\\n\\nThe admin selector entity could not be resolved for this dashboard context.\"\n"
+        "    }\n"
+        "  }},\n"
+        "  {%- set skip_render = true -%}\n"
+        "{%- else -%}\n"
+        "  {%- set skip_render = false -%}\n"
+        "{%- endif -%}"
+    )
+
+    admin_validation_invalid_selection = (
+        "{%- if not skip_render and states(admin_selector_eid) in ['None', '', 'unknown', 'unavailable'] -%}\n"
+        "  {{\n"
+        "    {\n"
+        "      'type': 'markdown',\n"
+        "      'content': \"ℹ️ **No User Selected**\\n\\nSelect a user from the admin selector to continue.\"\n"
+        "    }\n"
+        "  }},\n"
+        "  {%- set skip_render = true -%}\n"
+        "{%- endif -%}"
+    )
+
+    admin_validation_dashboard_helper = (
+        "{%- if not skip_render and states(dashboard_helper) in ['unknown', 'unavailable'] -%}\n"
+        "  {{\n"
+        "    {\n"
+        "      'type': 'markdown',\n"
+        '      \'content\': "⚠️ **Dashboard Configuration Error**\\n\\nCannot find: `" ~ dashboard_helper ~ "`\\n\\nThe dashboard helper is unavailable for user `" ~ name ~ "`.\\n\\nCheck Settings → Integrations → ChoreOps and verify the user is configured."\n'
+        "    }\n"
+        "  }},\n"
+        "  {%- set skip_render = true -%}\n"
+        "{%- endif -%}"
+    )
+
+    admin_validation_missing_selector_compact = (
+        "{%- if admin_selector_eid == '' -%}\n"
+        "  {%- set skip_render = true -%}\n"
+        "{%- else -%}\n"
+        "  {%- set skip_render = false -%}\n"
+        "{%- endif -%}"
+    )
+
+    admin_validation_invalid_selection_compact = (
+        "{%- if not skip_render and states(admin_selector_eid) in ['None', '', 'unknown', 'unavailable'] -%}\n"
+        "  {%- set skip_render = true -%}\n"
+        "{%- endif -%}"
+    )
+
+    user_override_helper = (
+        "{#-- Optional advanced override; leave empty for auto-lookup --#}\n"
+        "{#-- Set override_dashboard_helper to a dashboard helper entity_id to force this card to use it and skip dynamic helper/selector lookups --#}\n"
+        "{%- set override_dashboard_helper = '' -%}\n"
+        "{%- set use_override_dashboard_helper = override_dashboard_helper != '' -%}\n"
+        "{%- if use_override_dashboard_helper -%}\n"
+        "  {%- set dashboard_helper = override_dashboard_helper -%}\n"
+        "{%- endif -%}"
+    )
+
+    return DashboardTemplateSnippetsContext(
+        user_setup=_format_template_snippet(user_setup),
+        user_validation=_format_template_snippet(user_validation),
+        user_validation_compact=_format_template_snippet(user_validation_compact),
+        admin_setup_shared=_format_template_snippet(admin_setup_shared),
+        admin_setup_peruser=_format_template_snippet(admin_setup_peruser),
+        admin_validation_missing_selector=_format_template_snippet(
+            admin_validation_missing_selector
+        ),
+        admin_validation_invalid_selection=_format_template_snippet(
+            admin_validation_invalid_selection
+        ),
+        admin_validation_dashboard_helper=_format_template_snippet(
+            admin_validation_dashboard_helper
+        ),
+        admin_validation_missing_selector_compact=_format_template_snippet(
+            admin_validation_missing_selector_compact
+        ),
+        admin_validation_invalid_selection_compact=_format_template_snippet(
+            admin_validation_invalid_selection_compact
+        ),
+        user_override_helper=_format_template_snippet(user_override_helper),
+        meta_stamp=_format_template_snippet(meta_stamp),
+    )
+
+
 def build_dashboard_context(
     assignee_name: str,
     *,
     assignee_id: str,
     integration_entry_id: str,
     template_profile: str | None = None,
+    release_ref: str | None = None,
+    release_version: str | None = None,
+    generated_at: str | None = None,
 ) -> DashboardContext:
     """Build full context for dashboard template rendering.
 
@@ -1146,7 +1407,8 @@ def build_dashboard_context(
         >>> ctx["assignee"]["slug"]
         'alice'
     """
-    _ = template_profile
+    template_id = template_profile or "unknown-template"
+    generated_timestamp = generated_at or dt_now_iso()
 
     return DashboardContext(
         assignee=build_assignee_context(assignee_name),
@@ -1156,7 +1418,57 @@ def build_dashboard_context(
             user_id=assignee_id,
         ),
         integration={"entry_id": integration_entry_id},
+        dashboard_meta=DashboardMetaContext(
+            integration_entry_id=integration_entry_id,
+            template_id=template_id,
+            release_ref=release_ref,
+            release_version=release_version,
+            generated_at=generated_timestamp,
+        ),
+        template_snippets=_build_template_snippets(
+            assignee_name=assignee_name,
+            assignee_id=assignee_id,
+            integration_entry_id=integration_entry_id,
+            template_id=template_id,
+            release_ref=release_ref,
+            release_version=release_version,
+            generated_at=generated_timestamp,
+        ),
     )
+
+
+def build_admin_dashboard_context(
+    *,
+    integration_entry_id: str,
+    template_profile: str | None = None,
+    release_ref: str | None = None,
+    release_version: str | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Build admin/global dashboard template context."""
+    template_id = template_profile or "unknown-template"
+    generated_timestamp = generated_at or dt_now_iso()
+    return {
+        "integration": {"entry_id": integration_entry_id},
+        "user": {},
+        "assignee": {},
+        const.DASHBOARD_CONTEXT_KEY_META: {
+            const.ATTR_INTEGRATION_ENTRY_ID: integration_entry_id,
+            const.DASHBOARD_PROVENANCE_KEY_TEMPLATE_ID: template_id,
+            const.DASHBOARD_PROVENANCE_KEY_EFFECTIVE_REF: release_ref,
+            const.DASHBOARD_META_KEY_RELEASE_VERSION: release_version,
+            const.DASHBOARD_PROVENANCE_KEY_GENERATED_AT: generated_timestamp,
+        },
+        const.DASHBOARD_CONTEXT_KEY_SNIPPETS: _build_template_snippets(
+            assignee_name="",
+            assignee_id="",
+            integration_entry_id=integration_entry_id,
+            template_id=template_id,
+            release_ref=release_ref,
+            release_version=release_version,
+            generated_at=generated_timestamp,
+        ),
+    }
 
 
 def resolve_assignee_template_profile(

@@ -45,7 +45,9 @@ import yaml
 from .. import const
 from ..utils.dt_utils import dt_now_iso
 from .dashboard_helpers import (
+    async_get_local_dashboard_release_version,
     async_prime_manifest_template_definitions,
+    build_admin_dashboard_context,
     build_dashboard_context,
     get_default_admin_template_id,
     get_default_assignee_template_id,
@@ -639,6 +641,7 @@ def _build_dashboard_provenance(
     resolution_reason: str,
     pinned_release_tag: str | None,
     include_prereleases: bool,
+    generated_at: str | None = None,
 ) -> dict[str, Any]:
     """Build dashboard generation provenance metadata."""
     if requested_release_selection == const.DASHBOARD_RELEASE_MODE_CURRENT_INSTALLED:
@@ -656,7 +659,7 @@ def _build_dashboard_provenance(
         const.DASHBOARD_PROVENANCE_KEY_EFFECTIVE_REF: effective_release_ref,
         const.DASHBOARD_PROVENANCE_KEY_RESOLUTION_REASON: resolution_reason,
         const.DASHBOARD_PROVENANCE_KEY_INCLUDE_PRERELEASES: include_prereleases,
-        const.DASHBOARD_PROVENANCE_KEY_GENERATED_AT: dt_now_iso(),
+        const.DASHBOARD_PROVENANCE_KEY_GENERATED_AT: generated_at or dt_now_iso(),
     }
 
 
@@ -974,6 +977,8 @@ async def create_choreops_dashboard(
         admin_template=False,
     )
     await _get_template(style)
+    generated_at = dt_now_iso()
+    local_release_version = await async_get_local_dashboard_release_version(hass)
 
     # Build views for each assignee
     views: list[dict[str, Any]] = []
@@ -997,6 +1002,9 @@ async def create_choreops_dashboard(
             assignee_id=assignee_id,
             integration_entry_id=integration_entry_id,
             template_profile=assignee_style,
+            release_ref=pinned_release_tag,
+            release_version=local_release_version,
+            generated_at=generated_at,
         )
         # Convert TypedDict to regular dict for generic render function
         assignee_view = render_dashboard_template(template_str, dict(assignee_context))
@@ -1042,11 +1050,13 @@ async def create_choreops_dashboard(
             global_admin_template = await _get_admin_template(global_admin_template_id)
             global_admin_view = render_dashboard_template(
                 global_admin_template,
-                {
-                    "integration": {"entry_id": integration_entry_id},
-                    "user": {},
-                    "assignee": {},
-                },
+                build_admin_dashboard_context(
+                    integration_entry_id=integration_entry_id,
+                    template_profile=global_admin_template_id,
+                    release_ref=pinned_release_tag,
+                    release_version=local_release_version,
+                    generated_at=generated_at,
+                ),
             )
             global_admin_view.setdefault("title", "ChoreOps Admin")
             global_admin_view["path"] = "admin"
@@ -1075,6 +1085,9 @@ async def create_choreops_dashboard(
                     assignee_id=assignee_id,
                     integration_entry_id=integration_entry_id,
                     template_profile=per_assignee_admin_template_id,
+                    release_ref=pinned_release_tag,
+                    release_version=local_release_version,
+                    generated_at=generated_at,
                 )
                 per_assignee_admin_view = render_dashboard_template(
                     per_assignee_admin_template,
@@ -1105,6 +1118,7 @@ async def create_choreops_dashboard(
             resolution_reason=resolution_reason,
             pinned_release_tag=pinned_release_tag,
             include_prereleases=include_prereleases,
+            generated_at=generated_at,
         ),
     )
 
@@ -1235,6 +1249,8 @@ async def update_choreops_dashboard_views(
     """
     normalized_admin_mode = _normalize_admin_mode(admin_mode)
     template_profile = normalize_template_id(template_profile, admin_template=False)
+    generated_at = dt_now_iso()
+    local_release_version = await async_get_local_dashboard_release_version(hass)
 
     if LOVELACE_DATA not in hass.data:
         raise DashboardSaveError("Lovelace not initialized")
@@ -1325,6 +1341,9 @@ async def update_choreops_dashboard_views(
             assignee_id=assignee_id,
             integration_entry_id=integration_entry_id,
             template_profile=template_profile,
+            release_ref=pinned_release_tag,
+            release_version=local_release_version,
+            generated_at=generated_at,
         )
         assignee_view = render_dashboard_template(
             assignee_template, dict(assignee_context)
@@ -1389,11 +1408,13 @@ async def update_choreops_dashboard_views(
             global_admin_template = await _get_admin_template(global_admin_template_id)
             global_admin_view = render_dashboard_template(
                 global_admin_template,
-                {
-                    "integration": {"entry_id": integration_entry_id},
-                    "user": {},
-                    "assignee": {},
-                },
+                build_admin_dashboard_context(
+                    integration_entry_id=integration_entry_id,
+                    template_profile=global_admin_template_id,
+                    release_ref=pinned_release_tag,
+                    release_version=local_release_version,
+                    generated_at=generated_at,
+                ),
             )
             global_admin_view.setdefault("title", "ChoreOps Admin")
             global_admin_view["path"] = "admin"
@@ -1422,6 +1443,9 @@ async def update_choreops_dashboard_views(
                     assignee_id=assignee_id,
                     integration_entry_id=integration_entry_id,
                     template_profile=per_assignee_admin_template_id,
+                    release_ref=pinned_release_tag,
+                    release_version=local_release_version,
+                    generated_at=generated_at,
                 )
                 per_assignee_admin_view = render_dashboard_template(
                     per_assignee_admin_template,
@@ -1447,6 +1471,7 @@ async def update_choreops_dashboard_views(
         resolution_reason=resolution_reason,
         pinned_release_tag=pinned_release_tag,
         include_prereleases=include_prereleases,
+        generated_at=generated_at,
     )
     new_config["views"] = merged_views
 
