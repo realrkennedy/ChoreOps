@@ -1,65 +1,582 @@
 #!/usr/bin/env python3
-"""Development Utility: Load Test Scenario Data into Live Home Assistant Instance.
+"""Development utility for loading scenario data into a live ChoreOps instance.
 
-This script is a MANUAL DEVELOPMENT TOOL (not part of automated tests) that:
-1. Connects to a running Home Assistant instance via REST API
-2. Uses the KidsChores options flow to programmatically add entities
-3. Loads test scenario data from testdata_scenario_full.yaml
-
-USE CASES:
-- Quickly populate a dev instance with realistic test data
-- Test the dashboard UI with real entities
-- Verify options flow works end-to-end
-- Reset and reload test data during development
-
-REQUIREMENTS:
-- Home Assistant running at http://localhost:8123
-- KidsChores integration already added via UI
-- Long-lived access token from Profile → Security
-
-USAGE:
-    # Load test data into running instance
-    python utils/load_test_scenario_to_live_ha.py
-
-    # Reset all data first, then load
-    python utils/load_test_scenario_to_live_ha.py --reset
-
-NOT FOR:
-- Automated testing (use pytest tests instead)
-- Production deployments
-- CI/CD pipelines
+This script is intentionally manual and is not part of automated CI paths.
 """
+
+from __future__ import annotations
 
 import argparse
 import asyncio
+from datetime import UTC, datetime, timedelta
+import getpass
+import os
 from pathlib import Path
+import re
+from typing import Any
 
 import aiohttp
 import yaml
 
+DEFAULT_HA_URL = "http://localhost:8123"
+DEFAULT_SCENARIO_PATH = "tests/scenarios/scenario_full.yaml"
+DEFAULT_TOKEN_ENV = "HASS_TOKEN"
+DEFAULT_DELAY_SECONDS = 0.3
 
-async def load_scenario_to_live_instance(reset_first: bool = False):
-    """Load test scenario data into a live Home Assistant instance via REST API."""
+DOMAIN = "choreops"
+MENU_SELECTION = "menu_selection"
+MANAGE_ACTION = "manage_action"
+MANAGE_ACTION_ADD = "add"
 
-    # Load scenario data (use performance_stress for maximum dataset)
-    scenario_file = Path(
-        "/workspaces/kidschores-ha/tests/testdata_scenario_performance_stress.yaml"
+MENU_MANAGE_USER = "manage_user"
+MENU_MANAGE_CHORE = "manage_chore"
+MENU_MANAGE_REWARD = "manage_reward"
+MENU_MANAGE_BONUS = "manage_bonus"
+MENU_MANAGE_PENALTY = "manage_penalty"
+
+STEP_INIT = "init"
+STEP_EDIT_CHORE_PER_USER_DETAILS = "edit_chore_per_user_details"
+STEP_CHORES_DAILY_MULTI = "chores_daily_multi"
+
+SERVICE_FIELD_CONFIG_ENTRY_ID = "config_entry_id"
+
+ENTITY_ADD_STATUS_ADDED = "added"
+ENTITY_ADD_STATUS_SKIPPED = "skipped"
+ENTITY_ADD_STATUS_FAILED = "failed"
+
+WEEKDAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+
+_NOW_DUE_DATE_RE = re.compile(r"^now\s*([+-])\s*(\d+)\s*([smhdw])$", re.IGNORECASE)
+
+
+def _collect_string_values(value: Any) -> list[str]:
+    """Collect all string values recursively from nested structures."""
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, dict):
+        values: list[str] = []
+        for nested_value in value.values():
+            values.extend(_collect_string_values(nested_value))
+        return values
+    if isinstance(value, list):
+        values: list[str] = []
+        for nested_value in value:
+            values.extend(_collect_string_values(nested_value))
+        return values
+    return []
+
+
+def is_duplicate_flow_result(flow_result: dict[str, Any]) -> bool:
+    """Return True when a flow result contains duplicate-name style validation."""
+    return any(
+        "duplicate" in text_value.lower()
+        for text_value in _collect_string_values(flow_result)
     )
-    with open(scenario_file, encoding="utf-8") as f:
-        scenario = yaml.safe_load(f)
 
-    print("🔌 Connecting to Home Assistant REST API...")  # noqa: T201
-    ha_url = "http://localhost:8123"
 
-    # Get access token from user
-    print("\n🔑 You need a long-lived access token from Home Assistant.")  # noqa: T201
-    print("   Go to: http://localhost:8123/profile/security")  # noqa: T201
-    print("   Scroll down and create a 'Long-Lived Access Token'")  # noqa: T201
-    token = input("\nPaste your access token here: ").strip()
+def resolve_scenario_path(raw_path: str, repo_root: Path) -> Path:
+    """Resolve a scenario path from CLI input or default value."""
+    candidate = Path(raw_path)
+    if candidate.is_absolute():
+        return candidate
+    return repo_root / candidate
 
-    if not token:
-        print("❌ No token provided")  # noqa: T201
+
+def resolve_due_date_value(
+    raw_due_date: Any,
+    now_utc: datetime | None = None,
+) -> Any:
+    """Resolve due-date value, supporting `now`-relative shorthand strings.
+
+    Supported forms:
+    - `now`
+    - `now+15m`, `now-2h`, `now+7d`, `now+1w`, `now+30s`
+    """
+    if not isinstance(raw_due_date, str):
+        return raw_due_date
+
+    normalized = raw_due_date.strip().lower()
+    base_now = (now_utc or datetime.now(UTC)).replace(microsecond=0)
+
+    if normalized == "now":
+        return base_now.isoformat()
+
+    match = _NOW_DUE_DATE_RE.match(normalized)
+    if match is None:
+        return raw_due_date
+
+    sign, amount_str, unit = match.groups()
+    amount = int(amount_str)
+    unit_multipliers = {
+        "s": timedelta(seconds=amount),
+        "m": timedelta(minutes=amount),
+        "h": timedelta(hours=amount),
+        "d": timedelta(days=amount),
+        "w": timedelta(weeks=amount),
+    }
+    delta = unit_multipliers[unit.lower()]
+    resolved = base_now + delta if sign == "+" else base_now - delta
+    return resolved.isoformat()
+
+
+def load_scenario_file(scenario_path: Path) -> dict[str, Any]:
+    """Load and parse a YAML scenario file."""
+    with scenario_path.open(encoding="utf-8") as scenario_file:
+        data = yaml.safe_load(scenario_file)
+    if not isinstance(data, dict):
+        raise ValueError("Scenario root must be a dictionary")
+    return data
+
+
+def extract_scenario_collections(
+    scenario: dict[str, Any],
+) -> tuple[
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+]:
+    """Return assignees, approvers, chores, rewards, bonuses, and penalties.
+
+    Supports both modern (`assignees` / `approvers`) and legacy (`family` keys).
+    """
+
+    def _as_list(value: Any) -> list[dict[str, Any]]:
+        if not isinstance(value, list):
+            return []
+        return [item for item in value if isinstance(item, dict)]
+
+    assignees = _as_list(scenario.get("assignees"))
+    approvers = _as_list(scenario.get("approvers"))
+
+    family = scenario.get("family")
+    if isinstance(family, dict):
+        if not assignees:
+            assignees = _as_list(family.get("kids"))
+        if not approvers:
+            approvers = _as_list(family.get("parents"))
+
+    chores = _as_list(scenario.get("chores"))
+    rewards = _as_list(scenario.get("rewards"))
+    bonuses = _as_list(scenario.get("bonuses"))
+    penalties = _as_list(scenario.get("penalties"))
+    return assignees, approvers, chores, rewards, bonuses, penalties
+
+
+def extract_state_seed_actions(scenario: dict[str, Any]) -> list[dict[str, Any]]:
+    """Extract optional post-load state seed actions from scenario data.
+
+    Supported shapes:
+    - `state_seed_actions: [{service: str, data: dict}, ...]`
+    - `state_seed: {actions: [{service: str, data: dict}, ...]}`
+    """
+
+    def _normalize(raw_actions: Any) -> list[dict[str, Any]]:
+        if not isinstance(raw_actions, list):
+            return []
+
+        normalized: list[dict[str, Any]] = []
+        for action in raw_actions:
+            if not isinstance(action, dict):
+                continue
+            service = action.get("service")
+            data = action.get("data")
+            if isinstance(service, str) and service and isinstance(data, dict):
+                normalized.append({"service": service, "data": dict(data)})
+        return normalized
+
+    direct = _normalize(scenario.get("state_seed_actions"))
+    if direct:
+        return direct
+
+    state_seed = scenario.get("state_seed")
+    if isinstance(state_seed, dict):
+        return _normalize(state_seed.get("actions"))
+
+    return []
+
+
+def build_assignee_payload(assignee: dict[str, Any]) -> dict[str, Any]:
+    """Build options-flow payload for an assignee user profile."""
+    return {
+        "name": assignee["name"],
+        "dashboard_language": assignee.get("dashboard_language", "en"),
+        "mobile_notify_service": assignee.get("mobile_notify_service", ""),
+        "can_be_assigned": True,
+        "enable_chore_workflow": bool(assignee.get("enable_chore_workflow", True)),
+        "enable_gamification": bool(assignee.get("enable_gamification", True)),
+        "can_approve": False,
+        "can_manage": False,
+        "associated_user_ids": [],
+    }
+
+
+def build_approver_payload(approver: dict[str, Any]) -> dict[str, Any]:
+    """Build options-flow payload for an approver profile.
+
+    This utility creates approvers as assignment-enabled users to avoid requiring
+    runtime internal IDs for associated-user mappings.
+    """
+    return {
+        "name": approver["name"],
+        "dashboard_language": approver.get("dashboard_language", "en"),
+        "mobile_notify_service": approver.get("mobile_notify_service", ""),
+        "can_be_assigned": True,
+        "enable_chore_workflow": bool(approver.get("enable_chore_workflow", False)),
+        "enable_gamification": bool(approver.get("enable_gamification", False)),
+        "can_approve": False,
+        "can_manage": False,
+        "associated_user_ids": [],
+    }
+
+
+def build_chore_payload(chore: dict[str, Any]) -> dict[str, Any]:
+    """Build options-flow payload for a chore item."""
+    payload: dict[str, Any] = {
+        "name": chore["name"],
+        "chore_description": chore.get("description", ""),
+        "icon": chore.get("icon", "mdi:check"),
+        "default_points": float(chore.get("points", 10.0)),
+        "assigned_user_ids": list(chore.get("assigned_to", [])),
+        "completion_criteria": chore.get("completion_criteria", "independent"),
+        "recurring_frequency": chore.get("recurring_frequency", "daily"),
+        "auto_approve": bool(chore.get("auto_approve", False)),
+        "show_on_calendar": bool(chore.get("show_on_calendar", True)),
+        "chore_labels": list(chore.get("labels", [])),
+        "applicable_days": list(chore.get("applicable_days", WEEKDAY_KEYS)),
+        "chore_notifications": list(chore.get("notifications", [])),
+    }
+    if "due_date" in chore:
+        payload["due_date"] = resolve_due_date_value(chore["due_date"])
+    if "custom_interval" in chore:
+        payload["custom_interval"] = chore["custom_interval"]
+    if "custom_interval_unit" in chore:
+        payload["custom_interval_unit"] = chore["custom_interval_unit"]
+    if "approval_reset_type" in chore:
+        payload["approval_reset_type"] = chore["approval_reset_type"]
+    if "approval_reset_pending_claim_action" in chore:
+        payload["approval_reset_pending_claim_action"] = chore[
+            "approval_reset_pending_claim_action"
+        ]
+    if "overdue_handling_type" in chore:
+        payload["overdue_handling_type"] = chore["overdue_handling_type"]
+    if "chore_due_window_offset" in chore:
+        payload["chore_due_window_offset"] = chore["chore_due_window_offset"]
+    if "chore_claim_lock_until_window" in chore:
+        payload["chore_claim_lock_until_window"] = bool(
+            chore["chore_claim_lock_until_window"]
+        )
+    return payload
+
+
+def build_reward_payload(reward: dict[str, Any]) -> dict[str, Any]:
+    """Build options-flow payload for a reward item."""
+    return {
+        "name": reward["name"],
+        "description": reward.get("description", ""),
+        "reward_labels": list(reward.get("labels", [])),
+        "cost": float(reward.get("cost", 50.0)),
+        "icon": reward.get("icon", "mdi:gift"),
+    }
+
+
+def build_bonus_payload(bonus: dict[str, Any]) -> dict[str, Any]:
+    """Build options-flow payload for a bonus item."""
+    return {
+        "name": bonus["name"],
+        "bonus_description": bonus.get("description", ""),
+        "bonus_labels": list(bonus.get("labels", [])),
+        "bonus_points": float(abs(bonus.get("points", 10.0))),
+        "icon": bonus.get("icon", "mdi:sparkles"),
+    }
+
+
+def build_penalty_payload(penalty: dict[str, Any]) -> dict[str, Any]:
+    """Build options-flow payload for a penalty item."""
+    return {
+        "name": penalty["name"],
+        "penalty_description": penalty.get("description", ""),
+        "penalty_labels": list(penalty.get("labels", [])),
+        "penalty_points": float(abs(penalty.get("points", 5.0))),
+        "icon": penalty.get("icon", "mdi:alert"),
+    }
+
+
+def build_per_assignee_details_payload(chore_payload: dict[str, Any]) -> dict[str, Any]:
+    """Build helper payload for per-assignee independent chore details."""
+    assigned_user_names = chore_payload.get("assigned_user_ids", [])
+    applicable_days = chore_payload.get("applicable_days", WEEKDAY_KEYS)
+    if not isinstance(assigned_user_names, list):
+        return {}
+
+    helper_payload: dict[str, Any] = {}
+    for assignee_name in assigned_user_names:
+        if isinstance(assignee_name, str) and assignee_name:
+            helper_payload[f"applicable_days_{assignee_name}"] = applicable_days
+    return helper_payload
+
+
+def get_token(args: argparse.Namespace) -> str:
+    """Resolve token from CLI flag, environment variable, or interactive prompt."""
+    if args.token:
+        return args.token.strip()
+
+    token_from_env = os.getenv(args.token_env, "").strip()
+    if token_from_env:
+        return token_from_env
+
+    print("\n🔑 Long-lived access token required")  # noqa: T201
+    print(f"   Create one at: {args.ha_url}/profile/security")  # noqa: T201
+    return getpass.getpass("Token: ").strip()
+
+
+async def _request_json(
+    session: aiohttp.ClientSession,
+    method: str,
+    url: str,
+    json_payload: dict[str, Any] | None = None,
+) -> tuple[int, dict[str, Any]]:
+    """Run an HTTP request and return `(status_code, json_body)`.
+
+    Raises `RuntimeError` on malformed JSON responses.
+    """
+    request_method = session.get if method == "GET" else session.post
+    async with request_method(url, json=json_payload) as response:
+        status = response.status
+        try:
+            payload = await response.json()
+        except aiohttp.ContentTypeError as err:
+            text = await response.text()
+            raise RuntimeError(f"Non-JSON response from {url}: {text[:400]}") from err
+    return status, payload if isinstance(payload, dict) else {"raw": payload}
+
+
+async def find_choreops_entry_id(session: aiohttp.ClientSession, ha_url: str) -> str:
+    """Find the first loaded ChoreOps config entry and return entry_id."""
+    status, payload = await _request_json(
+        session,
+        "GET",
+        f"{ha_url}/api/config/config_entries/entry",
+    )
+    if status != 200:
+        raise RuntimeError(f"Could not fetch config entries (status={status})")
+
+    entries = payload.get("raw") if "raw" in payload else payload
+    if not isinstance(entries, list):
+        raise RuntimeError("Unexpected config entry response shape")
+
+    for entry in entries:
+        if isinstance(entry, dict) and entry.get("domain") == DOMAIN:
+            entry_id = entry.get("entry_id")
+            if isinstance(entry_id, str) and entry_id:
+                return entry_id
+
+    raise RuntimeError(
+        "ChoreOps integration not found. Add it via Settings → Integrations first"
+    )
+
+
+async def reset_transactional_data(
+    session: aiohttp.ClientSession,
+    ha_url: str,
+) -> None:
+    """Call the transactional reset service before loading entities."""
+    async with session.post(
+        f"{ha_url}/api/services/{DOMAIN}/reset_transactional_data",
+        json={"confirm_destructive": True, "scope": "global"},
+    ) as response:
+        if response.status != 200:
+            response_text = await response.text()
+            raise RuntimeError(
+                f"Reset failed (status={response.status}): {response_text[:300]}"
+            )
+
+
+async def add_entity_via_options_flow(
+    session: aiohttp.ClientSession,
+    ha_url: str,
+    entry_id: str,
+    menu_selection: str,
+    entity_name: str,
+    payload: dict[str, Any],
+) -> str:
+    """Add one entity through options flow and return status string."""
+    status, flow_start = await _request_json(
+        session,
+        "POST",
+        f"{ha_url}/api/config/config_entries/options/flow",
+        {"handler": entry_id},
+    )
+    if status != 200:
+        print(f"   ❌ Failed to start options flow for {entity_name}")  # noqa: T201
+        return ENTITY_ADD_STATUS_FAILED
+
+    flow_id = flow_start.get("flow_id")
+    if not isinstance(flow_id, str):
+        print(f"   ❌ Flow did not return flow_id for {entity_name}")  # noqa: T201
+        return ENTITY_ADD_STATUS_FAILED
+
+    status, _ = await _request_json(
+        session,
+        "POST",
+        f"{ha_url}/api/config/config_entries/options/flow/{flow_id}",
+        {MENU_SELECTION: menu_selection},
+    )
+    if status != 200:
+        print(f"   ❌ Menu selection failed for {entity_name}")  # noqa: T201
+        return ENTITY_ADD_STATUS_FAILED
+
+    status, _ = await _request_json(
+        session,
+        "POST",
+        f"{ha_url}/api/config/config_entries/options/flow/{flow_id}",
+        {MANAGE_ACTION: MANAGE_ACTION_ADD},
+    )
+    if status != 200:
+        print(f"   ❌ Add action selection failed for {entity_name}")  # noqa: T201
+        return ENTITY_ADD_STATUS_FAILED
+
+    status, flow_result = await _request_json(
+        session,
+        "POST",
+        f"{ha_url}/api/config/config_entries/options/flow/{flow_id}",
+        payload,
+    )
+    if status != 200:
+        print(f"   ❌ Submit failed for {entity_name}")  # noqa: T201
+        return ENTITY_ADD_STATUS_FAILED
+
+    step_id = flow_result.get("step_id")
+    if step_id == STEP_INIT and flow_result.get("type") == "form":
+        return ENTITY_ADD_STATUS_ADDED
+
+    if step_id == STEP_EDIT_CHORE_PER_USER_DETAILS:
+        helper_payload = build_per_assignee_details_payload(payload)
+        status, flow_result = await _request_json(
+            session,
+            "POST",
+            f"{ha_url}/api/config/config_entries/options/flow/{flow_id}",
+            helper_payload,
+        )
+        if status != 200:
+            print(f"   ❌ Per-assignee helper failed for {entity_name}")  # noqa: T201
+            return ENTITY_ADD_STATUS_FAILED
+        step_id = flow_result.get("step_id")
+
+    if step_id == STEP_CHORES_DAILY_MULTI:
+        times_value = str(payload.get("daily_multi_times", "08:00|17:00"))
+        status, flow_result = await _request_json(
+            session,
+            "POST",
+            f"{ha_url}/api/config/config_entries/options/flow/{flow_id}",
+            {"daily_multi_times": times_value},
+        )
+        if status != 200:
+            print(f"   ❌ Daily multi helper failed for {entity_name}")  # noqa: T201
+            return ENTITY_ADD_STATUS_FAILED
+
+    if flow_result.get("type") == "form" and flow_result.get("step_id") == STEP_INIT:
+        return ENTITY_ADD_STATUS_ADDED
+
+    if is_duplicate_flow_result(flow_result):
+        return ENTITY_ADD_STATUS_SKIPPED
+
+    error_details = flow_result.get("errors")
+    if error_details is not None:
+        print(  # noqa: T201
+            f"   ℹ️ Flow validation errors for {entity_name}: {error_details}"
+        )
+    else:
+        print(  # noqa: T201
+            f"   ℹ️ Unexpected flow response for {entity_name}: {flow_result}"
+        )
+
+    return ENTITY_ADD_STATUS_FAILED
+
+
+def build_state_seed_payload(action: dict[str, Any], entry_id: str) -> tuple[str, dict[str, Any]]:
+    """Build domain service and payload for a post-load seed action."""
+    service = str(action["service"])
+    payload = dict(action["data"])
+
+    if (
+        SERVICE_FIELD_CONFIG_ENTRY_ID not in payload
+        and "config_entry_title" not in payload
+    ):
+        payload[SERVICE_FIELD_CONFIG_ENTRY_ID] = entry_id
+
+    return service, payload
+
+
+async def run_state_seed_actions(
+    session: aiohttp.ClientSession,
+    ha_url: str,
+    entry_id: str,
+    actions: list[dict[str, Any]],
+    delay_seconds: float,
+) -> tuple[int, int]:
+    """Execute optional state-seeding actions after entities are loaded."""
+    success_count = 0
+    total_count = 0
+
+    print("\n🧪 Seeding chore/reward states...")  # noqa: T201
+    for action in actions:
+        total_count += 1
+        service, payload = build_state_seed_payload(action, entry_id)
+        async with session.post(
+            f"{ha_url}/api/services/{DOMAIN}/{service}",
+            json=payload,
+        ) as response:
+            if response.status == 200:
+                success_count += 1
+                print(f"   ✅ {service}")  # noqa: T201
+            else:
+                body = await response.text()
+                print(  # noqa: T201
+                    f"   ❌ {service} (status={response.status}): {body[:180]}"
+                )
+        await asyncio.sleep(delay_seconds)
+
+    return success_count, total_count
+
+
+async def load_scenario_to_live_instance(args: argparse.Namespace) -> None:
+    """Load scenario entities into a live Home Assistant instance."""
+    repo_root = Path(__file__).resolve().parents[1]
+    scenario_path = resolve_scenario_path(args.scenario, repo_root)
+    if not scenario_path.exists():
+        raise FileNotFoundError(f"Scenario file not found: {scenario_path}")
+
+    scenario = load_scenario_file(scenario_path)
+    assignees, approvers, chores, rewards, bonuses, penalties = (
+        extract_scenario_collections(scenario)
+    )
+    state_seed_actions = extract_state_seed_actions(scenario)
+
+    print(f"📄 Scenario: {scenario_path}")  # noqa: T201
+    print(  # noqa: T201
+        "📊 Planned load: "
+        f"{len(assignees)} assignees, "
+        f"{len(approvers)} approvers, "
+        f"{len(chores)} chores, "
+        f"{len(rewards)} rewards, "
+        f"{len(bonuses)} bonuses, "
+        f"{len(penalties)} penalties"
+    )
+    if state_seed_actions:
+        print(  # noqa: T201
+            f"🧪 State seed actions available: {len(state_seed_actions)}"
+        )
+
+    if args.dry_run:
+        print("🧪 Dry-run mode: scenario validated, no API calls made")  # noqa: T201
         return
+
+    token = get_token(args)
+    if not token:
+        raise RuntimeError("No token provided")
 
     headers = {
         "Authorization": f"Bearer {token}",
@@ -67,212 +584,162 @@ async def load_scenario_to_live_instance(reset_first: bool = False):
     }
 
     async with aiohttp.ClientSession(headers=headers) as session:
-        # Test connection
-        try:
-            async with session.get(f"{ha_url}/api/") as resp:
-                if resp.status != 200:
-                    print(f"❌ API returned status {resp.status}")  # noqa: T201
-                    return
-        except aiohttp.ClientError:
-            print("❌ Home Assistant not running at http://localhost:8123")  # noqa: T201
-            print("   Start it first!")  # noqa: T201
-            return
+        async with session.get(f"{args.ha_url}/api/") as response:
+            if response.status != 200:
+                raise RuntimeError(f"HA API unavailable (status={response.status})")
 
-        print("✅ Connected to Home Assistant")  # noqa: T201
+        entry_id = await find_choreops_entry_id(session, args.ha_url)
+        print(f"✅ Connected to ChoreOps entry: {entry_id}")  # noqa: T201
 
-        # Find the KidsChores config entry
-        print("\n🔍 Finding KidsChores config entry...")  # noqa: T201
-        async with session.get(f"{ha_url}/api/config/config_entries/entry") as resp:
-            if resp.status != 200:
-                print("❌ Could not fetch config entries")  # noqa: T201
-                return
-            entries = await resp.json()
+        if args.reset:
+            print("🗑️ Resetting transactional data...")  # noqa: T201
+            await reset_transactional_data(session, args.ha_url)
+            await asyncio.sleep(1.0)
+            print("✅ Reset complete")  # noqa: T201
 
-        kidschores_entry = None
-        for entry in entries:
-            if entry.get("domain") == "kidschores":
-                kidschores_entry = entry
-                break
+        total_added = 0
+        total_skipped = 0
+        total_failed = 0
+        total_attempted = 0
 
-        if not kidschores_entry:
-            print("❌ KidsChores integration not found!")  # noqa: T201
-            print(  # noqa: T201
-                "   Please add it via Settings → Integrations → Add Integration → KidsChores"
-            )
-            return
-
-        entry_id = kidschores_entry["entry_id"]
-        print(f"✅ Found KidsChores entry: {entry_id}")  # noqa: T201
-
-        # Reset all data if requested
-        if reset_first:
-            print("\n🗑️  Resetting all KidsChores data...")  # noqa: T201
-            async with session.post(
-                f"{ha_url}/api/services/kidschores/reset_all_data", json={}
-            ) as resp:
-                if resp.status == 200:
-                    print("✅ Reset complete")  # noqa: T201
-                    await asyncio.sleep(2)  # Wait for reload to complete
+        async def _bulk_add(
+            title: str,
+            menu_key: str,
+            entities: list[dict[str, Any]],
+            payload_builder,
+        ) -> None:
+            nonlocal total_added, total_skipped, total_failed, total_attempted
+            print(f"\n{title}")  # noqa: T201
+            for entity in entities:
+                name = str(entity.get("name", "(unnamed)"))
+                entity_payload = payload_builder(entity)
+                total_attempted += 1
+                add_status = await add_entity_via_options_flow(
+                    session,
+                    args.ha_url,
+                    entry_id,
+                    menu_key,
+                    name,
+                    entity_payload,
+                )
+                if add_status == ENTITY_ADD_STATUS_ADDED:
+                    total_added += 1
+                    print(f"   ✅ {name}")  # noqa: T201
+                elif add_status == ENTITY_ADD_STATUS_SKIPPED:
+                    total_skipped += 1
+                    print(f"   ⏭️ {name} (already exists)")  # noqa: T201
                 else:
-                    print(f"⚠️  Reset returned status {resp.status}")  # noqa: T201
+                    total_failed += 1
+                    print(f"   ❌ {name}")  # noqa: T201
+                await asyncio.sleep(args.delay)
 
-        # Helper to start and complete options flow steps
-        async def add_entity_via_flow(
-            menu_selection: str, entity_data: dict, entity_name: str
-        ):
-            """Add an entity via options flow following the test pattern."""
-            # Step 1: Start options flow (goes to init step)
-            async with session.post(
-                f"{ha_url}/api/config/config_entries/options/flow",
-                json={"handler": entry_id},
-            ) as resp:
-                if resp.status != 200:
-                    print(f"   ❌ Failed to start flow for {entity_name}")  # noqa: T201
-                    return False
-                flow_result = await resp.json()
+        await _bulk_add(
+            "👤 Adding assignees...",
+            MENU_MANAGE_USER,
+            assignees,
+            build_assignee_payload,
+        )
+        await _bulk_add(
+            "🛡️ Adding approvers...", MENU_MANAGE_USER, approvers, build_approver_payload
+        )
+        await _bulk_add(
+            "🧹 Adding chores...", MENU_MANAGE_CHORE, chores, build_chore_payload
+        )
+        await _bulk_add(
+            "🎁 Adding rewards...", MENU_MANAGE_REWARD, rewards, build_reward_payload
+        )
+        await _bulk_add(
+            "✨ Adding bonuses...", MENU_MANAGE_BONUS, bonuses, build_bonus_payload
+        )
+        await _bulk_add(
+            "⚠️ Adding penalties...",
+            MENU_MANAGE_PENALTY,
+            penalties,
+            build_penalty_payload,
+        )
 
-            flow_id = flow_result["flow_id"]
-
-            # Step 2: From init menu, select entity type (e.g., "manage_kid")
-            async with session.post(
-                f"{ha_url}/api/config/config_entries/options/flow/{flow_id}",
-                json={"menu_selection": menu_selection},
-            ) as resp:
-                if resp.status != 200:
-                    print(f"   ❌ Failed menu selection for {entity_name}")  # noqa: T201
-                    return False
-                flow_result = await resp.json()
-
-            # Step 3: From manage_entity step, select "add" action
-            async with session.post(
-                f"{ha_url}/api/config/config_entries/options/flow/{flow_id}",
-                json={"manage_action": "add"},
-            ) as resp:
-                if resp.status != 200:
-                    print(f"   ❌ Failed to select add action for {entity_name}")  # noqa: T201
-                    return False
-                flow_result = await resp.json()
-
-            # Step 4: Submit entity data to add_<entity> step
-            async with session.post(
-                f"{ha_url}/api/config/config_entries/options/flow/{flow_id}",
-                json=entity_data,
-            ) as resp:
-                if resp.status != 200:
-                    print(f"   ❌ Failed to add {entity_name}")  # noqa: T201
-                    return False
-                flow_result = await resp.json()
-
-            # After successful add, should return to init menu
-            return (
-                flow_result.get("type") == "form"
-                and flow_result.get("step_id") == "init"
+        if state_seed_actions and args.seed_states:
+            seed_success, seed_total = await run_state_seed_actions(
+                session,
+                args.ha_url,
+                entry_id,
+                state_seed_actions,
+                args.delay,
+            )
+            print(f"✅ Seed actions succeeded: {seed_success}/{seed_total}")  # noqa: T201
+        elif state_seed_actions:
+            print(  # noqa: T201
+                "ℹ️ Scenario includes state seed actions. "
+                "Re-run with --seed-states to apply them"
             )
 
-        # Add kids
-        print("\n👶 Adding kids...")  # noqa: T201
-        for kid_info in scenario["family"]["kids"]:
-            kid_name = kid_info["name"]
-            kid_data = {
-                "kid_name": kid_name,
-            }
-            if await add_entity_via_flow("manage_kid", kid_data, kid_name):
-                print(f"   ✅ {kid_name}")  # noqa: T201
-            await asyncio.sleep(0.5)
-
-        # Add parents
-        print("\n👨 Adding parents...")  # noqa: T201
-        for parent_info in scenario["family"]["parents"]:
-            parent_name = parent_info["name"]
-            parent_data = {
-                "parent_name": parent_name,
-            }
-            if await add_entity_via_flow("manage_parent", parent_data, parent_name):
-                print(f"   ✅ {parent_name}")  # noqa: T201
-            await asyncio.sleep(0.5)
-
-        # Add chores
-        print("\n🧹 Adding chores...")  # noqa: T201
-        for chore_info in scenario["chores"]:
-            chore_name = chore_info["name"]
-            chore_data = {
-                "chore_name": chore_name,
-                "default_points": chore_info.get("points", 10),
-                "assigned_kids": chore_info.get("assigned_to", []),
-                "icon": chore_info.get("icon", "mdi:broom"),
-            }
-            if await add_entity_via_flow("manage_chore", chore_data, chore_name):
-                print(f"   ✅ {chore_name}")  # noqa: T201
-            await asyncio.sleep(0.5)
-
-        # Add badges (skip for now - they require badge type selection first)
-        print("\n🏆 Skipping badges (requires badge type selection, complex flow)")  # noqa: T201
-
-        # Add rewards
-        print("\n🎁 Adding rewards...")  # noqa: T201
-        for reward_info in scenario.get("rewards", []):
-            reward_name = reward_info["name"]
-            reward_data = {
-                "reward_name": reward_name,
-                "reward_cost": reward_info.get("cost", 50),
-                "icon": reward_info.get("icon", "mdi:gift"),
-            }
-            if await add_entity_via_flow("manage_reward", reward_data, reward_name):
-                print(f"   ✅ {reward_name}")  # noqa: T201
-            await asyncio.sleep(0.5)
-
-        # Add bonuses
-        print("\n✨ Adding bonuses...")  # noqa: T201
-        for bonus_info in scenario.get("bonuses", []):
-            bonus_name = bonus_info["name"]
-            bonus_data = {
-                "bonus_name": bonus_name,
-                "bonus_points": float(bonus_info.get("points", 10)),
-                "bonus_description": bonus_info.get("description", ""),
-                "icon": bonus_info.get("icon", "mdi:sparkles"),
-            }
-            if await add_entity_via_flow("manage_bonus", bonus_data, bonus_name):
-                print(f"   ✅ {bonus_name}")  # noqa: T201
-            await asyncio.sleep(0.5)
-
-        # Add penalties
-        print("\n⚠️  Adding penalties...")  # noqa: T201
-        for penalty_info in scenario.get("penalties", []):
-            penalty_name = penalty_info["name"]
-            # Penalties use positive values in the form (system stores as negative)
-            points_value = abs(penalty_info.get("points", -5))
-            penalty_data = {
-                "penalty_name": penalty_name,
-                "penalty_points": float(points_value),
-                "penalty_description": penalty_info.get("description", ""),
-                "icon": penalty_info.get("icon", "mdi:alert"),
-            }
-            if await add_entity_via_flow("manage_penalty", penalty_data, penalty_name):
-                print(f"   ✅ {penalty_name}")  # noqa: T201
-            await asyncio.sleep(0.5)
-
-        print("\n🎉 All entities loaded via options flow!")  # noqa: T201
-        print("\n📊 Summary:")  # noqa: T201
-        print(f"  👶 {len(scenario['family']['kids'])} kids")  # noqa: T201
-        print(f"  👨 {len(scenario['family']['parents'])} parents")  # noqa: T201
-        print(f"  🧹 {len(scenario['chores'])} chores")  # noqa: T201
-        print(f"  🏆 {len(scenario.get('badges', []))} badges (skipped)")  # noqa: T201
-        print(f"  🎁 {len(scenario.get('rewards', []))} rewards")  # noqa: T201
-        print(f"  ✨ {len(scenario.get('bonuses', []))} bonuses")  # noqa: T201
-        print(f"  ⚠️  {len(scenario.get('penalties', []))} penalties")  # noqa: T201
-        print("\n✅ Check Home Assistant - all entities should be visible now!")  # noqa: T201
-        print("   View them in Settings → Integrations → KidsChores")  # noqa: T201
+    print("\n🎉 Scenario load complete")  # noqa: T201
+    print(f"✅ Added: {total_added}/{total_attempted}")  # noqa: T201
+    print(f"⏭️ Skipped: {total_skipped}/{total_attempted}")  # noqa: T201
+    print(f"❌ Failed: {total_failed}/{total_attempted}")  # noqa: T201
 
 
-if __name__ == "__main__":
+def build_parser() -> argparse.ArgumentParser:
+    """Build CLI parser for the scenario loader."""
     parser = argparse.ArgumentParser(
-        description="Load test scenario data into KidsChores via options flow (dev tool)"
+        description="Load ChoreOps scenario data into a live Home Assistant instance"
+    )
+    parser.add_argument(
+        "--scenario",
+        default=DEFAULT_SCENARIO_PATH,
+        help=(
+            "Scenario YAML path (absolute or repo-relative). "
+            f"Default: {DEFAULT_SCENARIO_PATH}"
+        ),
+    )
+    parser.add_argument(
+        "--ha-url",
+        default=DEFAULT_HA_URL,
+        help=f"Home Assistant base URL. Default: {DEFAULT_HA_URL}",
+    )
+    parser.add_argument(
+        "--token",
+        default="",
+        help="Long-lived HA token (optional; use token env var for safer usage)",
+    )
+    parser.add_argument(
+        "--token-env",
+        default=DEFAULT_TOKEN_ENV,
+        help=(
+            "Environment variable to read token from when --token is omitted. "
+            f"Default: {DEFAULT_TOKEN_ENV}"
+        ),
     )
     parser.add_argument(
         "--reset",
         action="store_true",
-        help="Reset all KidsChores data before loading new data",
+        help="Run choreops.reset_transactional_data before loading",
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate scenario and print planned actions without API calls",
+    )
+    parser.add_argument(
+        "--delay",
+        type=float,
+        default=DEFAULT_DELAY_SECONDS,
+        help=f"Delay in seconds between entity submissions. Default: {DEFAULT_DELAY_SECONDS}",
+    )
+    parser.add_argument(
+        "--seed-states",
+        action="store_true",
+        help="Apply optional scenario state seed actions after entity load",
+    )
+    return parser
 
-    asyncio.run(load_scenario_to_live_instance(reset_first=args.reset))
+
+def main() -> None:
+    """CLI entry point."""
+    parser = build_parser()
+    args = parser.parse_args()
+    asyncio.run(load_scenario_to_live_instance(args))
+
+
+if __name__ == "__main__":
+    main()

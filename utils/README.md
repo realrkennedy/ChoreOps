@@ -13,25 +13,49 @@ Development utilities and helper scripts for ChoreOps integration development.
 **Usage**:
 
 ```bash
-# Load test data
+# Validate scenario shape only (no API calls)
+python utils/load_test_scenario_to_live_ha.py --dry-run
+
+# Load default scenario test data
 python utils/load_test_scenario_to_live_ha.py
 
-# Reset all data first, then load
+# Load a specific scenario from tests/scenarios
+python utils/load_test_scenario_to_live_ha.py --scenario tests/scenarios/scenario_minimal.yaml
+
+# Load UX state-driver scenario (coded names + rotation coverage)
+python utils/load_test_scenario_to_live_ha.py --scenario tests/scenarios/scenario_ux_states.yaml
+
+# Target a non-default HA URL
+python utils/load_test_scenario_to_live_ha.py --ha-url http://homeassistant.local:8123
+
+# Use token from environment (recommended)
+HASS_TOKEN="<token>" python utils/load_test_scenario_to_live_ha.py
+
+# Reset transactional data first, then load
 python utils/load_test_scenario_to_live_ha.py --reset
+
+# Apply optional post-load state seeding actions from scenario
+python utils/load_test_scenario_to_live_ha.py --scenario tests/scenarios/scenario_ux_states.yaml --seed-states
+
+# Recommended UX loop: reset + load + seed with state-driver scenario
+HASS_TOKEN="<token>" python utils/load_test_scenario_to_live_ha.py --scenario tests/scenarios/scenario_ux_states.yaml --ha-url http://localhost:8123 --reset --seed-states
 ```
 
 **Requirements**:
 
 - Home Assistant running at http://localhost:8123
 - ChoreOps integration already installed
-- Long-lived access token from Profile → Security
+- Long-lived access token from Profile → Security (`--token`, `--token-env`, or prompt)
 
 **What it does**:
 
 1. Connects to HA REST API
-2. Uses options flow to add kids, parents, chores, rewards, bonuses, penalties
-3. Loads data from `tests/testdata_scenario_full.yaml`
-4. Optionally resets all data first (creates backup)
+2. Uses ChoreOps options flow (`manage_user`, `manage_chore`, etc.) to add entities
+3. Loads data from `tests/scenarios/scenario_full.yaml` by default
+4. Optionally resets transactional data first via `choreops.reset_transactional_data`
+5. Supports helper flow completion for advanced chore steps
+6. Optionally applies scenario-defined post-load state seed actions (`--seed-states`)
+7. Supports now-relative due dates in scenario files (`now`, `now+1m`, `now+3h`, `now+7d`, etc.)
 
 **Use cases**:
 

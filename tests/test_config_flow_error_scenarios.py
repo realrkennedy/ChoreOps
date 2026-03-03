@@ -15,7 +15,7 @@ from homeassistant.data_entry_flow import FlowResultType
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.choreops import const
+from custom_components.choreops import const, migration_pre_v50 as mp50
 from custom_components.choreops.const import CHOREOPS_TITLE
 from tests.helpers import DOMAIN
 
@@ -241,6 +241,43 @@ async def test_missing_storage_file_handling(
         )
         assert result.get("type") == FlowResultType.FORM
         assert result.get("step_id") == "intro"
+
+
+async def test_current_active_does_not_use_legacy_kidschores_file(
+    hass: HomeAssistant, mock_storage_dir: Path
+) -> None:
+    """Current-active selection should not consume legacy kidschores storage."""
+    legacy_storage_file = mock_storage_dir / mp50.LEGACY_STORAGE_KEY
+    create_temp_storage_file(
+        legacy_storage_file,
+        {
+            "version": 1,
+            "minor_version": 1,
+            "key": mp50.LEGACY_STORAGE_KEY,
+            "data": {
+                "meta": {"schema_version": 42},
+                "assignees": {"legacy": {"name": "Legacy User"}},
+            },
+        },
+    )
+
+    with patch.object(
+        hass.config,
+        "path",
+        side_effect=lambda *args: str(mock_storage_dir.parent / Path(*args)),
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": config_entries.SOURCE_USER}
+        )
+        assert result.get("type") == FlowResultType.FORM
+        assert result.get("step_id") == "data_recovery"
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={"backup_selection": "current_active"}
+        )
+
+    assert result.get("type") == FlowResultType.ABORT
+    assert result.get("reason") == "file_not_found"
 
 
 async def test_storage_file_detection(

@@ -23,6 +23,26 @@ Contribution rules:
 - Do not submit manual source PRs against `custom_components/choreops/dashboards` in `ccpk1/ChoreOps`.
 - Mirror canonical updates via `utils/sync_dashboard_assets.py`.
 
+Translation source rules:
+
+- Dashboard translation source edits are made only in `choreops-dashboards/translations/en_dashboard.json`.
+- Non-English dashboard translation files are pipeline-managed artifacts and must not be manually edited.
+
+### Execution boundary contract (guide vs agent)
+
+To keep agent instructions concise and token-efficient, use this boundary split:
+
+| Location                                                    | Owns                                                   | Should include                                                                                                            | Should avoid                                                 |
+| ----------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `docs/DASHBOARD_TEMPLATE_GUIDE.md`                          | Durable dashboard architecture and authoring contracts | Source-of-truth rules, template structure, Jinja contracts, dependency policy, sync/parity workflow, canonical references | Step-by-step phase execution behavior tied to one initiative |
+| `docs/DASHBOARD_UI_DESIGN_GUIDELINE.md`                     | Durable UX semantics                                   | State communication, typography, color semantics, icon mapping, card behavior conventions                                 | Runtime flow mechanics and release-selection internals       |
+| Agent file (`.github/agents/dashboard-ux-builder.agent.md`) | Operational execution behavior                         | Minimal workflow loop, critical guardrails, validation commands, handoffs, pointers to docs                               | Full architecture duplication from guides                    |
+
+Agent design principle:
+
+- Keep agent files short and high-signal.
+- Put stable, detailed guidance in docs and reference those docs from the agent.
+
 Decision/ratification references:
 
 - `docs/in-process/DASHBOARD_REGISTRY_GENERATION_IN-PROCESS.md`
@@ -93,6 +113,49 @@ python utils/sync_dashboard_assets.py --check
 CI enforces this contract with the `Dashboard Asset Parity` workflow, which fails
 if vendored assets drift from canonical content.
 
+### Required workflow for testable changes
+
+When canonical dashboard changes must be available to integration runtime for testing:
+
+1. Update canonical assets in `choreops-dashboards/*`.
+2. Run `python utils/sync_dashboard_assets.py` from `choreops`.
+3. Run `python utils/sync_dashboard_assets.py --check`.
+4. Run relevant dashboard tests in `choreops`.
+
+### Optional local preload loop (UX iteration)
+
+When iterating on dashboard UX and you need realistic local test data quickly:
+
+1. Validate scenario and intended load operations only:
+
+```bash
+python utils/load_test_scenario_to_live_ha.py --dry-run
+```
+
+2. Load scenario data into a local Home Assistant dev instance:
+
+```bash
+HASS_TOKEN="<token>" python utils/load_test_scenario_to_live_ha.py --scenario tests/scenarios/scenario_full.yaml --ha-url http://localhost:8123
+```
+
+For dashboard UX state testing (for example waiting/due/overdue), use the UX driver scenario:
+
+```bash
+HASS_TOKEN="<token>" python utils/load_test_scenario_to_live_ha.py --scenario tests/scenarios/scenario_ux_states.yaml --ha-url http://localhost:8123 --reset --seed-states
+```
+
+3. For a clean reload cycle, reset transactional data first:
+
+```bash
+HASS_TOKEN="<token>" python utils/load_test_scenario_to_live_ha.py --reset
+```
+
+Notes:
+
+- This utility is for local development only (not CI, not production).
+- It uses current `choreops` options-flow contracts and menu keys.
+- Scenario `due_date` fields support now-relative values (`now`, `now+1m`, `now+3h`, `now+7d`) for repeatable UX state windows.
+
 ---
 
 ## Release, registry, and compatibility policy
@@ -162,6 +225,16 @@ Dependency review always renders two translated section headers:
 
 Missing dependency items are shown as link rows prefixed with `❌`.
 Required dependency bypass remains an explicit acknowledge action.
+
+### Custom card knowledge references (for builders and agents)
+
+Use these as authoritative references for syntax/capability checks:
+
+- Button card docs: `https://custom-cards.github.io/button-card/`
+- Button card repository: `https://github.com/custom-cards/button-card`
+- Auto-entities repository/docs: `https://github.com/thomasloven/lovelace-auto-entities`
+- Home Assistant dashboards: `https://www.home-assistant.io/dashboards/`
+- Home Assistant templating: `https://www.home-assistant.io/docs/configuration/templating/`
 
 ---
 
