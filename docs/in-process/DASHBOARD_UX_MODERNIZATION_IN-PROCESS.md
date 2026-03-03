@@ -80,7 +80,7 @@
 ### Local sandbox auth (development only)
 
 - **Dev instance token (sandbox)**:
-       `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJkMTg1MzVmMWRkOTg0OGUyOTNiNmI5OWY4ODc2NTc1MyIsImlhdCI6MTc3MjU1OTc0NywiZXhwIjoyMDg3OTE5NzQ3fQ.Bk0f4R062GzJifL_It2ybOd7Eu5iGRrOhZPoQHIAJEM`
+  `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJkMTg1MzVmMWRkOTg0OGUyOTNiNmI5OWY4ODc2NTc1MyIsImlhdCI6MTc3MjU1OTc0NywiZXhwIjoyMDg3OTE5NzQ3fQ.Bk0f4R062GzJifL_It2ybOd7Eu5iGRrOhZPoQHIAJEM`
 
 ### Phase 2 – Dev preload workflow
 

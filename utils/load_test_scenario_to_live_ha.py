@@ -496,7 +496,9 @@ async def add_entity_via_options_flow(
     return ENTITY_ADD_STATUS_FAILED
 
 
-def build_state_seed_payload(action: dict[str, Any], entry_id: str) -> tuple[str, dict[str, Any]]:
+def build_state_seed_payload(
+    action: dict[str, Any], entry_id: str
+) -> tuple[str, dict[str, Any]]:
     """Build domain service and payload for a post-load seed action."""
     service = str(action["service"])
     payload = dict(action["data"])
