@@ -1509,6 +1509,11 @@ CHORE_APPROVAL_ORIGIN_MANUAL: Final = "manual"
 CHORE_APPROVAL_ORIGIN_AUTO_APPROVE: Final = "auto_approve"
 CHORE_APPROVAL_ORIGIN_AUTO_RESET: Final = "auto_reset"
 
+# Chore overdue notification routing (event payload metadata)
+CHORE_OVERDUE_EVENT_MESSAGE_TYPE: Final = "overdue_message_type"
+CHORE_OVERDUE_NOTIFICATION_TYPE_DEFAULT: Final = "default"
+CHORE_OVERDUE_NOTIFICATION_TYPE_STEAL_AVAILABLE: Final = "steal_available"
+
 DATA_CHORE_STATE: Final = "state"
 DATA_CHORE_TIMESTAMP: Final = "timestamp"
 
@@ -2043,6 +2048,9 @@ TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE_ASSIGNEE: Final = (
 )
 TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE_ASSIGNEE: Final = (
     "notification_message_chore_overdue_assignee"
+)
+TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE_STEAL_AVAILABLE: Final = (
+    "notification_message_chore_overdue_steal_available"
 )
 
 TRANS_KEY_NOTIF_TITLE_CHORE_MISSED_ASSIGNEE: Final = (

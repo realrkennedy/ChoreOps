@@ -1967,6 +1967,17 @@ class ChoreManager(BaseManager):
             # Update global chore state
             self._update_global_state(chore_id)
 
+            overdue_message_type = const.CHORE_OVERDUE_NOTIFICATION_TYPE_DEFAULT
+            if (
+                ChoreEngine.is_rotation_mode(chore_data)
+                and overdue_handling == const.OVERDUE_HANDLING_AT_DUE_DATE_ALLOW_STEAL
+                and chore_data.get(const.DATA_CHORE_ROTATION_CURRENT_ASSIGNEE_ID)
+                != assignee_id
+            ):
+                overdue_message_type = (
+                    const.CHORE_OVERDUE_NOTIFICATION_TYPE_STEAL_AVAILABLE
+                )
+
             # Calculate days overdue and accumulate signal data
             days_overdue = (now_utc - due_dt).days
             signals_to_emit.append(
@@ -1978,6 +1989,7 @@ class ChoreManager(BaseManager):
                     "days_overdue": days_overdue,
                     "due_date": due_dt.isoformat(),
                     "chore_labels": chore_data.get(const.DATA_CHORE_LABELS, []),
+                    const.CHORE_OVERDUE_EVENT_MESSAGE_TYPE: overdue_message_type,
                 }
             )
 

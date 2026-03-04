@@ -1173,6 +1173,7 @@ class ChoreOverdueEvent(TypedDict, total=False):
     days_overdue: int  # Required
     due_date: str  # Required: ISO format
     chore_labels: list[str]  # For badge criteria filtering
+    overdue_message_type: str  # Optional: default or steal_available
 
 
 class ChoreRescheduledEvent(TypedDict, total=False):

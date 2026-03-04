@@ -14,6 +14,10 @@
     "title": "⏰ Chore Overdue",
     "message": "{chore_name} is overdue! Complete it now to earn {points} points"
   },
+  "chore_overdue_steal_available": {
+    "title": "⚡ Chore Alert",
+    "message": "{chore_name} is overdue and available to steal! Complete it first to earn {points} points"
+  },
   "chore_missed_assignee": {
     "title": "😔 Chore Expired",
     "message": "{chore_name} expired without completion."

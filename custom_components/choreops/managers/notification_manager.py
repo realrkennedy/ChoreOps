@@ -2586,8 +2586,7 @@ class NotificationManager(BaseManager):
     async def _handle_chore_overdue(self, payload: dict[str, Any]) -> None:
         """Handle CHORE_OVERDUE event - notify assignee and approvers with actions.
 
-        For rotation chores, notifies ALL assigned assignees (steal mechanic).
-        For regular chores, notifies only the target assignee.
+        Routing is payload-driven by ChoreManager and targets only payload user_id.
         Uses Schedule-Lock pattern to prevent duplicate notifications within same period.
 
         Args:
@@ -2620,25 +2619,9 @@ class NotificationManager(BaseManager):
             )
             return
 
-        # For rotation chores, notify ALL assigned assignees (steal mechanic)
-        # For regular chores, notify only the original assignee
-        if chore_info and ChoreEngine.is_rotation_mode(chore_info):
-            assigned_assignees = chore_info.get(const.DATA_CHORE_ASSIGNED_USER_IDS, [])
-            const.LOGGER.debug(
-                "NotificationManager: Rotation chore overdue - notifying all %d assigned assignees",
-                len(assigned_assignees),
-            )
-
-            # Send to all assigned assignees
-            for target_assignee_id in assigned_assignees:
-                await self._send_overdue_notification_to_assignee(
-                    target_assignee_id, chore_id, chore_name, due_date, payload
-                )
-        else:
-            # Regular chore - send to original assignee only
-            await self._send_overdue_notification_to_assignee(
-                assignee_id, chore_id, chore_name, due_date, payload
-            )
+        await self._send_overdue_notification_to_assignee(
+            assignee_id, chore_id, chore_name, due_date, payload
+        )
 
     async def _send_overdue_notification_to_assignee(
         self,
@@ -2682,11 +2665,24 @@ class NotificationManager(BaseManager):
             chore_info.get(const.DATA_CHORE_DEFAULT_POINTS, 0) if chore_info else 0
         )
 
+        overdue_message_type = payload.get(
+            const.CHORE_OVERDUE_EVENT_MESSAGE_TYPE,
+            const.CHORE_OVERDUE_NOTIFICATION_TYPE_DEFAULT,
+        )
+        assignee_message_key = const.TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE_ASSIGNEE
+        if (
+            overdue_message_type
+            == const.CHORE_OVERDUE_NOTIFICATION_TYPE_STEAL_AVAILABLE
+        ):
+            assignee_message_key = (
+                const.TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE_STEAL_AVAILABLE
+            )
+
         # Notify assignee with claim action (using tag for smart replacement)
         await self.notify_assignee_translated(
             target_assignee_id,
             title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE_ASSIGNEE,
-            message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE_ASSIGNEE,
+            message_key=assignee_message_key,
             message_data={
                 "assignee_name": assignee_name,
                 "chore_name": chore_name,
