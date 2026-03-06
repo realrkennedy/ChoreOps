@@ -19,6 +19,7 @@ by periodic with weekly reset) are covered in test_badge_cumulative.py.
 
 import logging
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.core import HomeAssistant
@@ -26,7 +27,12 @@ from homeassistant.data_entry_flow import FlowResultType
 import pytest
 
 from custom_components.choreops import const
-from custom_components.choreops.utils.dt_utils import dt_add_interval, dt_today_iso
+from custom_components.choreops.utils.dt_utils import (
+    dt_add_interval,
+    dt_today_iso,
+    get_default_timezone,
+    set_default_timezone,
+)
 from tests.helpers import (
     # Badge type constants
     BADGE_TYPE_DAILY,
@@ -492,15 +498,7 @@ class TestPeriodicBadgeTargetTypes:
 
         assert changed is True
         assert str(badge_progress[const.DATA_USER_BADGE_PROGRESS_END_DATE]) >= today_iso
-        expected_start = dt_add_interval(
-            today_iso,
-            interval_unit=const.TIME_UNIT_DAYS,
-            delta=-1,
-            return_type=const.HELPER_RETURN_ISO_DATE,
-        )
-        assert (
-            badge_progress[const.DATA_USER_BADGE_PROGRESS_START_DATE] == expected_start
-        )
+        assert badge_progress[const.DATA_USER_BADGE_PROGRESS_START_DATE] == today_iso
         assert badge_progress[const.DATA_USER_BADGE_PROGRESS_POINTS_CYCLE_COUNT] == 0.0
 
     async def test_points_badge_persist_sets_last_update_day_and_rounds_progress(
@@ -680,6 +678,231 @@ class TestPeriodicBadgeTargetTypes:
             is True
         )
 
+    async def test_periodic_reaward_guard_handles_null_start_date(
+        self,
+        hass: HomeAssistant,
+        setup_minimal: SetupResult,
+    ) -> None:
+        """Null cycle start_date still blocks duplicate awards on same day."""
+        config_entry = setup_minimal.config_entry
+        coordinator = setup_minimal.coordinator
+
+        assignee_id = next(iter(coordinator.assignees_data.keys()))
+
+        badge_data = {
+            CFOF_BADGES_INPUT_NAME: "Reaward Null Start Guard",
+            CFOF_BADGES_INPUT_ICON: "mdi:calendar-alert",
+            CFOF_BADGES_INPUT_TARGET_TYPE: "points",
+            CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE: 1,
+            CFOF_BADGES_INPUT_ASSIGNED_USER_IDS: [assignee_id],
+            CFOF_BADGES_INPUT_SELECTED_CHORES: [],
+            CFOF_BADGES_INPUT_AWARD_POINTS: 5.0,
+            CFOF_BADGES_INPUT_AWARD_ITEMS: ["points"],
+        }
+
+        await add_badge_via_options_flow(
+            hass,
+            config_entry.entry_id,
+            BADGE_TYPE_DAILY,
+            badge_data,
+        )
+
+        badge_id, _ = get_badge_by_name(coordinator, "Reaward Null Start Guard")
+        today_iso = dt_today_iso()
+
+        coordinator.gamification_manager.update_badges_earned_for_assignee(
+            assignee_id, badge_id
+        )
+
+        badge_progress = coordinator.assignees_data[assignee_id][
+            DATA_USER_BADGE_PROGRESS
+        ][badge_id]
+        badge_progress[const.DATA_USER_BADGE_PROGRESS_START_DATE] = None
+        badge_progress[const.DATA_USER_BADGE_PROGRESS_END_DATE] = today_iso
+
+        assert (
+            coordinator.gamification_manager._is_periodic_award_recorded_for_current_cycle(
+                assignee_id,
+                badge_id,
+            )
+            is True
+        )
+
+    async def test_periodic_sync_backfills_missing_start_date(
+        self,
+        hass: HomeAssistant,
+        setup_minimal: SetupResult,
+    ) -> None:
+        """Sync assigns missing start_date while preserving existing cycle end_date."""
+        config_entry = setup_minimal.config_entry
+        coordinator = setup_minimal.coordinator
+
+        assignee_id = next(iter(coordinator.assignees_data.keys()))
+
+        badge_data = {
+            CFOF_BADGES_INPUT_NAME: "Cycle Start Backfill Guard",
+            CFOF_BADGES_INPUT_ICON: "mdi:calendar-sync",
+            CFOF_BADGES_INPUT_TARGET_TYPE: "points",
+            CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE: 1,
+            CFOF_BADGES_INPUT_ASSIGNED_USER_IDS: [assignee_id],
+            CFOF_BADGES_INPUT_SELECTED_CHORES: [],
+            CFOF_BADGES_INPUT_AWARD_POINTS: 5.0,
+            CFOF_BADGES_INPUT_AWARD_ITEMS: ["points"],
+        }
+
+        await add_badge_via_options_flow(
+            hass,
+            config_entry.entry_id,
+            BADGE_TYPE_DAILY,
+            badge_data,
+        )
+
+        badge_id, _ = get_badge_by_name(coordinator, "Cycle Start Backfill Guard")
+        today_iso = dt_today_iso()
+
+        badge_progress = coordinator.assignees_data[assignee_id][
+            DATA_USER_BADGE_PROGRESS
+        ][badge_id]
+
+        original_end = str(
+            badge_progress.get(const.DATA_USER_BADGE_PROGRESS_END_DATE, "")
+        )
+        assert original_end
+
+        badge_progress[const.DATA_USER_BADGE_PROGRESS_START_DATE] = None
+
+        coordinator.gamification_manager.sync_badge_progress_for_assignee(assignee_id)
+
+        assert (
+            badge_progress.get(const.DATA_USER_BADGE_PROGRESS_START_DATE) == today_iso
+        )
+        assert (
+            badge_progress.get(const.DATA_USER_BADGE_PROGRESS_END_DATE) == original_end
+        )
+
+    async def test_periodic_without_recurrence_awards_only_once(
+        self,
+        hass: HomeAssistant,
+        setup_minimal: SetupResult,
+    ) -> None:
+        """Periodic badge with no recurrence/date window is treated as one-time."""
+        config_entry = setup_minimal.config_entry
+        coordinator = setup_minimal.coordinator
+
+        assignee_id = next(iter(coordinator.assignees_data.keys()))
+
+        badge_data = {
+            CFOF_BADGES_INPUT_NAME: "No Recurrence One-Time Guard",
+            CFOF_BADGES_INPUT_ICON: "mdi:lock-check",
+            CFOF_BADGES_INPUT_TARGET_TYPE: "points",
+            CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE: 1,
+            CFOF_BADGES_INPUT_ASSIGNED_USER_IDS: [assignee_id],
+            CFOF_BADGES_INPUT_SELECTED_CHORES: [],
+            CFOF_BADGES_INPUT_AWARD_POINTS: 5.0,
+            CFOF_BADGES_INPUT_AWARD_ITEMS: ["points"],
+        }
+
+        await add_badge_via_options_flow(
+            hass,
+            config_entry.entry_id,
+            BADGE_TYPE_PERIODIC,
+            badge_data,
+        )
+
+        badge_id, _ = get_badge_by_name(coordinator, "No Recurrence One-Time Guard")
+
+        coordinator.gamification_manager.update_badges_earned_for_assignee(
+            assignee_id, badge_id
+        )
+
+        badge_progress = coordinator.assignees_data[assignee_id][
+            DATA_USER_BADGE_PROGRESS
+        ][badge_id]
+        badge_progress[const.DATA_USER_BADGE_PROGRESS_RECURRING_FREQUENCY] = (
+            const.FREQUENCY_NONE
+        )
+        badge_progress[const.DATA_USER_BADGE_PROGRESS_START_DATE] = None
+        badge_progress[const.DATA_USER_BADGE_PROGRESS_END_DATE] = None
+
+        badges_earned = coordinator.assignees_data[assignee_id][
+            const.DATA_USER_BADGES_EARNED
+        ]
+        badges_earned[badge_id][const.DATA_USER_BADGES_EARNED_LAST_AWARDED] = (
+            "2026-01-01T12:00:00+00:00"
+        )
+
+        assert (
+            coordinator.gamification_manager._is_periodic_award_recorded_for_current_cycle(
+                assignee_id,
+                badge_id,
+            )
+            is True
+        )
+
+    async def test_periodic_guard_uses_local_date_for_cycle_window(
+        self,
+        hass: HomeAssistant,
+        setup_minimal: SetupResult,
+    ) -> None:
+        """Cycle-window check uses local date when parsing UTC award timestamps."""
+        config_entry = setup_minimal.config_entry
+        coordinator = setup_minimal.coordinator
+
+        assignee_id = next(iter(coordinator.assignees_data.keys()))
+        original_tz = get_default_timezone()
+
+        try:
+            set_default_timezone(ZoneInfo("America/New_York"))
+
+            badge_data = {
+                CFOF_BADGES_INPUT_NAME: "Local Date Window Guard",
+                CFOF_BADGES_INPUT_ICON: "mdi:clock-time-four",
+                CFOF_BADGES_INPUT_TARGET_TYPE: "points",
+                CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE: 1,
+                CFOF_BADGES_INPUT_ASSIGNED_USER_IDS: [assignee_id],
+                CFOF_BADGES_INPUT_SELECTED_CHORES: [],
+                CFOF_BADGES_INPUT_AWARD_POINTS: 5.0,
+                CFOF_BADGES_INPUT_AWARD_ITEMS: ["points"],
+            }
+
+            await add_badge_via_options_flow(
+                hass,
+                config_entry.entry_id,
+                BADGE_TYPE_PERIODIC,
+                badge_data,
+            )
+
+            badge_id, _ = get_badge_by_name(coordinator, "Local Date Window Guard")
+            coordinator.gamification_manager.update_badges_earned_for_assignee(
+                assignee_id, badge_id
+            )
+
+            badge_progress = coordinator.assignees_data[assignee_id][
+                DATA_USER_BADGE_PROGRESS
+            ][badge_id]
+            badge_progress[const.DATA_USER_BADGE_PROGRESS_RECURRING_FREQUENCY] = (
+                const.FREQUENCY_WEEKLY
+            )
+            badge_progress[const.DATA_USER_BADGE_PROGRESS_START_DATE] = "2026-03-06"
+            badge_progress[const.DATA_USER_BADGE_PROGRESS_END_DATE] = "2026-03-06"
+
+            badges_earned = coordinator.assignees_data[assignee_id][
+                const.DATA_USER_BADGES_EARNED
+            ]
+            badges_earned[badge_id][const.DATA_USER_BADGES_EARNED_LAST_AWARDED] = (
+                "2026-03-07T01:30:00+00:00"
+            )
+
+            assert (
+                coordinator.gamification_manager._is_periodic_award_recorded_for_current_cycle(
+                    assignee_id,
+                    badge_id,
+                )
+                is True
+            )
+        finally:
+            set_default_timezone(original_tz)
+
     async def test_normalize_all_scope_tracked_chores_legacy_storage(
         self,
         hass: HomeAssistant,
@@ -797,6 +1020,29 @@ class TestPeriodicBadgeTargetTypes:
             assignee_assigned_chores=[selected_valid],
         )
         assert in_scope == [selected_valid]
+
+    async def test_scope_filter_without_tracked_chores_includes_all_assigned(
+        self,
+        setup_minimal: SetupResult,
+    ) -> None:
+        """Badges without tracked chores use all assignee-assigned chores."""
+        coordinator = setup_minimal.coordinator
+
+        assignee_id = next(iter(coordinator.assignees_data.keys()))
+        badge_info = {
+            const.DATA_BADGE_TYPE: const.BADGE_TYPE_SPECIAL_OCCASION,
+            const.DATA_BADGE_OCCASION_TYPE: const.OCCASION_BIRTHDAY,
+        }
+
+        in_scope = coordinator.gamification_manager.get_badge_in_scope_chores_list(
+            badge_info,
+            assignee_id,
+        )
+        expected_assigned = (
+            coordinator.gamification_manager._get_assignee_assigned_chores(assignee_id)
+        )
+
+        assert sorted(in_scope) == sorted(expected_assigned)
 
     async def test_unknown_target_mapper_warns_and_returns_unknown(
         self,
@@ -918,6 +1164,158 @@ class TestSpecialOccasionBadgeTargetTypes:
         # Verify badge was created
         badge_id, badge_info = get_badge_by_name(coordinator, "Holiday Helper")
         assert badge_info[const.DATA_BADGE_TYPE] == BADGE_TYPE_SPECIAL_OCCASION
+
+    async def test_special_occasion_progress_attributes_include_trigger_type(
+        self,
+        hass: HomeAssistant,
+        setup_minimal: SetupResult,
+    ) -> None:
+        """Special occasion progress sensor exposes occasion trigger type."""
+        config_entry = setup_minimal.config_entry
+        coordinator = setup_minimal.coordinator
+        assignee_id = next(iter(coordinator.assignees_data.keys()))
+
+        badge_data = {
+            CFOF_BADGES_INPUT_NAME: "Birthday Trigger Visible",
+            CFOF_BADGES_INPUT_ICON: "mdi:cake-variant",
+            CFOF_BADGES_INPUT_OCCASION_TYPE: const.OCCASION_BIRTHDAY,
+            CFOF_BADGES_INPUT_ASSIGNED_USER_IDS: [assignee_id],
+            CFOF_BADGES_INPUT_AWARD_POINTS: 10.0,
+            CFOF_BADGES_INPUT_AWARD_ITEMS: ["points"],
+        }
+
+        await add_badge_via_options_flow(
+            hass,
+            config_entry.entry_id,
+            BADGE_TYPE_SPECIAL_OCCASION,
+            badge_data,
+        )
+
+        _, badge_info = get_badge_by_name(coordinator, "Birthday Trigger Visible")
+        assert badge_info[const.DATA_BADGE_OCCASION_TYPE] == const.OCCASION_BIRTHDAY
+
+        await coordinator.async_refresh()
+        await hass.async_block_till_done()
+
+        state = next(
+            (
+                sensor_state
+                for sensor_state in hass.states.async_all("sensor")
+                if sensor_state.attributes.get(const.ATTR_PURPOSE)
+                == const.TRANS_KEY_PURPOSE_BADGE_PROGRESS
+                and sensor_state.attributes.get(const.ATTR_USER_NAME)
+                == coordinator.assignees_data[assignee_id][const.DATA_USER_NAME]
+                and sensor_state.attributes.get(const.ATTR_BADGE_NAME)
+                == "Birthday Trigger Visible"
+            ),
+            None,
+        )
+
+        assert state is not None
+        attrs = state.attributes
+
+        assert attrs.get(const.ATTR_OCCASION_TYPE) == const.OCCASION_BIRTHDAY
+
+        # Self-contained badge-definition fields for UI (single-sensor consumption)
+        assert const.ATTR_DESCRIPTION in attrs
+        assert const.ATTR_LABELS in attrs
+        assert const.DATA_USER_BADGE_PROGRESS_TARGET_TYPE in attrs
+        assert const.DATA_USER_BADGE_PROGRESS_TARGET_THRESHOLD_VALUE in attrs
+        assert const.ATTR_TARGET in attrs
+        assert const.ATTR_REQUIRED_CHORES in attrs
+        assert const.ATTR_BADGE_AWARDS in attrs
+        assert const.ATTR_RESET_SCHEDULE in attrs
+        assert const.DATA_BADGE_RESET_SCHEDULE_START_DATE not in attrs
+        assert const.DATA_BADGE_RESET_SCHEDULE_END_DATE not in attrs
+        assert const.ATTR_ASSOCIATED_ACHIEVEMENT in attrs
+        assert const.ATTR_ASSOCIATED_CHALLENGE in attrs
+        assert const.ATTR_SYSTEM_BADGE_EID in attrs
+
+        # Stable default shapes for optional fields
+        assert isinstance(attrs[const.ATTR_LABELS], list)
+        assert isinstance(attrs[const.ATTR_TARGET], dict)
+        assert isinstance(attrs[const.ATTR_REQUIRED_CHORES], list)
+        assert attrs[const.ATTR_ASSOCIATED_ACHIEVEMENT] is None
+        assert attrs[const.ATTR_ASSOCIATED_CHALLENGE] is None
+
+        # Structured awards payload (not comma-delimited text)
+        awards = attrs[const.ATTR_BADGE_AWARDS]
+        assert isinstance(awards, dict)
+        assert isinstance(awards[const.DATA_BADGE_AWARDS_AWARD_ITEMS], list)
+        assert isinstance(awards[const.AWARD_ITEMS_KEY_REWARDS], list)
+        assert isinstance(awards[const.AWARD_ITEMS_KEY_BONUSES], list)
+        assert isinstance(awards[const.AWARD_ITEMS_KEY_PENALTIES], list)
+
+        # Reset schedule is always present with explicit shape
+        reset_schedule = attrs[const.ATTR_RESET_SCHEDULE]
+        assert isinstance(reset_schedule, dict)
+        assert const.DATA_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY in reset_schedule
+        assert const.DATA_BADGE_RESET_SCHEDULE_START_DATE in reset_schedule
+        assert const.DATA_BADGE_RESET_SCHEDULE_END_DATE in reset_schedule
+
+    async def test_special_occasion_yearly_cycle_window_is_single_day(
+        self,
+        hass: HomeAssistant,
+        setup_minimal: SetupResult,
+    ) -> None:
+        """Special-occasion yearly rollover windows persist as single-day start/end."""
+        config_entry = setup_minimal.config_entry
+        coordinator = setup_minimal.coordinator
+        assignee_id = next(iter(coordinator.assignees_data.keys()))
+
+        badge_data = {
+            CFOF_BADGES_INPUT_NAME: "Birthday Single-Day Window",
+            CFOF_BADGES_INPUT_ICON: "mdi:cake-variant",
+            CFOF_BADGES_INPUT_OCCASION_TYPE: const.OCCASION_BIRTHDAY,
+            CFOF_BADGES_INPUT_ASSIGNED_USER_IDS: [assignee_id],
+            CFOF_BADGES_INPUT_AWARD_POINTS: 10.0,
+            CFOF_BADGES_INPUT_AWARD_ITEMS: ["points"],
+        }
+
+        await add_badge_via_options_flow(
+            hass,
+            config_entry.entry_id,
+            BADGE_TYPE_SPECIAL_OCCASION,
+            badge_data,
+        )
+
+        badge_id, _ = get_badge_by_name(coordinator, "Birthday Single-Day Window")
+        badge_progress = coordinator.assignees_data[assignee_id][
+            DATA_USER_BADGE_PROGRESS
+        ][badge_id]
+
+        today_iso = dt_today_iso()
+        stale_end = dt_add_interval(
+            today_iso,
+            interval_unit=const.TIME_UNIT_DAYS,
+            delta=-400,
+            return_type=const.HELPER_RETURN_ISO_DATE,
+        )
+        badge_progress[const.DATA_USER_BADGE_PROGRESS_RECURRING_FREQUENCY] = (
+            const.FREQUENCY_YEARLY
+        )
+        badge_progress[const.DATA_USER_BADGE_PROGRESS_START_DATE] = stale_end
+        badge_progress[const.DATA_USER_BADGE_PROGRESS_END_DATE] = stale_end
+
+        badge_info = coordinator.badges_data[badge_id]
+        badge_info[const.DATA_BADGE_RESET_SCHEDULE] = {
+            const.DATA_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY: const.FREQUENCY_YEARLY,
+            const.DATA_BADGE_RESET_SCHEDULE_START_DATE: stale_end,
+            const.DATA_BADGE_RESET_SCHEDULE_END_DATE: stale_end,
+        }
+
+        changed = coordinator.gamification_manager._advance_non_cumulative_badge_cycle_if_needed(
+            assignee_id,
+            badge_id,
+            badge_info,
+            today_iso=today_iso,
+        )
+
+        assert changed is True
+        assert (
+            badge_progress[const.DATA_USER_BADGE_PROGRESS_START_DATE]
+            == badge_progress[const.DATA_USER_BADGE_PROGRESS_END_DATE]
+        )
 
 
 # ============================================================================

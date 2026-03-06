@@ -516,7 +516,6 @@ class AssigneeBadgeProgress(TypedDict, total=False):
     # Chore tracking
     tracked_chores: NotRequired[list[str]]  # Chore UUIDs
     today_completed: NotRequired[list[str]]  # Chore UUIDs completed today
-    penalty_applied: NotRequired[bool]
 
     # Special occasion fields
     occasion_type: NotRequired[str]  # Birthday, holiday, etc.

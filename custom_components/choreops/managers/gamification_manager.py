@@ -19,7 +19,7 @@ RELIABILITY (Phase 7.4):
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.exceptions import HomeAssistantError
@@ -32,7 +32,10 @@ from ..utils.dt_utils import (
     dt_add_interval,
     dt_next_schedule,
     dt_now_utc_iso,
+    dt_parse,
+    dt_parse_date,
     dt_today_iso,
+    dt_today_local,
 )
 from .base_manager import BaseManager
 
@@ -1255,21 +1258,37 @@ class GamificationManager(BaseManager):
         last_awarded_raw = badge_entry.get(
             const.DATA_USER_BADGES_EARNED_LAST_AWARDED, ""
         )
-        last_awarded_day = str(last_awarded_raw)[:10]
-        if not last_awarded_day:
+        last_awarded_local = dt_parse(
+            cast("str | date | None", last_awarded_raw),
+            return_type=const.HELPER_RETURN_DATETIME_LOCAL,
+        )
+        if not isinstance(last_awarded_local, datetime):
             return False
+        last_awarded_date = last_awarded_local.date()
 
         badge_progress_all = cast(
             "dict[str, Any]", assignee_data.get(const.DATA_USER_BADGE_PROGRESS, {})
         )
         progress = cast("dict[str, Any]", badge_progress_all.get(badge_id, {}))
-        start_date = str(progress.get(const.DATA_USER_BADGE_PROGRESS_START_DATE, ""))
-        end_date = str(progress.get(const.DATA_USER_BADGE_PROGRESS_END_DATE, ""))
+        recurring_frequency = str(
+            progress.get(
+                const.DATA_USER_BADGE_PROGRESS_RECURRING_FREQUENCY,
+                const.FREQUENCY_NONE,
+            )
+        )
+
+        if recurring_frequency == const.FREQUENCY_NONE:
+            return True
+
+        start_raw = progress.get(const.DATA_USER_BADGE_PROGRESS_START_DATE)
+        end_raw = progress.get(const.DATA_USER_BADGE_PROGRESS_END_DATE)
+        start_date = dt_parse_date(start_raw if isinstance(start_raw, str) else None)
+        end_date = dt_parse_date(end_raw if isinstance(end_raw, str) else None)
 
         if start_date and end_date:
-            return start_date <= last_awarded_day <= end_date
+            return start_date <= last_awarded_date <= end_date
 
-        return last_awarded_day == dt_today_iso()
+        return last_awarded_date == dt_today_local()
 
     def _build_target_runtime_context(
         self,
@@ -1462,13 +1481,42 @@ class GamificationManager(BaseManager):
         if rolled_cycles == 0:
             return False
 
+        badge_type = badge_data.get(const.DATA_BADGE_TYPE)
+        is_special_occasion = badge_type in const.INCLUDE_SPECIAL_OCCASION_BADGE_TYPES
+        reset_schedule = cast(
+            "dict[str, Any]",
+            badge_data.get(const.DATA_BADGE_RESET_SCHEDULE, {}),
+        )
+        is_custom_1_day = (
+            recurring_frequency == const.FREQUENCY_CUSTOM
+            and reset_schedule.get(const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL) == 1
+            and reset_schedule.get(const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT)
+            == const.TIME_UNIT_DAYS
+        )
+        is_single_day_window = (
+            recurring_frequency == const.FREQUENCY_DAILY
+            or is_custom_1_day
+            or is_special_occasion
+        )
+
+        next_start = current_end if is_single_day_window else previous_end
+        if not is_single_day_window:
+            candidate_start = dt_add_interval(
+                previous_end,
+                interval_unit=const.TIME_UNIT_DAYS,
+                delta=1,
+                require_future=False,
+                return_type=const.HELPER_RETURN_ISO_DATE,
+            )
+            if isinstance(candidate_start, str):
+                next_start = candidate_start
+
         progress[const.DATA_USER_BADGE_PROGRESS_END_DATE] = current_end
-        progress[const.DATA_USER_BADGE_PROGRESS_START_DATE] = previous_end
+        progress[const.DATA_USER_BADGE_PROGRESS_START_DATE] = next_start
         progress[const.DATA_USER_BADGE_PROGRESS_CYCLE_COUNT] = (
             int(progress.get(const.DATA_USER_BADGE_PROGRESS_CYCLE_COUNT, 0))
             + rolled_cycles
         )
-        progress[const.DATA_USER_BADGE_PROGRESS_PENALTY_APPLIED] = False
 
         progress[const.DATA_USER_BADGE_PROGRESS_POINTS_CYCLE_COUNT] = 0.0
         progress[const.DATA_USER_BADGE_PROGRESS_CHORES_CYCLE_COUNT] = 0
@@ -2965,7 +3013,8 @@ class GamificationManager(BaseManager):
         if assignee_assigned_chores is None:
             assignee_assigned_chores = self._get_assignee_assigned_chores(assignee_id)
 
-        # If badge does not include tracked chores, return empty list
+        # If badge does not include tracked chores, evaluate against all chores
+        # currently assigned to the assignee.
         if include_tracked_chores:
             tracked_chores = badge_info.get(const.DATA_BADGE_TRACKED_CHORES, {})
             tracked_chore_ids = tracked_chores.get(
@@ -2981,8 +3030,8 @@ class GamificationManager(BaseManager):
                 ]
             # Badge considers all chores, return all chores assigned to the assignee
             return assignee_assigned_chores
-        # Badge does not include tracked chores component, return empty list
-        return []
+        # Badge does not include tracked chores component, return all assigned chores
+        return assignee_assigned_chores
 
     def _get_assignee_assigned_chores(self, assignee_id: str) -> list[str]:
         """Return all chore IDs currently assigned to the assignee."""
@@ -4079,6 +4128,113 @@ class GamificationManager(BaseManager):
         Args:
             assignee_id: The assignee's internal UUID
         """
+
+        def _resolve_initial_cycle_end(
+            recurring_frequency: str,
+            reset_schedule: dict[str, Any],
+            today_local_iso: str,
+        ) -> str:
+            """Resolve initial cycle end date for non-cumulative recurring badges."""
+            is_daily = recurring_frequency == const.FREQUENCY_DAILY
+            is_custom_1_day = (
+                recurring_frequency == const.FREQUENCY_CUSTOM
+                and reset_schedule.get(const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL)
+                == 1
+                and reset_schedule.get(
+                    const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT
+                )
+                == const.TIME_UNIT_DAYS
+            )
+
+            if is_daily or is_custom_1_day:
+                return today_local_iso
+
+            if recurring_frequency == const.FREQUENCY_CUSTOM:
+                custom_interval = reset_schedule.get(
+                    const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL
+                )
+                custom_interval_unit = reset_schedule.get(
+                    const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT
+                )
+                if custom_interval and custom_interval_unit:
+                    custom_end = dt_add_interval(
+                        today_local_iso,
+                        interval_unit=custom_interval_unit,
+                        delta=int(custom_interval),
+                        require_future=True,
+                        return_type=const.HELPER_RETURN_ISO_DATE,
+                    )
+                    if custom_end:
+                        return str(custom_end)
+
+                fallback_end = dt_add_interval(
+                    today_local_iso,
+                    interval_unit=const.TIME_UNIT_WEEKS,
+                    delta=1,
+                    require_future=True,
+                    return_type=const.HELPER_RETURN_ISO_DATE,
+                )
+                return str(fallback_end) if fallback_end else today_local_iso
+
+            next_end = dt_next_schedule(
+                today_local_iso,
+                interval_type=recurring_frequency,
+                require_future=True,
+                return_type=const.HELPER_RETURN_ISO_DATE,
+            )
+            return str(next_end) if next_end else today_local_iso
+
+        def _is_single_day_cycle_mode(
+            badge_type: str | None,
+            recurring_frequency: str,
+            reset_schedule: dict[str, Any],
+        ) -> bool:
+            """Return True when progress window should be a single local date."""
+            is_special_occasion = (
+                badge_type in const.INCLUDE_SPECIAL_OCCASION_BADGE_TYPES
+            )
+            is_custom_1_day = (
+                recurring_frequency == const.FREQUENCY_CUSTOM
+                and reset_schedule.get(const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL)
+                == 1
+                and reset_schedule.get(
+                    const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT
+                )
+                == const.TIME_UNIT_DAYS
+            )
+            return (
+                recurring_frequency == const.FREQUENCY_DAILY
+                or is_custom_1_day
+                or is_special_occasion
+            )
+
+        def _resolve_single_day_window_date(
+            badge_data: BadgeData,
+            candidate_iso: str,
+            recurring_frequency: str,
+            today_local_iso: str,
+        ) -> str:
+            """Resolve single-day window anchor date at-or-after today."""
+            current_iso = candidate_iso or today_local_iso
+            if not current_iso:
+                return today_local_iso
+
+            while current_iso < today_local_iso:
+                next_iso = self._get_next_non_cumulative_cycle_end(
+                    badge_data,
+                    current_iso,
+                )
+                if not next_iso or next_iso <= current_iso:
+                    break
+                current_iso = next_iso
+
+            if (
+                current_iso < today_local_iso
+                and recurring_frequency == const.FREQUENCY_DAILY
+            ):
+                return today_local_iso
+            return current_iso
+
         assignee_info: UserData | None = self.coordinator.assignees_data.get(
             assignee_id
         )
@@ -4226,21 +4382,31 @@ class GamificationManager(BaseManager):
                         const.DATA_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY,
                         const.FREQUENCY_NONE,
                     )
-                    start_date_iso = reset_schedule.get(
+                    start_date_raw = reset_schedule.get(
                         const.DATA_BADGE_RESET_SCHEDULE_START_DATE
                     )
-                    end_date_iso = reset_schedule.get(
+                    end_date_raw = reset_schedule.get(
                         const.DATA_BADGE_RESET_SCHEDULE_END_DATE
                     )
+                    start_date = dt_parse_date(
+                        start_date_raw if isinstance(start_date_raw, str) else None
+                    )
+                    end_date = dt_parse_date(
+                        end_date_raw if isinstance(end_date_raw, str) else None
+                    )
+                    start_date_iso = start_date.isoformat() if start_date else ""
+                    end_date_iso = end_date.isoformat() if end_date else ""
                     progress[const.DATA_USER_BADGE_PROGRESS_RECURRING_FREQUENCY] = (
                         recurring_frequency
                     )
 
                     # Set initial schedule if there is a frequency and no end date
                     if recurring_frequency != const.FREQUENCY_NONE:
+                        today_local_iso = dt_today_iso()
+
                         if end_date_iso:
                             progress[const.DATA_USER_BADGE_PROGRESS_START_DATE] = (
-                                start_date_iso
+                                start_date_iso or today_local_iso
                             )
                             progress[const.DATA_USER_BADGE_PROGRESS_END_DATE] = (
                                 end_date_iso
@@ -4249,60 +4415,14 @@ class GamificationManager(BaseManager):
                                 const.DEFAULT_ZERO
                             )
                         else:
-                            # Calculate initial end date from today
-                            today_local_iso = dt_today_iso()
-                            is_daily = recurring_frequency == const.FREQUENCY_DAILY
-                            is_custom_1_day = (
-                                recurring_frequency == const.FREQUENCY_CUSTOM
-                                and reset_schedule.get(
-                                    const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL
-                                )
-                                == 1
-                                and reset_schedule.get(
-                                    const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT
-                                )
-                                == const.TIME_UNIT_DAYS
+                            new_end_date_iso = _resolve_initial_cycle_end(
+                                recurring_frequency,
+                                cast("dict[str, Any]", reset_schedule),
+                                today_local_iso,
                             )
 
-                            if is_daily or is_custom_1_day:
-                                # Special case: daily badge uses today as end date
-                                new_end_date_iso: str | date | None = today_local_iso
-                            elif recurring_frequency == const.FREQUENCY_CUSTOM:
-                                # Handle other custom frequencies
-                                custom_interval = reset_schedule.get(
-                                    const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL
-                                )
-                                custom_interval_unit = reset_schedule.get(
-                                    const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT
-                                )
-                                if custom_interval and custom_interval_unit:
-                                    new_end_date_iso = dt_add_interval(
-                                        today_local_iso,
-                                        interval_unit=custom_interval_unit,
-                                        delta=custom_interval,
-                                        require_future=True,
-                                        return_type=const.HELPER_RETURN_ISO_DATE,
-                                    )
-                                else:
-                                    # Default fallback to weekly
-                                    new_end_date_iso = dt_add_interval(
-                                        today_local_iso,
-                                        interval_unit=const.TIME_UNIT_WEEKS,
-                                        delta=1,
-                                        require_future=True,
-                                        return_type=const.HELPER_RETURN_ISO_DATE,
-                                    )
-                            else:
-                                # Use standard frequency helper
-                                new_end_date_iso = dt_next_schedule(
-                                    today_local_iso,
-                                    interval_type=recurring_frequency,
-                                    require_future=True,
-                                    return_type=const.HELPER_RETURN_ISO_DATE,
-                                )
-
                             progress[const.DATA_USER_BADGE_PROGRESS_START_DATE] = (
-                                start_date_iso
+                                start_date_iso or today_local_iso
                             )
                             progress[const.DATA_USER_BADGE_PROGRESS_END_DATE] = (
                                 new_end_date_iso
@@ -4311,9 +4431,31 @@ class GamificationManager(BaseManager):
                                 const.DEFAULT_ZERO
                             )
 
-                            # Set penalty applied to False
-                            progress[const.DATA_USER_BADGE_PROGRESS_PENALTY_APPLIED] = (
-                                False
+                        if _is_single_day_cycle_mode(
+                            badge_type,
+                            str(recurring_frequency),
+                            cast("dict[str, Any]", reset_schedule),
+                        ):
+                            candidate_date = str(
+                                progress.get(
+                                    const.DATA_USER_BADGE_PROGRESS_START_DATE,
+                                    progress.get(
+                                        const.DATA_USER_BADGE_PROGRESS_END_DATE,
+                                        start_date_iso,
+                                    ),
+                                )
+                            )
+                            window_date = _resolve_single_day_window_date(
+                                badge_info,
+                                candidate_date,
+                                str(recurring_frequency),
+                                today_local_iso,
+                            )
+                            progress[const.DATA_USER_BADGE_PROGRESS_START_DATE] = (
+                                window_date
+                            )
+                            progress[const.DATA_USER_BADGE_PROGRESS_END_DATE] = (
+                                window_date
                             )
 
                 # --- Special Occasion fields ---
@@ -4422,23 +4564,86 @@ class GamificationManager(BaseManager):
                         const.DATA_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY,
                         const.FREQUENCY_NONE,
                     )
-                    start_date_iso = reset_schedule.get(
+                    start_date_raw = reset_schedule.get(
                         const.DATA_BADGE_RESET_SCHEDULE_START_DATE
                     )
-                    end_date_iso = reset_schedule.get(
+                    end_date_raw = reset_schedule.get(
                         const.DATA_BADGE_RESET_SCHEDULE_END_DATE
                     )
+                    start_date = dt_parse_date(
+                        start_date_raw if isinstance(start_date_raw, str) else None
+                    )
+                    end_date = dt_parse_date(
+                        end_date_raw if isinstance(end_date_raw, str) else None
+                    )
+                    start_date_iso = start_date.isoformat() if start_date else ""
+                    end_date_iso = end_date.isoformat() if end_date else ""
                     progress_sync[
                         const.DATA_USER_BADGE_PROGRESS_RECURRING_FREQUENCY
                     ] = recurring_frequency
-                    # Only update start and end dates if they have values
-                    if start_date_iso:
-                        progress_sync[const.DATA_USER_BADGE_PROGRESS_START_DATE] = (
-                            start_date_iso
+                    if recurring_frequency != const.FREQUENCY_NONE:
+                        today_local_iso = dt_today_iso()
+                        existing_start_raw = progress_sync.get(
+                            const.DATA_USER_BADGE_PROGRESS_START_DATE
                         )
-                    if end_date_iso:
+                        existing_end_raw = progress_sync.get(
+                            const.DATA_USER_BADGE_PROGRESS_END_DATE
+                        )
+                        existing_start_date = dt_parse_date(
+                            existing_start_raw
+                            if isinstance(existing_start_raw, str)
+                            else None
+                        )
+                        existing_end_date = dt_parse_date(
+                            existing_end_raw
+                            if isinstance(existing_end_raw, str)
+                            else None
+                        )
+                        existing_start = (
+                            existing_start_date.isoformat()
+                            if existing_start_date
+                            else ""
+                        )
+                        existing_end = (
+                            existing_end_date.isoformat() if existing_end_date else ""
+                        )
+
+                        resolved_end = end_date_iso or existing_end
+                        if not resolved_end:
+                            resolved_end = _resolve_initial_cycle_end(
+                                recurring_frequency,
+                                cast("dict[str, Any]", reset_schedule),
+                                today_local_iso,
+                            )
+
+                        resolved_start = (
+                            start_date_iso or existing_start or today_local_iso
+                        )
+
+                        if _is_single_day_cycle_mode(
+                            badge_type,
+                            str(recurring_frequency),
+                            cast("dict[str, Any]", reset_schedule),
+                        ):
+                            candidate_date = resolved_start or resolved_end
+                            window_date = _resolve_single_day_window_date(
+                                badge_info,
+                                candidate_date,
+                                str(recurring_frequency),
+                                today_local_iso,
+                            )
+                            resolved_start = window_date
+                            resolved_end = window_date
+
+                        progress_sync[const.DATA_USER_BADGE_PROGRESS_START_DATE] = (
+                            resolved_start
+                        )
                         progress_sync[const.DATA_USER_BADGE_PROGRESS_END_DATE] = (
-                            end_date_iso
+                            resolved_end
+                        )
+                        progress_sync.setdefault(
+                            const.DATA_USER_BADGE_PROGRESS_CYCLE_COUNT,
+                            const.DEFAULT_ZERO,
                         )
 
     # =========================================================================

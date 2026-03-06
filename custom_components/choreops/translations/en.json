@@ -3926,6 +3926,36 @@
           },
           "description": {
             "name": "Description"
+          },
+          "labels": {
+            "name": "Labels"
+          },
+          "target": {
+            "name": "Target"
+          },
+          "required_chores": {
+            "name": "Required Chores"
+          },
+          "tracked_chores": {
+            "name": "Tracked Chores"
+          },
+          "awards": {
+            "name": "Awards"
+          },
+          "reset_schedule": {
+            "name": "Reset Schedule"
+          },
+          "associated_achievement": {
+            "name": "Associated Achievement"
+          },
+          "associated_challenge": {
+            "name": "Associated Challenge"
+          },
+          "occasion_type": {
+            "name": "Occasion Type"
+          },
+          "system_badge_eid": {
+            "name": "System badge entity ID"
           }
         }
       },

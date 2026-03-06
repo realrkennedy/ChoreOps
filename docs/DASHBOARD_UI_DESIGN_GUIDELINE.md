@@ -88,6 +88,8 @@ Use these emoji for inline text contexts (for example markdown summaries, compac
 | Item type    | Standard emoji | Closest MDI icon     | Alternate MDI icon   | Usage note                                           |
 | ------------ | -------------- | -------------------- | -------------------- | ---------------------------------------------------- |
 | Points       | `⭐`           | `mdi:star`           | `mdi:star-circle`    | Numeric point totals and score highlights            |
+| Last Earned  | `🕒`           | `mdi:clock-outline`  | `mdi:history`        | Most recent earn date/time callouts                  |
+| Awards       | `💎`           | `mdi:diamond-stone`  | `mdi:diamond-stone`  | Awards generally category                            |
 | Chores       | `🧹`           | `mdi:broom`          | `mdi:clipboard-list` | Chore lists and chore section headings               |
 | Badges       | `🥇`           | `mdi:medal`          | `mdi:shield-star`    | Badge progress and earned badge summaries            |
 | Rewards      | `🎁`           | `mdi:gift`           | `mdi:gift-open`      | Reward catalogs and reward claim status              |

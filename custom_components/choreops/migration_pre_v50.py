@@ -32,6 +32,7 @@ from .migration_pre_v50_constants import (
     DATA_ASSIGNEE_POINT_STATS_BY_SOURCE_ALL_TIME_LEGACY,
     DATA_ASSIGNEE_POINT_STATS_EARNED_ALL_TIME_LEGACY,
     DATA_ASSIGNEE_POINT_STATS_SPENT_ALL_TIME_LEGACY,
+    DATA_USER_BADGE_PROGRESS_PENALTY_APPLIED_LEGACY,
 )
 from .utils.dt_utils import (
     dt_add_interval,
@@ -469,6 +470,33 @@ def _clear_schema45_challenges_container(data: dict[str, Any]) -> None:
     data[const.DATA_CHALLENGES] = {}
 
 
+def _remove_schema45_legacy_badge_progress_fields(
+    data: dict[str, Any],
+) -> dict[str, int]:
+    """Remove schema45-legacy fields from users.badge_progress records."""
+    users_raw = data.get(const.DATA_USERS, {})
+    if not isinstance(users_raw, dict):
+        return {"removed_penalty_applied_fields": 0}
+
+    removed_penalty_applied_fields = 0
+    for user_raw in users_raw.values():
+        if not isinstance(user_raw, dict):
+            continue
+
+        badge_progress_raw = user_raw.get(const.DATA_USER_BADGE_PROGRESS, {})
+        if not isinstance(badge_progress_raw, dict):
+            continue
+
+        for progress_raw in badge_progress_raw.values():
+            if not isinstance(progress_raw, dict):
+                continue
+            if DATA_USER_BADGE_PROGRESS_PENALTY_APPLIED_LEGACY in progress_raw:
+                progress_raw.pop(DATA_USER_BADGE_PROGRESS_PENALTY_APPLIED_LEGACY, None)
+                removed_penalty_applied_fields += 1
+
+    return {"removed_penalty_applied_fields": removed_penalty_applied_fields}
+
+
 async def async_apply_schema45_user_contract(
     coordinator: ChoreOpsDataCoordinator,
 ) -> dict[str, int]:
@@ -676,6 +704,7 @@ async def async_apply_schema45_user_contract(
 
     challenge_conv_marker = SCHEMA45_MARKER_CHALLENGES_TO_PERIODIC_BADGES
     challenge_linked_rm_marker = SCHEMA45_MARKER_REMOVE_CHALLENGE_LINKED_BADGES
+    legacy_progress_cleanup_marker = "schema45_remove_legacy_badge_progress_fields"
     contract_marker = "schema45_user_contract_hook"
     if contract_marker not in applied:
         applied.append(contract_marker)
@@ -685,6 +714,7 @@ async def async_apply_schema45_user_contract(
     renamed_challenges_name_collision = 0
     skipped_challenges_invalid_type = 0
     removed_challenge_linked_badges = 0
+    removed_penalty_applied_fields = 0
 
     if challenge_conv_marker not in applied:
         conversion_summary = _migrate_schema45_challenges_to_periodic_badges(data)
@@ -700,6 +730,13 @@ async def async_apply_schema45_user_contract(
         removal_summary = _remove_schema45_challenge_linked_badges(data)
         removed_challenge_linked_badges += removal_summary["removed"]
         applied.append(challenge_linked_rm_marker)
+
+    if legacy_progress_cleanup_marker not in applied:
+        cleanup_summary = _remove_schema45_legacy_badge_progress_fields(data)
+        removed_penalty_applied_fields += cleanup_summary[
+            "removed_penalty_applied_fields"
+        ]
+        applied.append(legacy_progress_cleanup_marker)
 
     _clear_schema45_challenges_container(data)
 
@@ -717,6 +754,7 @@ async def async_apply_schema45_user_contract(
         "renamed_challenges_name_collision": renamed_challenges_name_collision,
         "skipped_challenges_invalid_type": skipped_challenges_invalid_type,
         "removed_challenge_linked_badges": removed_challenge_linked_badges,
+        "removed_penalty_applied_fields": removed_penalty_applied_fields,
         "kid_key_remaps": kid_key_remaps,
     }
     meta["schema45_last_summary"] = summary
