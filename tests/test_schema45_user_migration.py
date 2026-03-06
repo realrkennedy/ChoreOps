@@ -10,6 +10,9 @@ from custom_components.choreops.migration_pre_v50 import (
     PreV50Migrator,
     async_apply_schema45_user_contract,
 )
+from custom_components.choreops.migration_pre_v50_constants import (
+    DATA_USER_BADGE_PROGRESS_PENALTY_APPLIED_LEGACY,
+)
 from custom_components.choreops.store import ChoreOpsStore
 
 LEGACY_ASSIGNEES_BUCKET = "assignees"
@@ -454,6 +457,42 @@ async def test_schema45_challenge_conversion_idempotent_no_duplicate_badges() ->
     assert second_summary["converted_challenges"] == 0
     assert second_summary["skipped_challenges_existing_badge"] == 0
     assert coordinator._data[const.DATA_BADGES] == first_badges
+
+
+async def test_schema45_migration_removes_legacy_penalty_applied_from_badge_progress() -> (
+    None
+):
+    """Schema45 strips legacy penalty_applied from users.badge_progress entries."""
+    coordinator = _DummyCoordinator(
+        _data={
+            const.DATA_META: {
+                const.DATA_META_SCHEMA_VERSION: const.SCHEMA_VERSION_BETA4,
+                const.DATA_META_MIGRATIONS_APPLIED: [],
+            },
+            const.DATA_USERS: {
+                "assignee-1": {
+                    const.DATA_USER_NAME: "Alex",
+                    const.DATA_USER_BADGE_PROGRESS: {
+                        "badge-1": {
+                            const.DATA_USER_BADGE_PROGRESS_NAME: "Legacy Badge",
+                            DATA_USER_BADGE_PROGRESS_PENALTY_APPLIED_LEGACY: False,
+                        }
+                    },
+                }
+            },
+            const.DATA_APPROVERS: {},
+            const.DATA_BADGES: {},
+            const.DATA_CHALLENGES: {},
+        }
+    )
+
+    summary = await async_apply_schema45_user_contract(coordinator)  # type: ignore[arg-type]
+
+    progress = coordinator._data[const.DATA_USERS]["assignee-1"][
+        const.DATA_USER_BADGE_PROGRESS
+    ]["badge-1"]
+    assert DATA_USER_BADGE_PROGRESS_PENALTY_APPLIED_LEGACY not in progress
+    assert summary["removed_penalty_applied_fields"] == 1
 
 
 def test_store_default_structure_uses_users_bucket() -> None:

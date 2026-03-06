@@ -33,7 +33,7 @@ def test_user_template_renders_without_parse_errors() -> None:
 
     assert isinstance(rendered.get("views"), list)
     assert len(rendered["views"]) == 1
-    assert rendered["views"][0]["title"] == "Zoe Chores"
+    assert rendered["views"][0]["title"] == "Zoe"
     assert rendered["views"][0]["path"] == "zoe"
     assert isinstance(rendered["views"][0].get("sections"), list)
 
@@ -84,7 +84,7 @@ def test_user_chores_template_renders_with_button_card_templates() -> None:
 
     assert isinstance(rendered.get("views"), list)
     assert len(rendered["views"]) == 1
-    assert rendered["views"][0]["title"] == "Zoe Chores"
+    assert rendered["views"][0]["title"] == "Zoe"
     assert rendered["views"][0]["path"] == "zoe"
     assert isinstance(rendered["views"][0].get("sections"), list)
     assert isinstance(rendered.get("button_card_templates"), dict)
@@ -118,7 +118,7 @@ def test_user_game_full_template_renders_with_button_card_templates() -> None:
 
     assert isinstance(rendered.get("views"), list)
     assert len(rendered["views"]) == 1
-    assert rendered["views"][0]["title"] == "Zoe Game Full"
+    assert rendered["views"][0]["title"] == "Zoe"
     assert rendered["views"][0]["path"] == "zoe"
     assert isinstance(rendered["views"][0].get("sections"), list)
     assert isinstance(rendered.get("button_card_templates"), dict)

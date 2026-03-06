@@ -2090,36 +2090,153 @@ class AssigneeBadgeProgressSensor(ChoreOpsCoordinatorEntity, SensorEntity):
             period_key_mapping=period_key_mapping,
         )
 
+        badge_labels = [
+            get_friendly_label(self.hass, label)
+            for label in cast("list", badge_info.get(const.DATA_BADGE_LABELS, []))
+        ]
+
+        tracked_chores_cfg = badge_info.get(const.DATA_BADGE_TRACKED_CHORES, {})
+        selected_chore_ids = (
+            tracked_chores_cfg.get(
+                const.DATA_BADGE_TRACKED_CHORES_SELECTED_CHORES,
+                [],
+            )
+            if isinstance(tracked_chores_cfg, dict)
+            else []
+        )
+        required_chores = [
+            cast("ChoreData", self.coordinator.chores_data.get(chore_id, {})).get(
+                const.DATA_CHORE_NAME
+            )
+            or chore_id
+            for chore_id in selected_chore_ids
+        ]
+
+        awards_data = badge_info.get(const.DATA_BADGE_AWARDS, {})
+        if not isinstance(awards_data, dict):
+            awards_data = {}
+
+        award_items_raw = awards_data.get(const.DATA_BADGE_AWARDS_AWARD_ITEMS, [])
+        award_items = award_items_raw if isinstance(award_items_raw, list) else []
+
+        structured_awards: dict[str, Any] = {
+            const.DATA_BADGE_AWARDS_AWARD_ITEMS: list(award_items),
+            const.DATA_BADGE_AWARDS_AWARD_POINTS: float(
+                awards_data.get(const.DATA_BADGE_AWARDS_AWARD_POINTS, 0.0) or 0.0
+            ),
+            const.DATA_BADGE_AWARDS_POINT_MULTIPLIER: awards_data.get(
+                const.DATA_BADGE_AWARDS_POINT_MULTIPLIER
+            ),
+            const.AWARD_ITEMS_KEY_REWARDS: [],
+            const.AWARD_ITEMS_KEY_BONUSES: [],
+            const.AWARD_ITEMS_KEY_PENALTIES: [],
+        }
+
+        for item in award_items:
+            if not isinstance(item, str):
+                continue
+
+            if item.startswith(const.AWARD_ITEMS_PREFIX_REWARD):
+                reward_id = item.split(":", 1)[1]
+                reward_info: RewardData = cast(
+                    "RewardData", self.coordinator.rewards_data.get(reward_id, {})
+                )
+                structured_awards[const.AWARD_ITEMS_KEY_REWARDS].append(
+                    {
+                        const.DATA_REWARD_ID: reward_id,
+                        const.DATA_REWARD_NAME: reward_info.get(
+                            const.DATA_REWARD_NAME,
+                            reward_id,
+                        ),
+                    }
+                )
+            elif item.startswith(const.AWARD_ITEMS_PREFIX_BONUS):
+                bonus_id = item.split(":", 1)[1]
+                bonus_info: BonusData = cast(
+                    "BonusData", self.coordinator.bonuses_data.get(bonus_id, {})
+                )
+                structured_awards[const.AWARD_ITEMS_KEY_BONUSES].append(
+                    {
+                        const.DATA_BONUS_ID: bonus_id,
+                        const.DATA_BONUS_NAME: bonus_info.get(
+                            const.DATA_BONUS_NAME,
+                            bonus_id,
+                        ),
+                    }
+                )
+            elif item.startswith(const.AWARD_ITEMS_PREFIX_PENALTY):
+                penalty_id = item.split(":", 1)[1]
+                penalty_info: PenaltyData = cast(
+                    "PenaltyData", self.coordinator.penalties_data.get(penalty_id, {})
+                )
+                structured_awards[const.AWARD_ITEMS_KEY_PENALTIES].append(
+                    {
+                        const.DATA_PENALTY_ID: penalty_id,
+                        const.DATA_PENALTY_NAME: penalty_info.get(
+                            const.DATA_PENALTY_NAME,
+                            penalty_id,
+                        ),
+                    }
+                )
+
+        reset_schedule_raw = badge_info.get(const.DATA_BADGE_RESET_SCHEDULE, {})
+        if not isinstance(reset_schedule_raw, dict):
+            reset_schedule_raw = {}
+
+        recurring_frequency = str(
+            badge_progress.get(
+                const.DATA_USER_BADGE_PROGRESS_RECURRING_FREQUENCY,
+                reset_schedule_raw.get(
+                    const.DATA_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY,
+                    const.FREQUENCY_NONE,
+                ),
+            )
+        )
+        start_date_raw = badge_progress.get(
+            const.DATA_USER_BADGE_PROGRESS_START_DATE,
+            reset_schedule_raw.get(const.DATA_BADGE_RESET_SCHEDULE_START_DATE),
+        )
+        start_date = start_date_raw if isinstance(start_date_raw, str) else None
+        end_date_raw = badge_progress.get(
+            const.DATA_USER_BADGE_PROGRESS_END_DATE,
+            reset_schedule_raw.get(const.DATA_BADGE_RESET_SCHEDULE_END_DATE),
+        )
+        end_date = end_date_raw if isinstance(end_date_raw, str) else None
+        reset_schedule = {
+            const.DATA_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY: recurring_frequency,
+            const.DATA_BADGE_RESET_SCHEDULE_START_DATE: start_date,
+            const.DATA_BADGE_RESET_SCHEDULE_END_DATE: end_date,
+        }
+
+        target_raw = badge_info.get(const.DATA_BADGE_TARGET, {})
+        target = (
+            cast("dict[str, Any]", target_raw) if isinstance(target_raw, dict) else {}
+        )
+
+        system_badge_eid: str | None = None
+        try:
+            entity_registry = async_get(self.hass)
+            unique_id = f"{self._entry.entry_id}_{self._badge_id}{const.SENSOR_KC_UID_SUFFIX_BADGE_SENSOR}"
+            system_badge_eid = entity_registry.async_get_entity_id(
+                "sensor", const.DOMAIN, unique_id
+            )
+        except (KeyError, ValueError, AttributeError):
+            system_badge_eid = None
+
         # Build a dictionary with only the requested fields
         attributes = {
+            # Group 1: Identity
             const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_BADGE_PROGRESS,
             const.ATTR_USER_NAME: self._assignee_name,
             const.ATTR_BADGE_NAME: badge_progress.get(
                 const.DATA_USER_BADGE_PROGRESS_NAME
             ),
-            const.DATA_USER_BADGE_PROGRESS_TYPE: badge_progress.get(
-                const.DATA_USER_BADGE_PROGRESS_TYPE
-            ),
+            # Group 2: Status/progress
             const.DATA_USER_BADGE_PROGRESS_STATUS: badge_progress.get(
                 const.DATA_USER_BADGE_PROGRESS_STATUS
             ),
-            const.DATA_USER_BADGE_PROGRESS_TARGET_TYPE: badge_progress.get(
-                const.DATA_USER_BADGE_PROGRESS_TARGET_TYPE
-            ),
-            const.DATA_USER_BADGE_PROGRESS_TARGET_THRESHOLD_VALUE: badge_progress.get(
-                const.DATA_USER_BADGE_PROGRESS_TARGET_THRESHOLD_VALUE
-            ),
-            const.DATA_USER_BADGE_PROGRESS_RECURRING_FREQUENCY: badge_progress.get(
-                const.DATA_USER_BADGE_PROGRESS_RECURRING_FREQUENCY
-            ),
-            const.DATA_USER_BADGE_PROGRESS_START_DATE: badge_progress.get(
-                const.DATA_USER_BADGE_PROGRESS_START_DATE
-            ),
-            const.DATA_USER_BADGE_PROGRESS_END_DATE: badge_progress.get(
-                const.DATA_USER_BADGE_PROGRESS_END_DATE
-            ),
-            const.DATA_USER_BADGE_PROGRESS_LAST_UPDATE_DAY: badge_progress.get(
-                const.DATA_USER_BADGE_PROGRESS_LAST_UPDATE_DAY
+            const.DATA_USER_BADGE_PROGRESS_TYPE: badge_progress.get(
+                const.DATA_USER_BADGE_PROGRESS_TYPE
             ),
             const.DATA_USER_BADGE_PROGRESS_OVERALL_PROGRESS: badge_progress.get(
                 const.DATA_USER_BADGE_PROGRESS_OVERALL_PROGRESS
@@ -2127,16 +2244,49 @@ class AssigneeBadgeProgressSensor(ChoreOpsCoordinatorEntity, SensorEntity):
             const.DATA_USER_BADGE_PROGRESS_CRITERIA_MET: badge_progress.get(
                 const.DATA_USER_BADGE_PROGRESS_CRITERIA_MET
             ),
+            const.DATA_USER_BADGE_PROGRESS_LAST_UPDATE_DAY: badge_progress.get(
+                const.DATA_USER_BADGE_PROGRESS_LAST_UPDATE_DAY
+            ),
+            # Group 3: Target definition
+            const.DATA_USER_BADGE_PROGRESS_TARGET_TYPE: badge_progress.get(
+                const.DATA_USER_BADGE_PROGRESS_TARGET_TYPE
+            ),
+            const.DATA_USER_BADGE_PROGRESS_TARGET_THRESHOLD_VALUE: badge_progress.get(
+                const.DATA_USER_BADGE_PROGRESS_TARGET_THRESHOLD_VALUE
+            ),
+            const.ATTR_TARGET: target,
+            const.ATTR_REQUIRED_CHORES: required_chores,
+            const.ATTR_LABELS: badge_labels,
+            const.ATTR_DESCRIPTION: str(
+                badge_info.get(const.DATA_BADGE_DESCRIPTION, const.SENTINEL_EMPTY)
+            ),
+            # Group 4: Schedule/cycle
+            const.ATTR_RESET_SCHEDULE: reset_schedule,
+            # Group 5: Associations
+            const.ATTR_ASSOCIATED_ACHIEVEMENT: badge_info.get(
+                const.DATA_BADGE_ASSOCIATED_ACHIEVEMENT, None
+            ),
+            const.ATTR_ASSOCIATED_CHALLENGE: badge_info.get(
+                const.DATA_BADGE_ASSOCIATED_CHALLENGE, None
+            ),
+            # Group 6: Awards
+            const.ATTR_BADGE_AWARDS: structured_awards,
+            # Group 7: Earn history
             const.DATA_USER_BADGES_EARNED_LAST_AWARDED: last_awarded_date,
             const.DATA_USER_BADGES_EARNED_AWARD_COUNT: award_count,
+            # Group 8: Cross-link
+            const.ATTR_SYSTEM_BADGE_EID: system_badge_eid,
         }
 
-        attributes[const.ATTR_DESCRIPTION] = str(
-            badge_info.get(const.DATA_BADGE_DESCRIPTION, const.SENTINEL_EMPTY)
+        occasion_type = badge_progress.get(
+            const.DATA_BADGE_OCCASION_TYPE,
+            badge_info.get(const.DATA_BADGE_OCCASION_TYPE),
         )
+        if isinstance(occasion_type, str) and occasion_type:
+            attributes[const.ATTR_OCCASION_TYPE] = occasion_type
 
         # Convert tracked chore IDs to friendly names and add to attributes
-        tracked_chore_ids_raw: list[str] | Any = attributes.get(
+        tracked_chore_ids_raw: list[str] | Any = badge_progress.get(
             const.DATA_USER_BADGE_PROGRESS_TRACKED_CHORES, []
         )
         tracked_chore_ids: list[str] = (
@@ -2152,9 +2302,9 @@ class AssigneeBadgeProgressSensor(ChoreOpsCoordinatorEntity, SensorEntity):
                 )
                 for chore_id in tracked_chore_ids
             ]
-            attributes[const.DATA_USER_BADGE_PROGRESS_TRACKED_CHORES] = cast(
-                "str", chore_names
-            )
+            attributes[const.DATA_USER_BADGE_PROGRESS_TRACKED_CHORES] = chore_names
+        else:
+            attributes[const.DATA_USER_BADGE_PROGRESS_TRACKED_CHORES] = []
 
         return attributes
 
