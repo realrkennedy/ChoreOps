@@ -2995,14 +2995,20 @@ class NotificationManager(BaseManager):
             reward_id,
         )
 
-        # Clear REWARDS tag notifications for all assignees
-        # Rewards can be claimed by any assignee, so we iterate through all assignees
+        # Clear reward-related approver notifications for all assignees.
+        # Active reward claim/approval workflows use STATUS tags today, while
+        # REWARDS is retained here as a compatibility clear for any older or
+        # externally generated notifications that may still use that family.
         for assignee_id in self.coordinator.assignees_data:
-            await self.clear_notification_for_approvers(
-                assignee_id,
+            for tag_type in (
+                const.NOTIFY_TAG_TYPE_STATUS,
                 const.NOTIFY_TAG_TYPE_REWARDS,
-                reward_id,
-            )
+            ):
+                await self.clear_notification_for_approvers(
+                    assignee_id,
+                    tag_type,
+                    reward_id,
+                )
 
     async def _handle_assignee_deleted(self, payload: dict[str, Any]) -> None:
         """Handle KID_DELETED event - clear all notifications involving deleted assignee.

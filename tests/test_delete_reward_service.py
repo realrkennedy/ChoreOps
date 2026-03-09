@@ -7,7 +7,7 @@ of rewards using either reward ID or reward name as identifier.
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, call, patch
 
 from homeassistant.exceptions import HomeAssistantError
 import pytest
@@ -137,6 +137,47 @@ class TestDeleteRewardByID:
         assert reward_id not in coordinator.assignees_data[assignee_id].get(
             const.DATA_USER_REWARD_DATA, {}
         )
+
+    @pytest.mark.asyncio
+    async def test_delete_by_id_clears_reward_notifications_for_all_assignees(
+        self,
+        hass: HomeAssistant,
+        scenario_full: SetupResult,
+    ) -> None:
+        """Deleting a reward clears active and legacy approver notification tags."""
+        from custom_components.choreops import const
+
+        coordinator = scenario_full.coordinator
+        reward_id = scenario_full.reward_ids["Extra Screen Time"]
+
+        with (
+            patch.object(coordinator, "_persist", new=MagicMock()),
+            patch.object(
+                coordinator.notification_manager,
+                "clear_notification_for_approvers",
+                new=AsyncMock(),
+            ) as mock_clear,
+        ):
+            await hass.services.async_call(
+                DOMAIN,
+                SERVICE_DELETE_REWARD,
+                {"id": reward_id},
+                blocking=True,
+                return_response=True,
+            )
+            await hass.async_block_till_done()
+
+        expected_calls = []
+        for assignee_id in coordinator.assignees_data:
+            expected_calls.extend(
+                [
+                    call(assignee_id, const.NOTIFY_TAG_TYPE_STATUS, reward_id),
+                    call(assignee_id, const.NOTIFY_TAG_TYPE_REWARDS, reward_id),
+                ]
+            )
+
+        mock_clear.assert_has_awaits(expected_calls, any_order=True)
+        assert mock_clear.await_count == len(expected_calls)
 
 
 class TestDeleteRewardByName:
