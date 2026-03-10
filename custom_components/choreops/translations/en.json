@@ -2880,7 +2880,7 @@
     },
     "manage_ui_control": {
       "name": "Manage UI Control",
-      "description": "Create, update, or remove a per-user UI control value stored in the user's persisted ui_preferences bucket. Use an empty key with the remove action to clear all stored UI preferences for the targeted user.",
+      "description": "Create, update, or remove a persisted UI control value. By default this targets one user's ui_preferences bucket. Use ui_control_target: shared_admin to write to the shared admin UI control bucket under data/meta. Use an empty key with the remove action to clear all stored values for the selected target.",
       "fields": {
         "config_entry_id": {
           "name": "Config Entry ID (Optional)",
@@ -2902,6 +2902,11 @@
           "description": "Optional user name target. Required when user_id is not provided.",
           "example": "Alice"
         },
+        "ui_control_target": {
+          "name": "UI Control Target",
+          "description": "Choose whether to target one user or the shared admin UI control bucket. When shared_admin is selected, do not provide user_id or user_name.",
+          "example": "user"
+        },
         "ui_control_action": {
           "name": "UI Control Action",
           "description": "Choose whether to create, update, or remove a stored UI control value.",
@@ -2909,7 +2914,7 @@
         },
         "key": {
           "name": "Key Path",
-          "description": "Slash-delimited UI control path such as gamification/rewards/header_collapse. Leave empty only with the remove action to clear all stored UI preferences for the user.",
+          "description": "Slash-delimited UI control path such as gamification/rewards/header_collapse. Leave empty only with the remove action to clear all stored values for the selected target.",
           "example": "gamification/rewards/header_collapse"
         },
         "value": {
@@ -4604,6 +4609,35 @@
           }
         }
       },
+      "system_dashboard_helper_sensor": {
+        "name": "Dashboard Helper",
+        "state_attributes": {
+          "purpose": {
+            "name": "Purpose",
+            "state": {
+              "purpose_system_dashboard_helper": "Aggregates shared-admin dashboard state for shared admin cards"
+            }
+          },
+          "ui_control": {
+            "name": "UI Control"
+          },
+          "integration_entry_id": {
+            "name": "Integration Entry ID"
+          },
+          "dashboard_lookup_key": {
+            "name": "Dashboard Lookup Key"
+          },
+          "user_dashboard_helpers": {
+            "name": "User Dashboard Helpers"
+          },
+          "language": {
+            "name": "Language"
+          },
+          "translation_sensor_eid": {
+            "name": "Translation Sensor Entity ID"
+          }
+        }
+      },
       "assignee_dashboard_helper_sensor": {
         "name": "UI Dashboard Helper",
         "state_attributes": {
@@ -4980,6 +5014,12 @@
     },
     "ui_control_target_required": {
       "message": "Provide user_id or user_name to target one user."
+    },
+    "ui_control_invalid_target": {
+      "message": "Invalid ui_control_target {target}. Allowed targets: user, shared_admin."
+    },
+    "ui_control_shared_admin_context_invalid": {
+      "message": "Do not provide user_id or user_name when ui_control_target is shared_admin."
     },
     "ui_control_invalid_action": {
       "message": "Invalid UI control action {action}. Allowed actions: create, update, remove."

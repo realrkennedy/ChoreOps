@@ -99,8 +99,25 @@ def test_admin_target_selector_template_renders_as_valid_cards() -> None:
             attributes={
                 "purpose": "purpose_system_dashboard_admin_user",
                 "integration_entry_id": "entry-123",
+                "dashboard_helper_eid": "sensor.alice_dashboard_helper",
             },
             name="Admin Target",
+        ),
+        "sensor.shared_admin_dashboard_helper": _MockState(
+            entity_id="sensor.shared_admin_dashboard_helper",
+            state="available",
+            attributes={
+                "purpose": "purpose_system_dashboard_helper",
+                "integration_entry_id": "entry-123",
+                "dashboard_lookup_key": "entry-123:shared_admin",
+                "ui_control": {},
+                "user_dashboard_helpers": {
+                    "user-alice": "sensor.alice_dashboard_helper",
+                    "user-bob": "sensor.bob_dashboard_helper",
+                },
+                "translation_sensor_eid": "sensor.translations",
+            },
+            name="Shared Admin Dashboard Helper",
         ),
         "sensor.alice_dashboard_helper": _MockState(
             entity_id="sensor.alice_dashboard_helper",
@@ -109,6 +126,7 @@ def test_admin_target_selector_template_renders_as_valid_cards() -> None:
                 "purpose": "purpose_dashboard_helper",
                 "integration_entry_id": "entry-123",
                 "user_name": "Alice",
+                "ui_control": {},
                 "dashboard_helpers": {"translation_sensor_eid": "sensor.translations"},
             },
             name="Alice Dashboard Helper",
@@ -120,6 +138,7 @@ def test_admin_target_selector_template_renders_as_valid_cards() -> None:
                 "purpose": "purpose_dashboard_helper",
                 "integration_entry_id": "entry-123",
                 "user_name": "Bob",
+                "ui_control": {},
                 "dashboard_helpers": {"translation_sensor_eid": "sensor.translations"},
             },
             name="Bob Dashboard Helper",
@@ -184,7 +203,15 @@ def test_admin_target_selector_template_renders_as_valid_cards() -> None:
     assert len(parsed) == 1
     assert parsed[0]["type"] == "custom:button-card"
     assert parsed[0]["entity"] == "select.choreops_admin_target"
-    assert parsed[0]["tap_action"]["action"] == "none"
+    assert parsed[0]["tap_action"]["action"] == "call-service"
+    assert parsed[0]["tap_action"]["service"] == "choreops.manage_ui_control"
+    assert parsed[0]["tap_action"]["data"] == {
+        "config_entry_id": "entry-123",
+        "ui_control_target": "shared_admin",
+        "ui_control_action": "update",
+        "key": "admin-shared/admin-target-selector/header-collapse",
+        "value": False,
+    }
     assert parsed[0]["hold_action"]["action"] == "more-info"
     assert "Alice" in parsed[0]["custom_fields"]["target"]
 
@@ -216,8 +243,24 @@ def test_admin_target_selector_template_shows_guidance_without_selection() -> No
             attributes={
                 "purpose": "purpose_system_dashboard_admin_user",
                 "integration_entry_id": "entry-123",
+                "dashboard_helper_eid": "",
             },
             name="Admin Target",
+        ),
+        "sensor.shared_admin_dashboard_helper": _MockState(
+            entity_id="sensor.shared_admin_dashboard_helper",
+            state="available",
+            attributes={
+                "purpose": "purpose_system_dashboard_helper",
+                "integration_entry_id": "entry-123",
+                "dashboard_lookup_key": "entry-123:shared_admin",
+                "ui_control": {},
+                "user_dashboard_helpers": {
+                    "user-alice": "sensor.alice_dashboard_helper",
+                },
+                "translation_sensor_eid": "sensor.translations",
+            },
+            name="Shared Admin Dashboard Helper",
         ),
         "sensor.alice_dashboard_helper": _MockState(
             entity_id="sensor.alice_dashboard_helper",
@@ -226,6 +269,7 @@ def test_admin_target_selector_template_shows_guidance_without_selection() -> No
                 "purpose": "purpose_dashboard_helper",
                 "integration_entry_id": "entry-123",
                 "user_name": "Alice",
+                "ui_control": {},
                 "dashboard_helpers": {"translation_sensor_eid": "sensor.translations"},
             },
             name="Alice Dashboard Helper",
@@ -292,7 +336,15 @@ def test_admin_target_selector_template_shows_guidance_without_selection() -> No
     assert parsed[0]["type"] == "custom:button-card"
     assert parsed[0]["entity"] == "select.choreops_admin_target"
     assert parsed[0]["label"] == "Choose the user for admin actions below."
-    assert parsed[0]["tap_action"]["action"] == "none"
+    assert parsed[0]["tap_action"]["action"] == "call-service"
+    assert parsed[0]["tap_action"]["service"] == "choreops.manage_ui_control"
+    assert parsed[0]["tap_action"]["data"] == {
+        "config_entry_id": "entry-123",
+        "ui_control_target": "shared_admin",
+        "ui_control_action": "update",
+        "key": "admin-shared/admin-target-selector/header-collapse",
+        "value": False,
+    }
     assert parsed[0]["hold_action"]["action"] == "more-info"
 
 

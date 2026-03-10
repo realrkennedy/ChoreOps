@@ -356,6 +356,7 @@ DATA_META_LAST_MIGRATION_DATE: Final = "last_migration_date"
 DATA_META_MIGRATIONS_APPLIED: Final = "migrations_applied"
 DATA_META_PENDING_EVALUATIONS: Final = "pending_evaluations"
 DATA_META_LAST_MIDNIGHT_PROCESSED: Final = "last_midnight_processed"
+DATA_META_SHARED_ADMIN_UI_CONTROL: Final = "shared_admin_ui_control"
 
 # Storage data keys
 # Top-level keys in .storage/choreops_data (not entity-specific DATA_ASSIGNEE_*, DATA_CHORE_*, etc.)
@@ -2253,6 +2254,7 @@ TRANS_KEY_PURPOSE_ACHIEVEMENT_PROGRESS: Final = "purpose_achievement_progress"
 TRANS_KEY_PURPOSE_CHALLENGE_PROGRESS: Final = "purpose_challenge_progress"
 TRANS_KEY_PURPOSE_DASHBOARD_HELPER: Final = "purpose_dashboard_helper"
 TRANS_KEY_PURPOSE_DASHBOARD_TRANSLATION: Final = "purpose_dashboard_translation"
+TRANS_KEY_PURPOSE_SYSTEM_DASHBOARD_HELPER: Final = "purpose_system_dashboard_helper"
 # Legacy sensor purposes (sensor_legacy.py)
 
 # Button purpose translation keys (button.py)
@@ -2446,6 +2448,7 @@ ATTR_OVERDUE_HANDLING_TYPE: Final = "overdue_handling_type"
 ATTR_REQUIRED_CHORES: Final = "required_chores"
 ATTR_RESET_SCHEDULE: Final = "reset_schedule"
 ATTR_REWARD_APPROVALS_COUNT: Final = "reward_approvals_count"
+ATTR_USER_DASHBOARD_HELPERS: Final = "user_dashboard_helpers"
 ATTR_REWARD_CLAIMS_COUNT: Final = "reward_claims_count"
 ATTR_REWARD_NAME: Final = "reward_name"
 ATTR_REDEEMED_ON: Final = "Redeemed on"
@@ -2500,6 +2503,9 @@ ATTR_CHORE_IS_TODAY_AM: Final = "is_today_am"
 ATTR_CHORE_LABELS: Final = "labels"
 ATTR_CHORE_PRIMARY_GROUP: Final = "primary_group"
 ATTR_UI_CONTROL: Final = "ui_control"
+ATTR_UI_ROOT: Final = "ui_root"
+ATTR_UI_ROOT_SHARED_ADMIN: Final = "shared_admin"
+ATTR_UI_ROOT_SELECTED_USER: Final = "selected_user"
 
 # Rotation and availability dashboard attributes
 ATTR_CHORE_CLAIM_MODE: Final = "claim_mode"
@@ -2568,6 +2574,7 @@ SENSOR_KC_UID_SUFFIX_SHARED_CHORE_GLOBAL_STATE_SENSOR: Final = "_chore_global_st
 
 # Sensor Entity ID constants still in active use (runtime)
 SENSOR_KC_UID_SUFFIX_UI_DASHBOARD_HELPER: Final = "_dashboard_helper"
+SENSOR_KC_UID_SUFFIX_SYSTEM_DASHBOARD_HELPER: Final = "_system_dashboard_helper"
 
 # System-level dashboard translation sensor (one per language in use)
 SENSOR_KC_UID_SUFFIX_DASHBOARD_LANG: Final = "_dashboard_lang"
@@ -2744,6 +2751,7 @@ SERVICE_FIELD_CONFIG_ENTRY_ID: Final = "config_entry_id"
 SERVICE_FIELD_CONFIG_ENTRY_TITLE: Final = "config_entry_title"
 SERVICE_FIELD_USER_NAME: Final = "user_name"
 SERVICE_FIELD_USER_ID: Final = "user_id"
+SERVICE_FIELD_UI_CONTROL_TARGET: Final = "ui_control_target"
 UI_CONTROL_KEY_PATH_DELIMITER: Final = "/"
 SERVICE_FIELD_UI_CONTROL_ACTION: Final = "ui_control_action"
 SERVICE_FIELD_UI_CONTROL_KEY: Final = "key"
@@ -2759,6 +2767,12 @@ UI_CONTROL_ACTIONS: Final = (
     UI_CONTROL_ACTION_CREATE,
     UI_CONTROL_ACTION_UPDATE,
     UI_CONTROL_ACTION_REMOVE,
+)
+UI_CONTROL_TARGET_USER: Final = "user"
+UI_CONTROL_TARGET_SHARED_ADMIN: Final = "shared_admin"
+UI_CONTROL_TARGETS: Final = (
+    UI_CONTROL_TARGET_USER,
+    UI_CONTROL_TARGET_SHARED_ADMIN,
 )
 
 # Chore service fields (workflow)
@@ -2882,6 +2896,7 @@ MIGRATION_CUMULATIVE_BADGE_PROGRESS: Final = "cumulative_badge_progress"
 MIGRATION_BADGES_EARNED_DICT: Final = "badges_earned_dict"
 MIGRATION_POINT_STATS: Final = "point_stats"
 MIGRATION_CHORE_DATA_AND_STREAKS: Final = "chore_data_and_streaks"
+MIGRATION_SCHEMA45_SHARED_ADMIN_UI_CONTROL: Final = "schema45_shared_admin_ui_control"
 
 DEFAULT_MIGRATIONS_APPLIED: Final = [
     MIGRATION_DATETIME_UTC,
@@ -2964,6 +2979,7 @@ ENTITY_REGISTRY: Final[dict[str, EntityRequirement]] = {
     SENSOR_KC_UID_SUFFIX_CHORE_STATUS_SENSOR: EntityRequirement.ALWAYS,
     SENSOR_KC_UID_SUFFIX_CHORES_SENSOR: EntityRequirement.ALWAYS,
     SENSOR_KC_UID_SUFFIX_UI_DASHBOARD_HELPER: EntityRequirement.ALWAYS,
+    SENSOR_KC_UID_SUFFIX_SYSTEM_DASHBOARD_HELPER: EntityRequirement.ALWAYS,
     # === SENSORS: Gamification ===
     SENSOR_KC_UID_SUFFIX_ASSIGNEE_POINTS_SENSOR: EntityRequirement.GAMIFICATION,
     SENSOR_KC_UID_SUFFIX_ASSIGNEE_BADGES_SENSOR: EntityRequirement.GAMIFICATION,
@@ -3138,6 +3154,10 @@ TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND: Final = "error_msg_no_entry_found"
 TRANS_KEY_ERROR_SERVICE_TARGET_AMBIGUOUS: Final = "service_target_ambiguous"
 TRANS_KEY_ERROR_SERVICE_TARGET_TITLE_NOT_FOUND: Final = "service_target_title_not_found"
 TRANS_KEY_ERROR_UI_CONTROL_TARGET_REQUIRED: Final = "ui_control_target_required"
+TRANS_KEY_ERROR_UI_CONTROL_INVALID_TARGET: Final = "ui_control_invalid_target"
+TRANS_KEY_ERROR_UI_CONTROL_SHARED_ADMIN_CONTEXT_INVALID: Final = (
+    "ui_control_shared_admin_context_invalid"
+)
 TRANS_KEY_ERROR_UI_CONTROL_INVALID_ACTION: Final = "ui_control_invalid_action"
 TRANS_KEY_ERROR_UI_CONTROL_INVALID_KEY: Final = "ui_control_invalid_key"
 TRANS_KEY_ERROR_UI_CONTROL_VALUE_REQUIRED: Final = "ui_control_value_required"
@@ -3566,6 +3586,7 @@ TRANS_KEY_SENSOR_SHARED_CHORE_GLOBAL_STATUS_SENSOR: Final = (
     "system_chore_shared_state_sensor"
 )
 TRANS_KEY_SENSOR_DASHBOARD_TRANSLATION: Final = "system_dashboard_translation_sensor"
+TRANS_KEY_SENSOR_SYSTEM_DASHBOARD_HELPER: Final = "system_dashboard_helper_sensor"
 TRANS_KEY_SENSOR_DASHBOARD_HELPER: Final = "assignee_dashboard_helper_sensor"
 
 

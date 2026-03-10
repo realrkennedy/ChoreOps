@@ -5,7 +5,7 @@
 - **Name / Code**: Chore notification reset cleanup (`CHORE_NOTIFICATION_RESET_CLEANUP`)
 - **Target release / milestone**: v0.5.0-beta.5 follow-up / next notification bugfix PR
 - **Owner / driver(s)**: ChoreOps maintainers + builder execution handoff
-- **Status**: Phase 4 partial documentation closeout complete; release note and translation confirmation handled separately
+- **Status**: Reopened for Phase 3B lifecycle hardening after real-world claim/overdue persistence regression
 
 ## Summary & immediate steps
 
@@ -14,9 +14,13 @@
 | Phase 1 – Reset-path audit and cleanup contract | Verify every reset path and define the narrow reset-cleanup fix            |        100 | Reset inventory locked; broad tag refactor deferred                 |
 | Phase 2 – Reset-only implementation             | Add reset cleanup and accurate reset-event emission only                   |        100 | Reset now clears assignee due/overdue and approver status           |
 | Phase 3 – Reset regression coverage             | Add tests proving reset cleanup without altering working replacement flows |        100 | Reset cleanup and deferred reset-emission paths now covered         |
-| Phase 4 – Rollout check                         | Validate scope stayed narrow and user-visible behavior is safe             |         50 | Comment + validation closeout done; release/doc follow-up split out |
+| Phase 3B – Lifecycle contract hardening         | Unify live due/reminder/overdue/claim notification cleanup semantics       |          0 | Real-device behavior shows the narrow reset fix did not close scope |
+| Phase 4 – Rollout check                         | Validate scope stayed narrow and user-visible behavior is safe             |         25 | Prior closeout is no longer sufficient until Phase 3B lands         |
 
-1. **Key objective** – Ensure chore due/overdue notifications are cleared from devices when a chore resets to `pending`, while preserving the existing Schedule-Lock resend behavior.
+1. **Key objective** – Ensure chore due, reminder, overdue, claim, and reset notifications follow one consistent device-lifecycle contract so the newest valid chore state is the only assignee-facing notification left on device.
+
+- Be explicit about transport: transient progression should prefer replacement on the canonical notification identity, while invalidation without a successor should use explicit clear behavior.
+
 2. **Summary of recent work**
    - Reset and notification code paths were traced in `ChoreManager` and `NotificationManager`.
 
@@ -24,17 +28,21 @@
 - A reset-path audit confirmed that several reset methods persisted state changes without emitting `SIGNAL_SUFFIX_CHORE_STATUS_RESET`.
 - Phase 2 now adds reset cleanup in `NotificationManager` and deferred post-persist reset emits in `ChoreManager` for externally persisted reset paths.
 - Wiki review continues to block any broader tag-family refactor; this phase intentionally leaves assignee status notification semantics unchanged.
+- Field evidence now shows that deferring assignee status-tag normalization left a real lifecycle gap: claim cleanup does not remove the overdue notification that was actually sent, and reminder notifications can still stack separately from overdue.
+- Companion App behavior also shows a technical distinction the plan must respect: replacement via tag is the more reliable primitive for transient progression, while explicit clears have platform caveats and should be used deliberately for invalidation cases.
 
 3. **Next steps (short term)**
 
-- Handle the release-note/changelog note separately from this execution slice.
-- Confirm translation-source impact separately; no runtime evidence currently suggests new translation keys are needed.
-- Decide later whether persistent-notification fallbacks need separate reset cleanup handling or can stay out of scope.
+- Canonical assignee notification-family contract is now locked for Phase 3B execution.
+- Execute the dedicated builder handoff packet in [docs/in-process/CHORE_NOTIFICATION_RESET_CLEANUP_SUP_BUILDER_HANDOFF_PHASE3B.md](CHORE_NOTIFICATION_RESET_CLEANUP_SUP_BUILDER_HANDOFF_PHASE3B.md).
+- Keep release-note/changelog handling after the lifecycle contract is validated end to end.
 
 4. **Risks / blockers**
 
-- Broader tag normalization remains risky because the wiki describes intentional replacement behavior in some flows.
-- Reset cleanup currently targets mobile push tag clearing; persistent-notification fallback behavior remains unchanged in this phase.
+- Broader tag normalization remains risky because the wiki describes intentional replacement behavior in some flows, but current runtime behavior is already inconsistent with the intended model.
+- Reset cleanup currently targets mobile push tag clearing; persistent-notification fallback behavior remains unchanged and must be explicitly classified in Phase 3B rather than assumed.
+- The plan previously used words like "deleted" in places where the real transport operations are `replace` and `clear`; that terminology now needs to be normalized so implementation and tests do not drift.
+- Self-role scenarios (assignee is also an approver account in the system but not their own approver) need explicit regression coverage so assignee and approver delivery paths cannot be confused.
 - Full-suite validation is currently blocked by unrelated failures in `tests/test_workflow_streak_schedule.py`.
 
 5. **References**
@@ -45,16 +53,21 @@
    - [tests/AGENT_TESTING_USAGE_GUIDE.md](../../tests/AGENT_TESTING_USAGE_GUIDE.md)
    - [docs/RELEASE_CHECKLIST.md](../RELEASE_CHECKLIST.md)
    - [docs/in-process/CHORE_NOTIFICATION_RESET_CLEANUP_SUP_RESET_PATH_AUDIT.md](CHORE_NOTIFICATION_RESET_CLEANUP_SUP_RESET_PATH_AUDIT.md)
-   - [choreops-wiki/Configuration:-Notifications.md](../../choreops-wiki/Configuration:-Notifications.md)
-   - [choreops-wiki/Technical:-Notifications.md](../../choreops-wiki/Technical:-Notifications.md)
+
+- [docs/in-process/CHORE_NOTIFICATION_RESET_CLEANUP_SUP_NOTIFICATION_OVERVIEW_MATRIX.md](CHORE_NOTIFICATION_RESET_CLEANUP_SUP_NOTIFICATION_OVERVIEW_MATRIX.md)
+- [docs/in-process/CHORE_NOTIFICATION_RESET_CLEANUP_SUP_BUILDER_HANDOFF_PHASE3B.md](CHORE_NOTIFICATION_RESET_CLEANUP_SUP_BUILDER_HANDOFF_PHASE3B.md)
+- [choreops-wiki/Configuration:-Notifications.md](../../choreops-wiki/Configuration:-Notifications.md)
+- [choreops-wiki/Technical:-Notifications.md](../../choreops-wiki/Technical:-Notifications.md)
+
 6. **Decisions & completion check**
    - **Decisions captured**:
      - Treat this as a notification lifecycle bug, not a scheduling or storage-schema bug.
      - Preserve Schedule-Lock timestamp invalidation; add explicit device-clear behavior on reset.
      - Phase 1 is limited to reset cleanup and reset-event accuracy only.
      - Do not force tag-family unification until runtime behavior is reconciled with the wiki-documented replacement model.
-     - No `.storage/choreops/choreops_data` schema change is planned for this initiative.
-     - No new `TRANS_KEY_*` constants are expected if cleanup remains internal-only; current notification copy should be reused unchanged.
+   - New Phase 3B exists specifically because the deferred tag-family decision is now proven user-visible in production behavior.
+   - No `.storage/choreops/choreops_data` schema change is planned for this initiative.
+   - No new `TRANS_KEY_*` constants are expected if cleanup remains internal-only; current notification copy should be reused unchanged.
    - **Completion confirmation**: `[ ]` All follow-up items completed (runtime behavior, tests, docs, validation) before requesting owner approval.
 
 > **Important:** Keep the Summary section current after each material implementation or validation update.
@@ -106,18 +119,80 @@
   - Existing scenario-based notification fixtures should be reused instead of inventing new names or raw data.
   - Tests should characterize current working notification behavior and only add reset assertions where behavior is intentionally changed.
 
+### Phase 3B – Lifecycle contract hardening
+
+- **Goal**: Finish the broader assignee notification lifecycle contract that Phase 2 intentionally deferred so due, reminder, overdue, claim, approval, and reset paths all clear or replace the exact notifications they actually send.
+- **Steps / detailed work items**
+  1. [ ] Write a short contract note at the top of [custom_components/choreops/managers/notification_manager.py](../custom_components/choreops/managers/notification_manager.py) around lines 260-406 and 1942-2053 defining the canonical assignee-facing notification family.
+  - Explicitly decide whether assignee `due_window`, `due_reminder`, and `overdue` notifications are one collapsing family under `NOTIFY_TAG_TYPE_STATUS`, or whether reminder intentionally remains standalone.
+  - Record the expected device result for each transition: `due_window -> overdue`, `due_reminder -> overdue`, `due/reminder -> claim`, `overdue -> approved`, `overdue -> reset`.
+    - Use [docs/in-process/CHORE_NOTIFICATION_RESET_CLEANUP_SUP_NOTIFICATION_OVERVIEW_MATRIX.md](CHORE_NOTIFICATION_RESET_CLEANUP_SUP_NOTIFICATION_OVERVIEW_MATRIX.md) as the baseline contract table and update it as decisions are finalized.
+      - Execute implementation from [docs/in-process/CHORE_NOTIFICATION_RESET_CLEANUP_SUP_BUILDER_HANDOFF_PHASE3B.md](CHORE_NOTIFICATION_RESET_CLEANUP_SUP_BUILDER_HANDOFF_PHASE3B.md) and keep plan + handoff checkboxes in sync.
+    - Explicitly separate domain events from transport operations: `claimed`, `approved`, `missed`, `reset`, and chore deletion are lifecycle events; `replace` and `clear` are notification operations.
+  2. [ ] Audit every assignee send path in [custom_components/choreops/managers/notification_manager.py](../custom_components/choreops/managers/notification_manager.py): `_handle_chore_due_window()` lines 2501-2569, `_handle_chore_due_reminder()` lines 2571-2639, `_handle_chore_overdue()` lines 2641-2804, `_handle_chore_claimed()` lines 1942-2053, `_handle_chore_approved()` lines 2298-2339, and `_clear_reset_chore_notifications()` lines 1589-1613.
+     - Build a matrix showing for each path: send tag used, notification ID behavior, whether the intended operation is `replace` or `clear`, clear tags attempted, and any legacy compatibility clears.
+  - Treat any send/clear mismatch as a Phase 3B blocker, not a cleanup follow-up.
+  3. [ ] Normalize claim and approval cleanup to clear the canonical assignee status notification tag actually used by due-window and overdue sends.
+  - Anchor review points: [custom_components/choreops/managers/notification_manager.py](../custom_components/choreops/managers/notification_manager.py) lines 2051-2052 and lines 2318-2319.
+  - If legacy `overdue` and `due_window` tag clears are retained for backward compatibility, document them as compatibility clears, not primary behavior.
+  4. [ ] Decide and implement the due-reminder policy explicitly instead of leaving it implicit.
+  - Locked decision: move due reminders into the same `status` collapsing family so reminder replaces due, overdue replaces either prior transient state, and claim clears the canonical transient family.
+  - Do not keep reminder standalone in this phase.
+  - Selection rationale: tag-based replacement is the preferred transport primitive for transient progression and matches the desired user-visible behavior.
+  5. [ ] Classify delivery-backend guarantees before claiming the lifecycle contract is complete.
+  - Review mobile push behavior versus persistent-notification fallback in [custom_components/choreops/managers/notification_manager.py](../custom_components/choreops/managers/notification_manager.py) lines 930-976, 1530-1613, and related helper paths.
+  - Locked scope: do not spend Phase 3B implementation time adding persistent parity work.
+  - Document the strict replace-plus-clear contract primarily for mobile-app notifications and only require that persistent fallback replacement behavior is not regressed.
+  - Do not describe fallback parity in docs unless a real persistent dismiss path exists and is tested.
+  6. [ ] Add a self-role delivery guard review covering users who are both assignable and approver-capable accounts.
+  - Review approver fan-out in [custom_components/choreops/managers/notification_manager.py](../custom_components/choreops/managers/notification_manager.py) lines 1140-1305 and verify that non-associated self-approver accounts never receive approver copies for their own chore.
+  - Add a targeted negative test proving an assignee who is also an approver record, but not associated to themselves, receives only the assignee notification path.
+  7. [ ] Extend workflow tests in [tests/test_workflow_notifications.py](../../tests/test_workflow_notifications.py) with real lifecycle regressions, not just reset-only coverage.
+  - Required cases:
+  - assignee due notification followed by overdue leaves one current assignee notification on device
+  - assignee due notification followed by reminder leaves one current assignee notification on device
+  - claiming from the earlier due notification clears the later overdue notification from device
+  - due reminder followed by overdue follows the chosen Phase 3B contract
+  - assignee-who-is-also-approver-but-not-self-associated does not receive an approver overdue duplicate
+  - approval and reset still clear the canonical assignee notification family after the tag normalization
+  - Add assertions that distinguish `replace` scenarios from `clear` scenarios so the tests enforce transport intent rather than just generic disappearance.
+  8. [ ] Reconcile docs and wiki wording against the finalized lifecycle contract before closeout.
+
+
+      - Update [choreops-wiki/Configuration:-Notifications.md](../../choreops-wiki/Configuration:-Notifications.md) if the user-facing event matrix or auto-clear claims change.
+      - Update [choreops-wiki/Technical:-Notifications.md](../../choreops-wiki/Technical:-Notifications.md) if the tag or replacement narrative changes.
+      - Explicitly document the preferred rule: transient progression uses replacement; invalidation without a successor uses clear.
+      - Preserve this supporting matrix as the maintainer-facing artifact even if the final user-facing wording is simplified.
+
+  9. [ ] Add a focused contract test module if needed instead of overloading one workflow file.
+  - Candidate files: [tests/test_workflow_notifications.py](../../tests/test_workflow_notifications.py) and [tests/test_scheduler_delegation.py](../../tests/test_scheduler_delegation.py).
+  - Prefer one table-driven notification lifecycle test helper over many copy-paste tests so the contract is readable and future-safe.
+  10. [ ] Validate Phase 3B with targeted commands before reopening Phase 4 closeout.
+  - `./utils/quick_lint.sh --fix`
+  - `mypy custom_components/choreops/`
+  - `python -m pytest tests/test_workflow_notifications.py -v --tb=line`
+  - `python -m pytest tests/test_scheduler_delegation.py -v --tb=line`
+- **Key issues**
+  - The real bug is now a lifecycle-contract mismatch, not a reset-only bug.
+  - `Schedule-Lock` dedup timestamps must stay separate from device-clear behavior; Phase 3B should not conflate them.
+  - The transport contract must explicitly say when ChoreOps expects `replace` versus `clear`; otherwise code comments, wiki language, and tests will keep drifting.
+  - Mobile push currently has the strongest lifecycle tooling because it supports both tag-based replacement and explicit clear; persistent fallback should be kept stable but is not a Phase 3B parity target.
+  - “Bullet proof” here means every send path and every clear path must be explainable from one contract table, with no orphaned legacy tags left as undocumented behavior.
+  - If reminder behavior is kept distinct, that must be an explicit product decision, not an accidental omission.
+  - The ChoreOps docs tree still lacks a stable notification overview matrix; this phase should finish with both a maintainer artifact and refreshed wiki language.
+
 ### Phase 4 – Documentation and rollout check
 
 - **Goal**: Close the initiative with validation evidence and lightweight documentation updates only where behavior expectations changed.
 - **Steps / detailed work items**
   1. [x] Update inline code comments in [custom_components/choreops/managers/notification_manager.py](../custom_components/choreops/managers/notification_manager.py) lines 260-406 to clarify that Schedule-Lock does not clear existing device notifications.
-  2. [ ] Add a concise release-note or changelog note in the appropriate release documentation path if the user-visible effect is that stale overdue/due notifications now disappear on reset.
+  2. [ ] Add a concise release-note or changelog note in the appropriate release documentation path if the user-visible effect is that stale overdue/due/reminder notifications now collapse or clear more aggressively on claim, approval, and reset.
   3. [ ] Confirm that no translation source files require changes because the initiative reuses existing `TRANS_KEY_NOTIF_*` text paths.
-  4. [x] Record final validation results and any residual edge cases in this plan before execution handoff is marked complete.
+  4. [ ] Record final Phase 3B validation results and any residual edge cases in this plan before execution handoff is marked complete.
 - **Key issues**
   - Documentation should stay narrow and not imply a storage migration or notification content change.
   - If new helper comments are added, they should reinforce the event-driven cross-manager contract rather than introduce new behavior assumptions.
-  - Steps 2 and 3 are intentionally handled separately from this execution slice.
+  - Prior Phase 4 notes are no longer sufficient until the Phase 3B lifecycle contract is signed off.
 
 ## Testing & validation
 
@@ -135,6 +210,7 @@
   - `python -m pytest tests/test_workflow_notifications.py -v --tb=line` ✅ Passed (`28 passed`)
   - `python -m pytest tests/test_scheduler_delegation.py -v --tb=line` ✅ Passed (`13 passed`)
   - `python -m pytest tests/ -v --tb=line` ⚠️ Still blocked by unrelated existing failures in `tests/test_workflow_streak_schedule.py`
+  - New Phase 3B lifecycle tests are not yet written or run; current validation only proves reset cleanup, not the broader assignee claim/reminder/overdue contract.
   - Performance and dashboard suites remain out of scope for this initiative.
   - Phase 4 note: no additional validation rerun was required for this documentation-only slice because the recorded runtime evidence already reflects the implemented notification-reset behavior.
 
@@ -143,3 +219,4 @@
 - This initiative does **not** require a data migration or schema version bump because the planned changes are limited to event wiring, notification tag consistency, and test coverage.
 - The expected first-phase implementation should remain inside `managers/` and `tests/`; no options flow, dashboard template, or storage-builder changes are expected.
 - If execution discovers that persistent notifications behave differently from mobile push notifications for tag clearing, document that distinction before widening scope.
+- Phase 3B exists to close the exact class of regression reported from live device use: overdue remained after claim, and multiple assignee-facing chore notifications coexisted when the intended “latest valid state wins” contract was not fully enforced.

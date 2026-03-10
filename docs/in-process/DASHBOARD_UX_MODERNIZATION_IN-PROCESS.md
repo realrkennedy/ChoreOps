@@ -19,11 +19,11 @@
 | Phase 3C – Single-path contract enforcement | Unify create/update/release template handling under one compile path with registry-backed shared contract validation |        100 | Hard-fork path complete: no hoist, root-template contract, strict canonical↔vendored parity, targeted suites passing |
 | Phase 4A – User template UX completion      | Complete remaining user-template behavior parity and modernization follow-up                                         |        100 | Steps 1-5 complete; Gamification Premier finalized under the approved hard-fork taxonomy                             |
 | Phase 4 – Admin modernization + docs/polish | Modernize admin templates and finalize docs/contracts/validation checklist                                           |          0 | Admin work is active; shared-page state ownership decision must be locked first                                      |
-| Phase 4B – Admin shared state contract      | Define the persistent `ui_control` ownership model and root-key contract for shared admin dashboards                 |          0 | Capture issue first, ratify ownership, then implement admin modernization against one stable pattern                 |
+| Phase 4B – Admin shared state contract      | Define the persistent `ui_control` ownership model and root-key contract for shared admin dashboards                 |        100 | Phases 1-4 complete; release-gate validation passed in four 25 percent terminal batches                              |
 
 1. **Key objective** – Deliver modern, app-like dashboards with strong runtime stability.
-2. **Summary of recent work** – Phase 3B now includes true row-template architecture wiring (`button_card_templates` + row template references), no builder hoist behavior, sync parity confirmation, and targeted validation pass.
-3. **Next steps (short term)** – Execute Phase 4B first to lock the shared-admin `ui_control` ownership model, then proceed with Phase 4 implementation against the approved contract.
+2. **Summary of recent work** – Phase 4B now has the shared-admin system helper sensor, snippet-provided `ui_root.shared_admin` and `ui_root.selected_user`, canonical and vendored admin-shared template ownership split, updated preference docs, dashboard registry contract cleanup, and full release-gate validation completed in four 25 percent terminal batches.
+3. **Next steps (short term)** – Carry any remaining admin template UX tweaks in the separate follow-up plan; the shared-admin `ui_control` contract workstream itself is validated and complete.
 4. **Risks / blockers**
    - Home Assistant dashboard constraints (no custom card authoring in this initiative) can limit advanced interaction patterns.
    - Dependency drift risk when introducing new custom card usage across templates.
@@ -44,7 +44,8 @@
    - `docs/DASHBOARD_UI_DESIGN_GUIDELINE.md`
    - `docs/in-process/DASHBOARD_UX_MODERNIZATION_SUP_DASHBOARD_BUILDER_AGENT_DRAFT.md`
    - `docs/in-process/DASHBOARD_UX_MODERNIZATION_SUP_CARD_TOOLKIT.md`
-   - `docs/in-process/DASHBOARD_UX_MODERNIZATION_SUP_BUILDER_HANDOFF_PHASE4B_SHARED_ADMIN_UI_CONTROL.md`
+  - `docs/completed/DASHBOARD_UX_MODERNIZATION_PHASE4B_SHARED_ADMIN_UI_CONTROL_COMPLETED.md`
+  - `docs/completed/DASHBOARD_UX_MODERNIZATION_PHASE4B_SHARED_ADMIN_UI_CONTROL_SUP_BUILDER_HANDOFF.md`
      - `docs/in-process/DASHBOARD_UX_MODERNIZATION_SUP_BUILDER_HANDOFF_PHASE3A.md`
        - `docs/in-process/DASHBOARD_UX_MODERNIZATION_SUP_BUILDER_HANDOFF_PHASE3B.md`
        - `docs/in-process/DASHBOARD_UX_MODERNIZATION_SUP_BUILDER_HANDOFF_PHASE3C.md`
@@ -63,6 +64,9 @@
 
 - **Summary upkeep**: Update percentages, blockers, and quick notes after each phase completion.
 - **Detailed tracking**: Keep implementation granularity in phase sections; keep Summary high-level.
+- **Validation execution policy**: Run lint and tests only in an actual terminal session. For pytest, the only acceptable invocation pattern going forward is `python -m pytest ...`.
+- **Mid-phase validation policy**: Use targeted terminal pytest commands while implementation is still in progress.
+- **Completion-gate validation policy**: Reserve `python -m pytest tests/ -v --tb=line` for the point where the phase or code change set is believed complete.
 
 ## Detailed phase tracking
 
@@ -318,7 +322,8 @@ This avoids prompt handling and reuses the documented sandbox token without hard
 ### Phase 4B – Admin shared state contract
 
 - **Goal**: Resolve shared-admin `ui_control` ownership before implementation so every top-level admin card writes to one intentional state owner and one stable root-key taxonomy.
-- **Execution blueprint**: `docs/in-process/DASHBOARD_UX_MODERNIZATION_SUP_BUILDER_HANDOFF_PHASE4B_SHARED_ADMIN_UI_CONTROL.md`
+- **Archive summary**: `docs/completed/DASHBOARD_UX_MODERNIZATION_PHASE4B_SHARED_ADMIN_UI_CONTROL_COMPLETED.md`
+- **Supporting archive**: `docs/completed/DASHBOARD_UX_MODERNIZATION_PHASE4B_SHARED_ADMIN_UI_CONTROL_SUP_BUILDER_HANDOFF.md`
 - **Pre-builder prerequisite**: complete dashboard sync/test/doc cleanup and commit it before any Phase 4B integration changes, so rollback to pre-Builder integration state is always safe and explicit.
 - **Issue statement**
   - The current shared-admin direction risks conflating three different concerns: page-owned chrome state, selected-user workflow state, and bootstrap/fallback helper usage.
