@@ -1,0 +1,230 @@
+# Initiative plan: Phase 4B shared-admin ui_control blueprint
+
+## Initiative snapshot
+
+- **Name / Code**: Dashboard UX modernization Phase 4B shared-admin `ui_control` contract (`DASHBOARD_UX_MODERNIZATION_PHASE4B_SHARED_ADMIN_UI_CONTROL`)
+- **Target release / milestone**: v0.5.x pre-release (schema 45 window)
+- **Owner / driver(s)**: Builder implementation owner + ChoreOps maintainers (approval gates required)
+- **Status**: Not started
+
+## Summary & immediate steps
+
+| Phase / Step                                | Description                                                                           | % complete | Quick notes                                  |
+| ------------------------------------------- | ------------------------------------------------------------------------------------- | ---------: | -------------------------------------------- |
+| Preflight - Workspace hygiene gate          | Finish dashboard sync/test/doc cleanup and commit before integration contract work    |          0 | Required to preserve clean rollback boundary |
+| Phase 1 - Contract constants + data model   | Add canonical constants and shared-admin storage root under `data/meta`               |          0 | No behavior change yet                       |
+| Phase 2 - Service + manager ownership split | Route `manage_ui_control` writes to user-owned or shared-admin-owned targets          |          0 | Hard stop before template edits              |
+| Phase 3 - Sensor/snippet/template contract  | Expose system helper and snippet variables; enforce `ui_root` split in admin template |          0 | No mixed ownership allowed                   |
+| Phase 4 - Tests + release gates             | Add regression/contract coverage and run required command gates                       |          0 | Must pass before Phase 4 admin UX work       |
+
+1. **Key objective** - Implement one stable shared-admin state owner (`data/meta/shared_admin_ui_control`) without breaking per-user dashboard behavior.
+2. **Summary of recent work** - Architecture decisions were ratified in main plan Phase 4B; this document translates those decisions into Builder-executable steps.
+3. **Next steps (short term)** - Execute Phase 1 and stop for approval before touching service/manager logic.
+4. **Risks / blockers**
+   - Cross-owner drift risk if any admin-shared card still reads selected-user `ui_control`.
+   - Template/runtime drift risk if snippet contract changes without matching template test updates.
+   - Migration risk if `meta` defaults or schema enforcement paths are bypassed.
+5. **References**
+   - `docs/in-process/DASHBOARD_UX_MODERNIZATION_IN-PROCESS.md`
+   - `docs/ARCHITECTURE.md`
+   - `docs/DEVELOPMENT_STANDARDS.md`
+   - `docs/CODE_REVIEW_GUIDE.md`
+   - `tests/AGENT_TEST_CREATION_INSTRUCTIONS.md`
+   - `docs/RELEASE_CHECKLIST.md`
+6. **Decisions & completion check**
+   - **Decisions captured**:
+     - Shared-admin persistent path: `data/meta/shared_admin_ui_control`.
+     - Shared-admin helper identity: system helper sensor with purpose `purpose_system_dashboard_helper`.
+     - Shared-admin language selection order: selected user language -> first associated admin fallback language -> integration default language.
+     - Shared-admin template ownership split: top-level admin cards read `ui_root.shared_admin`; selected-user views read `ui_root.selected_user`.
+     - Single-template strategy remains target end-state; this blueprint only stabilizes contract first.
+   - **Completion confirmation**: `[ ]` All phases and hard gates complete before owner approval.
+
+## Tracking expectations
+
+- **Summary upkeep**: Update percentages and gate status after each completed phase.
+- **Detailed tracking**: Record exact file/method changes in each step with date and PR/commit evidence.
+
+## Detailed phase tracking
+
+### Preflight - Workspace hygiene gate
+
+- **Goal**: Ensure Builder starts from a clean and reversible baseline after expected dashboard sync churn.
+- **Steps / detailed work items**
+
+1. [ ] Complete dashboard sync-related test/doc cleanup currently in progress (dashboard-focused diffs only).
+   - Scope includes dashboard templates/translations/preferences/tests/docs cleanup from the active sync cycle.
+2. [ ] Commit cleanup-only changes first as a standalone commit before any Phase 4B integration contract changes.
+   - Commit intent: baseline normalization only (no new shared-admin contract behavior).
+3. [ ] Verify working tree is clean (or only intentionally unrelated tracked work) before starting Phase 1.
+4. [ ] Record cleanup commit SHA in the main initiative plan to establish rollback anchor.
+
+- **Key issues**
+  - Do not mix cleanup commit and Phase 4B behavior changes in the same commit.
+  - The cleanup commit is a hard prerequisite for safe revert/cherry-pick workflows.
+
+### Phase 1 - Contract constants + data model
+
+- **Goal**: Introduce canonical names and storage root for shared-admin UI state with zero runtime behavior change.
+- **Steps / detailed work items**
+
+1. [ ] Add shared-admin data path constants in `custom_components/choreops/const.py` near existing `DATA_META*` and `ui_control` constants.
+   - Add constants: `DATA_META_SHARED_ADMIN_UI_CONTROL`, `UI_CONTROL_TARGET_USER`, `UI_CONTROL_TARGET_SHARED_ADMIN`, and any needed `ATTR_UI_ROOT_*` names.
+   - Keep string values stable and explicit (`"shared_admin_ui_control"`, `"user"`, `"shared_admin"`).
+   - Anchor: `custom_components/choreops/const.py:353`, `custom_components/choreops/const.py:2748`, `custom_components/choreops/const.py:3233`.
+2. [ ] Extend translation keys/constants in `custom_components/choreops/const.py` and `custom_components/choreops/translations/en.json` for new service-target validation errors.
+   - Add keys for invalid `ui_control_target` values and missing/invalid shared-admin target context.
+   - Preserve current `ui_control_target_required` behavior for user scope.
+   - Anchor: `custom_components/choreops/const.py:3140`, `custom_components/choreops/translations/en.json:4981`.
+3. [ ] Ensure default store structure initializes shared-admin bucket under `meta`.
+   - Add `data[meta][shared_admin_ui_control] = {}` in `ChoreOpsStore.get_default_structure()`.
+   - Confirm no top-level storage root additions.
+   - Anchor: `custom_components/choreops/store.py` (default structure block near existing `meta` initialization).
+4. [ ] Add/adjust schema45 migration shim for existing installs that have `meta` but no shared-admin bucket.
+   - Implement idempotent migration in `custom_components/choreops/migration_pre_v50.py` and register marker constant in `custom_components/choreops/const.py` migration identifiers section.
+   - Do not increment schema version beyond 45 in this workstream.
+   - Anchor: `custom_components/choreops/migration_pre_v50.py:74`, `custom_components/choreops/const.py:2877`, `custom_components/choreops/coordinator.py:343`.
+5. [ ] Add phase-level unit tests for schema/default behavior.
+   - Validate new-store default includes empty shared-admin bucket.
+   - Validate migration path backfills bucket without mutating unrelated `meta` fields.
+   - Candidate files: `tests/test_entity_loading_extension.py`, add targeted schema test module if clearer.
+
+- **Key issues**
+  - Must not accidentally create dual canonical roots for shared-admin state.
+  - Migration must remain idempotent and marker-driven.
+
+### Phase 2 - Service + manager ownership split
+
+- **Goal**: Make `manage_ui_control` explicitly owner-aware while preserving current per-user behavior by default.
+- **Steps / detailed work items**
+
+1. [ ] Extend service schema for `manage_ui_control` to accept `ui_control_target` with strict allowed values.
+   - Update `MANAGE_UI_CONTROL_SCHEMA` in `custom_components/choreops/services.py`.
+   - Default target must remain `user` for backward compatibility.
+   - Anchor: `custom_components/choreops/services.py` (`MANAGE_UI_CONTROL_SCHEMA` block near current action/key/value fields).
+2. [ ] Keep service handler routing through one manager API, but pass target explicitly.
+   - Update `async_handle_manage_ui_control` in `custom_components/choreops/services.py`.
+   - Extend `UserManager.async_manage_ui_control(call_data)` call contract to include target handling.
+   - Anchor: `custom_components/choreops/services.py` (manage handler) and `custom_components/choreops/managers/user_manager.py:165`.
+3. [ ] Split target resolution in `UserManager`.
+   - Keep `_resolve_ui_control_target_user()` for `user` target path.
+   - Add shared-admin path methods: `_resolve_ui_control_target_shared_admin()`, `_get_shared_admin_ui_control_bucket()`, and target-aware set/clear wrappers.
+   - Preserve existing key-path validation helper semantics.
+   - Anchor: `custom_components/choreops/managers/user_manager.py:238`, `custom_components/choreops/managers/user_manager.py:287`.
+4. [ ] Add read API in `UIManager` for shared-admin `ui_control` payload.
+   - Add `get_shared_admin_ui_control()` returning a deep copy of `data[meta][shared_admin_ui_control]`.
+   - Keep `get_dashboard_ui_control(user_id)` unchanged for selected-user helper payload.
+   - Anchor: `custom_components/choreops/managers/ui_manager.py:152`.
+5. [ ] Add strict logging and error translation placeholders for target-aware failures.
+   - Use lazy logging only.
+   - Ensure exceptions remain `HomeAssistantError` with translation keys.
+   - Anchor: `custom_components/choreops/managers/user_manager.py:174`.
+
+- **Key issues**
+  - No direct storage writes outside manager-owned methods.
+  - Target routing must not permit ambiguous writes (for example, shared-admin target + user_id payload mismatch).
+
+### Phase 3 - Sensor/snippet/template contract
+
+- **Goal**: Publish shared-admin state to dashboard templates and enforce root ownership boundaries.
+- **Steps / detailed work items**
+
+1. [ ] Add a system-level dashboard helper sensor entity in `custom_components/choreops/sensor.py`.
+   - New class should follow existing system sensor patterns (see `SystemDashboardTranslationSensor`).
+   - Required attributes:
+     - `purpose: purpose_system_dashboard_helper`
+     - `integration_entry_id`
+     - `ui_control` (shared-admin bucket)
+     - `language`
+     - `dashboard_lookup_key` (stable helper lookup string for shared-admin context)
+   - Anchor: `custom_components/choreops/sensor.py:3887`, `custom_components/choreops/sensor.py:3960`, `custom_components/choreops/sensor.py:4887`.
+2. [ ] Define shared-admin language resolution helper used by the new system sensor.
+   - Order: selected user language -> first associated admin fallback -> default language.
+   - Keep deterministic tie-break rules for multiple associated admins (for example sorted by name/id).
+   - Anchor: `custom_components/choreops/sensor.py:4831` (existing language pattern), plus user-association access in coordinator user data.
+3. [ ] Extend snippet builder contract in `custom_components/choreops/helpers/dashboard_helpers.py`.
+   - Update `_build_template_snippets()` so `template_snippets.admin_setup_shared` resolves both:
+     - `admin_selector_eid` (existing purpose lookup)
+     - `shared_admin_helper_eid` (new system helper lookup by purpose + `integration_entry_id`)
+   - Expose template variables to construct:
+     - `ui_root.shared_admin`
+     - `ui_root.selected_user`
+   - Anchor: `custom_components/choreops/helpers/dashboard_helpers.py:1389`, `custom_components/choreops/helpers/dashboard_helpers.py:1468`.
+4. [ ] Update `admin-shared-v1` template contract in dashboard assets to use explicit ownership split.
+   - In `choreops-dashboards/templates/admin-shared-v1.yaml` and vendored `custom_components/choreops/dashboards/templates/admin-shared-v1.yaml`, enforce:
+     - top-level admin cards read only `ui_root.shared_admin`
+     - selected-user cards read only `ui_root.selected_user`
+   - Remove current mixed-source fallback patterns in shared cards.
+   - Anchor: admin shared template `ui_control_source`/collapse root blocks.
+5. [ ] Add or update template preferences documentation to match defaults and ownership rules.
+   - Update `choreops-dashboards/preferences/admin-shared-v1.md`.
+   - Ensure documented defaults match template `| default(...)` values exactly.
+
+- **Key issues**
+  - Shared-admin snippet contract must remain metadata-driven; no hardcoded entity IDs.
+  - Any unresolved helper lookup must degrade to existing markdown validation behavior, not silent failure.
+
+### Phase 4 - Tests + release gates
+
+- **Goal**: Prevent regression and drift before any additional admin UX modernization work.
+- **Steps / detailed work items**
+
+1. [ ] Add/extend backend tests for target-aware `manage_ui_control` writes.
+   - Validate `user` target path writes to `users[*].ui_preferences`.
+   - Validate `shared_admin` target path writes to `meta.shared_admin_ui_control`.
+   - Validate invalid/missing target cases raise translated errors.
+   - Candidate files: new focused test module under `tests/test_*ui_control*`, plus service-layer contract tests.
+2. [ ] Add/extend sensor tests for new system helper attributes and language derivation.
+   - Candidate file: `tests/test_dashboard_helper_size_reduction.py` (architecture assertions) plus new focused sensor test module.
+3. [ ] Extend dashboard context/template contract tests for new snippet variables and ownership markers.
+   - Update `tests/test_dashboard_context_contract.py` for `admin_setup_shared` payload expectations.
+   - Update `tests/test_dashboard_template_contract.py` for required shared-admin snippet usage markers.
+4. [ ] Add regression test to lock `admin-shared-v1` root ownership split.
+   - Assert shared-card controls never read selected-user root and vice versa.
+   - Candidate file: `tests/test_dashboard_template_render_smoke.py` or new dedicated admin shared contract test.
+5. [ ] Run mandatory quality gates and record evidence in main initiative plan.
+   - `./utils/quick_lint.sh --fix`
+   - `mypy custom_components/choreops/`
+   - `python -m pytest tests/ -v --tb=line`
+
+- **Key issues**
+  - Must update both canonical dashboard assets and vendored runtime assets using established sync workflow.
+  - Do not proceed to `admin-shared-v2`/`admin-peruser-v2` until Phase 4 gates pass.
+
+## Hard stop approval gates (mandatory)
+
+0. **Gate 0 (preflight)**
+   - Required evidence: dashboard sync/test/doc cleanup commit landed; rollback anchor SHA documented.
+   - Stop condition: no Phase 4B integration implementation starts before this gate is approved.
+1. **Gate A (after Phase 1)**
+   - Required evidence: constants, store default, migration tests green.
+   - Stop condition: no service/manager/sensor/template behavior edits merged before approval.
+2. **Gate B (after Phase 2)**
+   - Required evidence: service schema + manager routing tests green, backward compatibility for default user target confirmed.
+   - Stop condition: no sensor/snippet/template edits merged before approval.
+3. **Gate C (after Phase 3)**
+   - Required evidence: system helper exists, snippet provides both roots, admin-shared template split complete in canonical and vendored assets.
+   - Stop condition: no final release readiness sign-off before Phase 4 tests.
+4. **Gate D (after Phase 4)**
+   - Required evidence: all mandatory commands pass, plan evidence updated, zero unresolved blockers.
+   - Stop condition: Phase 4 admin modernization work stays blocked until this gate is approved.
+
+## Validation matrix (pass/fail)
+
+| Check                     | Pass criteria                                                                            | Fail trigger                                                      |
+| ------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Schema/meta contract      | `meta.shared_admin_ui_control` always present after new install or migration             | Missing bucket, duplicate root, or schema > 45                    |
+| Service ownership routing | `manage_ui_control` writes only to target-selected owner                                 | Mixed writes or ambiguous target resolution                       |
+| Snippet lookup contract   | `admin_setup_shared` resolves selector + shared helper dynamically by metadata           | Hardcoded entity IDs or unresolved helper without validation card |
+| Template root ownership   | Shared cards use `ui_root.shared_admin`; selected-user cards use `ui_root.selected_user` | Any mixed root access in same ownership domain                    |
+| Docs/default parity       | Preferences docs match template defaults exactly                                         | Drift between docs and template defaults                          |
+
+## Testing & validation
+
+- Tests executed: Not run in strategist mode (planning-only handoff).
+- Outstanding tests: All Phase 4 command gates are mandatory for Builder execution.
+
+## Notes & follow-up
+
+- This blueprint intentionally isolates contract stabilization from larger admin v2 UX redesign.
+- After Gate D approval, Phase 4 admin modernization may proceed with a stable shared-admin state foundation.

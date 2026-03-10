@@ -1,18 +1,18 @@
 {
   "include": ["custom_components", "tests"],
-  "extraPaths": [".", "./custom_components", "./tests", "../core"],
-  "venvPath": "/home/vscode/.local",
-  "venv": "ha-venv",
   "exclude": [
-    ".venv",
+    "**/node_modules",
+    "**/__pycache__",
     "**/.venv/**",
     "**/venv/**",
     "**/.tox/**",
-    "**/node_modules",
-    "**/__pycache__",
-    ".git",
-    "utils/**"
+    "**/.mypy_cache/**",
+    "**/.ruff_cache/**",
+    "**/.pytest_cache/**",
+    "utils/**",
+    "**/.*"
   ],
+  "extraPaths": [".", "./custom_components", "./tests"],
   "reportMissingImports": "warning",
   "reportMissingModuleSource": "none",
   "pythonVersion": "3.13",

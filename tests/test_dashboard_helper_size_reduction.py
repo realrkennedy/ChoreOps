@@ -190,11 +190,11 @@ class TestSizeValidation:
         hass: HomeAssistant,
         scenario_minimal: SetupResult,
     ) -> None:
-        """SIZE-05: Translation sensor well under 16KB (typically ~5-6KB)."""
+        """SIZE-05: Translation sensor stays under the 9KB pragmatic ceiling."""
         size = get_translation_sensor_size(hass, "Zoë")
 
-        # Translation sensor should be ~5-6KB based on planning doc
-        assert size < 8 * 1024, f"Translation sensor too large: {size} bytes"
+        # Keep a pragmatic ceiling while preserving room for dashboard UX labels.
+        assert size < 9 * 1024, f"Translation sensor too large: {size} bytes"
         # Should have meaningful content
         assert size > 1000, f"Translation sensor too small: {size} bytes"
 

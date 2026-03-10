@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
+
+import jinja2
+import yaml
 
 from custom_components.choreops import const
 from custom_components.choreops.helpers import (
@@ -56,6 +60,240 @@ def test_admin_template_renders_without_parse_errors() -> None:
     assert rendered["views"][0]["title"] == "ChoreOps Admin"
     assert rendered["views"][0]["path"] == "admin"
     assert isinstance(rendered["views"][0].get("sections"), list)
+
+
+@dataclass
+class _MockState:
+    """Minimal Home Assistant-like state object for template rendering tests."""
+
+    entity_id: str
+    state: str
+    attributes: dict[str, object]
+    name: str
+
+
+def test_admin_target_selector_template_renders_as_valid_cards() -> None:
+    """Shared admin target selector inner template renders valid card configs."""
+    template_str = _read_template("admin-shared-v1.yaml")
+    context = dh.build_admin_dashboard_context(
+        integration_entry_id="entry-123",
+        template_profile="admin-shared-v1",
+        release_ref="0.0.1-beta.3",
+        generated_at="2026-03-09T00:00:00+00:00",
+    )
+
+    rendered = builder.render_dashboard_template(template_str, context)
+    selector_template = next(
+        card["filter"]["template"]
+        for section in rendered["views"][0]["sections"]
+        for card in section.get("cards", [])
+        if isinstance(card, dict)
+        and isinstance(card.get("filter"), dict)
+        and "select.select_option" in str(card["filter"].get("template", ""))
+    )
+
+    mock_states = {
+        "select.choreops_admin_target": _MockState(
+            entity_id="select.choreops_admin_target",
+            state="Alice",
+            attributes={
+                "purpose": "purpose_system_dashboard_admin_user",
+                "integration_entry_id": "entry-123",
+            },
+            name="Admin Target",
+        ),
+        "sensor.alice_dashboard_helper": _MockState(
+            entity_id="sensor.alice_dashboard_helper",
+            state="ok",
+            attributes={
+                "purpose": "purpose_dashboard_helper",
+                "integration_entry_id": "entry-123",
+                "user_name": "Alice",
+                "dashboard_helpers": {"translation_sensor_eid": "sensor.translations"},
+            },
+            name="Alice Dashboard Helper",
+        ),
+        "sensor.bob_dashboard_helper": _MockState(
+            entity_id="sensor.bob_dashboard_helper",
+            state="ok",
+            attributes={
+                "purpose": "purpose_dashboard_helper",
+                "integration_entry_id": "entry-123",
+                "user_name": "Bob",
+                "dashboard_helpers": {"translation_sensor_eid": "sensor.translations"},
+            },
+            name="Bob Dashboard Helper",
+        ),
+        "sensor.translations": _MockState(
+            entity_id="sensor.translations",
+            state="ok",
+            attributes={
+                "ui_translations": {
+                    "none": "None",
+                    "admin_target": "Admin target",
+                    "choose_user_for_admin_actions": (
+                        "Choose the user for admin actions below."
+                    ),
+                    "current_review_target": "Current review target",
+                }
+            },
+            name="Translations",
+        ),
+    }
+
+    def integration_entities(_domain: str) -> list[str]:
+        return list(mock_states)
+
+    def expand_filter(values: list[object]) -> list[_MockState]:
+        expanded_states: list[_MockState] = []
+        for value in values:
+            if isinstance(value, _MockState):
+                expanded_states.append(value)
+            elif isinstance(value, str) and value in mock_states:
+                expanded_states.append(mock_states[value])
+        return expanded_states
+
+    def states(entity_id: str) -> str:
+        if entity_id in mock_states:
+            return mock_states[entity_id].state
+        return "unknown"
+
+    def state_attr(entity_id: str, attr_name: str) -> object | None:
+        if entity_id in mock_states:
+            return mock_states[entity_id].attributes.get(attr_name)
+        return None
+
+    env = jinja2.Environment(undefined=jinja2.StrictUndefined)
+    env.filters["expand"] = expand_filter
+    env.tests["search"] = lambda value, pattern: (
+        __import__("re").search(pattern, value) is not None
+    )
+    env.tests["match"] = lambda value, pattern: (
+        __import__("re").match(pattern, value) is not None
+    )
+
+    output = env.from_string(selector_template).render(
+        integration_entities=integration_entities,
+        states=states,
+        state_attr=state_attr,
+    )
+
+    parsed = yaml.safe_load(f"[{output}]")
+
+    assert isinstance(parsed, list)
+    assert len(parsed) == 1
+    assert parsed[0]["type"] == "custom:button-card"
+    assert parsed[0]["entity"] == "select.choreops_admin_target"
+    assert parsed[0]["tap_action"]["action"] == "none"
+    assert parsed[0]["hold_action"]["action"] == "more-info"
+    assert "Alice" in parsed[0]["custom_fields"]["target"]
+
+
+def test_admin_target_selector_template_shows_guidance_without_selection() -> None:
+    """Shared admin target selector shows chooser guidance when no user is selected."""
+    template_str = _read_template("admin-shared-v1.yaml")
+    context = dh.build_admin_dashboard_context(
+        integration_entry_id="entry-123",
+        template_profile="admin-shared-v1",
+        release_ref="0.0.1-beta.3",
+        generated_at="2026-03-09T00:00:00+00:00",
+    )
+
+    rendered = builder.render_dashboard_template(template_str, context)
+    selector_template = next(
+        card["filter"]["template"]
+        for section in rendered["views"][0]["sections"]
+        for card in section.get("cards", [])
+        if isinstance(card, dict)
+        and isinstance(card.get("filter"), dict)
+        and "select.select_option" in str(card["filter"].get("template", ""))
+    )
+
+    mock_states = {
+        "select.choreops_admin_target": _MockState(
+            entity_id="select.choreops_admin_target",
+            state="None",
+            attributes={
+                "purpose": "purpose_system_dashboard_admin_user",
+                "integration_entry_id": "entry-123",
+            },
+            name="Admin Target",
+        ),
+        "sensor.alice_dashboard_helper": _MockState(
+            entity_id="sensor.alice_dashboard_helper",
+            state="ok",
+            attributes={
+                "purpose": "purpose_dashboard_helper",
+                "integration_entry_id": "entry-123",
+                "user_name": "Alice",
+                "dashboard_helpers": {"translation_sensor_eid": "sensor.translations"},
+            },
+            name="Alice Dashboard Helper",
+        ),
+        "sensor.translations": _MockState(
+            entity_id="sensor.translations",
+            state="ok",
+            attributes={
+                "ui_translations": {
+                    "none": "None",
+                    "admin_target": "Admin target",
+                    "choose_user_for_admin_actions": (
+                        "Choose the user for admin actions below."
+                    ),
+                    "current_review_target": "Current review target",
+                    "selected_user": "Selected user",
+                }
+            },
+            name="Translations",
+        ),
+    }
+
+    def integration_entities(_domain: str) -> list[str]:
+        return list(mock_states)
+
+    def expand_filter(values: list[object]) -> list[_MockState]:
+        expanded_states: list[_MockState] = []
+        for value in values:
+            if isinstance(value, _MockState):
+                expanded_states.append(value)
+            elif isinstance(value, str) and value in mock_states:
+                expanded_states.append(mock_states[value])
+        return expanded_states
+
+    def states(entity_id: str) -> str:
+        if entity_id in mock_states:
+            return mock_states[entity_id].state
+        return "unknown"
+
+    def state_attr(entity_id: str, attr_name: str) -> object | None:
+        if entity_id in mock_states:
+            return mock_states[entity_id].attributes.get(attr_name)
+        return None
+
+    env = jinja2.Environment(undefined=jinja2.StrictUndefined)
+    env.filters["expand"] = expand_filter
+    env.tests["search"] = lambda value, pattern: (
+        __import__("re").search(pattern, value) is not None
+    )
+    env.tests["match"] = lambda value, pattern: (
+        __import__("re").match(pattern, value) is not None
+    )
+
+    output = env.from_string(selector_template).render(
+        integration_entities=integration_entities,
+        states=states,
+        state_attr=state_attr,
+    )
+
+    parsed = yaml.safe_load(f"[{output}]")
+
+    assert isinstance(parsed, list)
+    assert len(parsed) == 1
+    assert parsed[0]["type"] == "custom:button-card"
+    assert parsed[0]["entity"] == "select.choreops_admin_target"
+    assert parsed[0]["label"] == "Choose the user for admin actions below."
+    assert parsed[0]["tap_action"]["action"] == "none"
+    assert parsed[0]["hold_action"]["action"] == "more-info"
 
 
 def test_user_chores_template_renders_with_button_card_templates() -> None:

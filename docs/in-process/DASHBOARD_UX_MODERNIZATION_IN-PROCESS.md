@@ -17,12 +17,13 @@
 | Phase 3A – Template composition parity      | Ensure shared-template composition behaves identically in local sync and remote release apply                        |        100 | Shared contract + sync/release parity + safety tests complete                                                        |
 | Phase 3B – Row template parity recovery     | Rebuild `user-chores-v1` around true `button_card_templates` semantics and prove behavior parity                     |        100 | Closed as migration closeout; remaining user-template scope moved to Phase 4A                                        |
 | Phase 3C – Single-path contract enforcement | Unify create/update/release template handling under one compile path with registry-backed shared contract validation |        100 | Hard-fork path complete: no hoist, root-template contract, strict canonical↔vendored parity, targeted suites passing |
-| Phase 4A – User template UX completion      | Complete remaining user-template behavior parity and modernization follow-up                                         |         80 | Steps 1-3 and 5 complete; next Step 4 (gamification modernization)                                                   |
-| Phase 4 – Admin modernization + docs/polish | Modernize admin templates and finalize docs/contracts/validation checklist                                           |          0 | Align with template and UI guidelines                                                                                |
+| Phase 4A – User template UX completion      | Complete remaining user-template behavior parity and modernization follow-up                                         |        100 | Steps 1-5 complete; Gamification Premier finalized under the approved hard-fork taxonomy                             |
+| Phase 4 – Admin modernization + docs/polish | Modernize admin templates and finalize docs/contracts/validation checklist                                           |          0 | Admin work is active; shared-page state ownership decision must be locked first                                      |
+| Phase 4B – Admin shared state contract      | Define the persistent `ui_control` ownership model and root-key contract for shared admin dashboards                 |          0 | Capture issue first, ratify ownership, then implement admin modernization against one stable pattern                 |
 
 1. **Key objective** – Deliver modern, app-like dashboards with strong runtime stability.
 2. **Summary of recent work** – Phase 3B now includes true row-template architecture wiring (`button_card_templates` + row template references), no builder hoist behavior, sync parity confirmation, and targeted validation pass.
-3. **Next steps (short term)** – Execute Phase 4A Step 4 (gamification modernization), then continue Phase 4 admin modernization.
+3. **Next steps (short term)** – Execute Phase 4B first to lock the shared-admin `ui_control` ownership model, then proceed with Phase 4 implementation against the approved contract.
 4. **Risks / blockers**
    - Home Assistant dashboard constraints (no custom card authoring in this initiative) can limit advanced interaction patterns.
    - Dependency drift risk when introducing new custom card usage across templates.
@@ -43,6 +44,7 @@
    - `docs/DASHBOARD_UI_DESIGN_GUIDELINE.md`
    - `docs/in-process/DASHBOARD_UX_MODERNIZATION_SUP_DASHBOARD_BUILDER_AGENT_DRAFT.md`
    - `docs/in-process/DASHBOARD_UX_MODERNIZATION_SUP_CARD_TOOLKIT.md`
+   - `docs/in-process/DASHBOARD_UX_MODERNIZATION_SUP_BUILDER_HANDOFF_PHASE4B_SHARED_ADMIN_UI_CONTROL.md`
      - `docs/in-process/DASHBOARD_UX_MODERNIZATION_SUP_BUILDER_HANDOFF_PHASE3A.md`
        - `docs/in-process/DASHBOARD_UX_MODERNIZATION_SUP_BUILDER_HANDOFF_PHASE3B.md`
        - `docs/in-process/DASHBOARD_UX_MODERNIZATION_SUP_BUILDER_HANDOFF_PHASE3C.md`
@@ -255,8 +257,8 @@ This avoids prompt handling and reuses the documented sandbox token without hard
   **Files**: `choreops-dashboards/templates/user-chores-v1.yaml`, `choreops-dashboards/templates/user-essential-v1.yaml` (remove), `choreops-dashboards/preferences/user-chores-v1.md`, `choreops-dashboards/preferences/user-essential-v1.md` (deprecate/remove), `choreops-dashboards/dashboard_registry.json`.
   **Finalization gate (required for this step)**: parity tests, translation coverage, and post-change sync/contract validation. 3. [x] Finalize the kid-focused chores presentation path (pre-release consolidation folded the larger/friendlier kids row variant into `user-chores-v1` instead of shipping a separate template, while keeping baseline color/state/action semantics aligned to `user-chores-v1`).
   **Files**: `choreops-dashboards/templates/user-chores-v1.yaml`, `choreops-dashboards/preferences/user-chores-v1.md`, `choreops-dashboards/dashboard_registry.json`, related docs in `docs/DASHBOARD_TEMPLATE_GUIDE.md`.
-  **Finalization gate (required for this step)**: parity tests, translation coverage, and post-change sync/contract validation. 4. [ ] Create and finalize a modern gamification template version.
-  **Files**: `choreops-dashboards/templates/user-gamification-v2.yaml` (new), `choreops-dashboards/preferences/user-gamification-v2.md` (new), `choreops-dashboards/dashboard_registry.json`, related docs in `docs/DASHBOARD_TEMPLATE_GUIDE.md`.
+  **Finalization gate (required for this step)**: parity tests, translation coverage, and post-change sync/contract validation. 4. [x] Create and finalize the modern gamification user template under the approved hard-fork taxonomy as `user-gamification-premier-v1`.
+  **Files**: `choreops-dashboards/templates/user-gamification-premier-v1.yaml`, `choreops-dashboards/preferences/user-gamification-premier-v1.md`, `choreops-dashboards/dashboard_registry.json`, related docs in `docs/DASHBOARD_TEMPLATE_GUIDE.md`.
   **Finalization gate (required for this step)**: parity tests, translation coverage, and post-change sync/contract validation. 5. [x] Capture 4A closure evidence and release readiness notes.
   **Files**: `docs/in-process/DASHBOARD_UX_MODERNIZATION_IN-PROCESS.md`, `docs/RELEASE_CHECKLIST.md`.
 - **Key issues**
@@ -264,10 +266,10 @@ This avoids prompt handling and reuses the documented sandbox token without hard
   - Avoid introducing custom-card development scope beyond existing ecosystem cards.
   - Keep single-path compile/parity guarantees intact during UX iteration.
 
-#### Phase 4A closure decisions to ratify before sign-off
+#### Phase 4A closure decisions ratified
 
-- [ ] Confirm the dashboard state layering standard: `pref_*` remains the template-authored default layer, reviewed `ui_control` keys remain durable per-user overrides, and any future temporary header/filter interactions stay separate from durable persisted state until a dedicated transient pattern is approved.
-- [ ] Confirm the long-term top-level `ui_control` namespace strategy for dashboard keys (for example, template-scoped naming aligned to a template id vs a broader feature/surface namespace) before Phase 4A is marked fully closed.
+- [x] Confirm the dashboard state layering standard: `pref_*` remains the template-authored default layer, reviewed `ui_control` keys remain durable per-user overrides, and any future temporary header/filter interactions stay separate from durable persisted state until a dedicated transient pattern is approved.
+- [x] Confirm the long-term top-level `ui_control` namespace strategy for dashboard keys: the current approved pattern remains feature/surface namespaces under `gamification/*`, with template-level defaults still authored through `pref_*`.
 
 ### Phase 3C – Single-path contract enforcement
 
@@ -288,7 +290,9 @@ This avoids prompt handling and reuses the documented sandbox token without hard
 ### Phase 4 – Admin modernization + docs/polish
 
 - **Goal**: Modernize admin templates with the same UX language and finalize docs/tests/options-flow readiness for production use.
-- **Steps / detailed work items**
+- **Steps / detailed work items** 0. [ ] Complete Phase 4B and ratify the shared-admin `ui_control` ownership contract before editing `admin-shared-v2` or `admin-peruser-v2`.
+  **Files**: `docs/in-process/DASHBOARD_UX_MODERNIZATION_IN-PROCESS.md`, `docs/DASHBOARD_TEMPLATE_GUIDE.md`.
+  **Line anchors**: Phase 4B section in this plan; dashboard state-layering guidance in the template guide.
   1. [ ] Add additive admin variants (`admin-shared-v2.yaml`, `admin-peruser-v2.yaml`) with modernized header/action cards and preserved selector/helper validation flows.
          **Files**: `choreops-dashboards/templates/admin-shared-v2.yaml` (new), `choreops-dashboards/templates/admin-peruser-v2.yaml` (new).
          **Line anchors**: current admin baselines lines 1-50 in both v1 templates.
@@ -311,6 +315,76 @@ This avoids prompt handling and reuses the documented sandbox token without hard
   - Introducing multiple v2 templates may require clear UX labeling to avoid user confusion in template selectors.
   - Admin modernization must keep actionable clarity for high-density operational tasks.
 
+### Phase 4B – Admin shared state contract
+
+- **Goal**: Resolve shared-admin `ui_control` ownership before implementation so every top-level admin card writes to one intentional state owner and one stable root-key taxonomy.
+- **Execution blueprint**: `docs/in-process/DASHBOARD_UX_MODERNIZATION_SUP_BUILDER_HANDOFF_PHASE4B_SHARED_ADMIN_UI_CONTROL.md`
+- **Pre-builder prerequisite**: complete dashboard sync/test/doc cleanup and commit it before any Phase 4B integration changes, so rollback to pre-Builder integration state is always safe and explicit.
+- **Issue statement**
+  - The current shared-admin direction risks conflating three different concerns: page-owned chrome state, selected-user workflow state, and bootstrap/fallback helper usage.
+  - `admin-shared-v1` currently reads and writes some section state through a changing helper context, which makes header persistence, visibility gating, and background treatments harder to reason about when the managed user changes.
+  - Admin modernization needs one approved ownership model before `admin-shared-v2` is built, otherwise the v2 work will encode inconsistent persistence rules into the new baseline.
+- **Phase 4B decisions ratified (pre-implementation lock)**
+  - Shared-admin persisted state will be stored at `data/meta/shared_admin_ui_control`.
+  - A dedicated system dashboard helper sensor will be introduced for shared-admin page state.
+  - System helper `purpose` will be `purpose_system_dashboard_helper`.
+  - System helper language strategy:
+    - derive language from user languages in the config entry
+    - majority language wins
+    - tie-breaker is the first user with approver role
+    - fallback language is English (`en`) if an unexpected gap occurs
+  - System helper minimum attributes:
+    - `purpose`
+    - `language`
+    - `integration_entry_id`
+    - `ui_control`
+    - `user_dashboard_helpers` (initially minimal, to enable direct helper targeting and reduce repeated broad lookups)
+      - this field is pointer-focused (helper identity lookup), not a second full helper payload mirror
+  - Shared-admin template direction remains a single-template strategy:
+    - shared mode must be designed so user selection can later be stripped and bound to one fixed target user without creating a separate maintenance-heavy admin template family.
+- **Steps / detailed work items**
+  1. [x] Document the approved ownership boundary for shared-admin state: which controls are page-owned, which controls are selected-user-owned, and which controls should remain non-persistent.
+         **Files**: `docs/in-process/DASHBOARD_UX_MODERNIZATION_IN-PROCESS.md`, `docs/DASHBOARD_TEMPLATE_GUIDE.md`.
+         **Line anchors**: this Phase 4B section; dashboard state-layering guidance added under admin template conventions.
+  2. [x] Decide the storage owner for page-level shared-admin state and record the rationale.
+         **Files**: `docs/in-process/DASHBOARD_UX_MODERNIZATION_IN-PROCESS.md`.
+         **Decision options**: dedicated system dashboard helper sensor, selected-user helper, or another explicit page-scoped helper model.
+  3. [x] Ratify the root-key contract for shared-admin surfaces under one namespace pattern.
+         **Files**: `docs/in-process/DASHBOARD_UX_MODERNIZATION_IN-PROCESS.md`, `docs/DASHBOARD_TEMPLATE_GUIDE.md`.
+         **Proposed shape**: `admin-shared/<section>/<value>` for page-owned state, with any approved per-user workflow keys explicitly separated and documented.
+  4. [x] Define the shared-admin helper entity contract before template changes begin.
+         **Files**: `docs/in-process/DASHBOARD_UX_MODERNIZATION_IN-PROCESS.md`, `docs/ARCHITECTURE.md`, `docs/DEVELOPMENT_STANDARDS.md`.
+         **Contract scope**: purpose value, entity type, minimum attributes, translation/purpose metadata, `ui_control` exposure, and whether the helper exposes only page state or also lightweight lookup metadata.
+  5. [ ] Lock dynamic helper-resolution rules in reusable snippets so shared-admin templates never construct helper entity ids manually.
+         **Files**: `docs/in-process/DASHBOARD_UX_MODERNIZATION_IN-PROCESS.md`, `docs/DASHBOARD_TEMPLATE_GUIDE.md`.
+         **Snippet scope**: extend the existing shared-admin setup snippet by default (only split into a dedicated snippet if required by maintainability constraints), and resolve the system helper by `purpose` + `integration_entry_id`, mirroring the existing selector-resolution contract.
+  6. [ ] Define the render/gating contract for top-level shared-admin cards so empty-selection states show intentional guidance cards rather than disappearing sections.
+         **Files**: `docs/in-process/DASHBOARD_UX_MODERNIZATION_IN-PROCESS.md`, `docs/DASHBOARD_UI_DESIGN_GUIDELINE.md`.
+         **Examples**: selector not chosen, selected helper unavailable, selected helper missing expected helper entities.
+  7. [ ] Define service/write-path expectations for the shared-admin helper so `manage_ui_control` mutations remain entry-scoped, owner-consistent, and testable.
+         **Files**: `docs/in-process/DASHBOARD_UX_MODERNIZATION_IN-PROCESS.md`, `docs/DEVELOPMENT_STANDARDS.md`.
+         **Scope**: owner resolution, one-owner-per-card rule, and prohibition on mixed-owner reads/writes inside a single render block.
+         **Implementation note**: update the service contract as needed to support system-helper-backed state writes without forcing pseudo-user identifiers.
+  8. [ ] Define helper-target resolution optimization using identity pointers instead of repeated broad domain scans.
+         **Files**: `docs/in-process/DASHBOARD_UX_MODERNIZATION_IN-PROCESS.md`, `docs/ARCHITECTURE.md`, `docs/DEVELOPMENT_STANDARDS.md`.
+         **Scope**: use user identity linkage (unique-id driven mapping) to resolve each user's dashboard helper entity id directly from `user_dashboard_helpers`, with domain query reserved for resolving the single system helper sensor.
+  9. [ ] Lock ui-root ownership rules for template reuse scenarios.
+         **Files**: `docs/in-process/DASHBOARD_UX_MODERNIZATION_IN-PROCESS.md`, `docs/DASHBOARD_TEMPLATE_GUIDE.md`.
+         **Rule**: each card attaches `ui_root` to exactly one owner (`system helper` for page chrome or `user helper` for per-user workflow), never both in one render path.
+  10. [ ] Lock the implementation checklist for Builder before template edits start.
+          **Files**: `docs/in-process/DASHBOARD_UX_MODERNIZATION_IN-PROCESS.md`.
+          **Checklist scope**: owner entity, purpose naming, attribute contract, translation coverage, snippet resolution, root-key naming, default-collapse semantics, gating rules, background/tint behavior, and test expectations.
+- **Key issues**
+  - A shared admin page needs stable page chrome even while the managed user changes; page-level header collapse state should not drift between user helper contexts unless that is an explicit, approved requirement.
+  - If a dedicated system dashboard helper sensor is introduced, keep it minimal and clearly scoped so it does not become a second user-helper model with overlapping responsibilities.
+  - Root-key design must stay simple enough to reason about during rapid UX iteration: one namespace per surface, one owner per card, no mixed-owner reads/writes inside the same render block.
+  - Helper discovery must be entirely metadata-driven (`purpose` + `integration_entry_id` and other stable attributes when needed), not entity-id-string-driven.
+  - Platinum-quality expectations apply here too: clean naming, centralized snippet logic, explicit contracts, and targeted validation coverage for creation, lookup, and render behavior.
+  - `user_dashboard_helpers` must remain intentionally small and deterministic to avoid replacing one expensive broad lookup with a second large dynamic payload.
+  - Identity-pointer resolution must be deterministic and covered by tests so helper eid targeting is stable across reloads and ordering changes.
+  - Language derivation behavior must be deterministic and covered by tests, including tie and missing-language scenarios.
+  - Cleanup churn from dashboard sync is expected during this phase, but must be isolated into a standalone cleanup commit before Builder begins integration-side work.
+
 ## Validation commands (execution phase requirements)
 
 Run during implementation phases (Builder/UX Builder):
@@ -325,9 +399,10 @@ Run during implementation phases (Builder/UX Builder):
 
 ## Migration and schema impact
 
-- **Storage schema change required**: **No**.
-- **`meta.schema_version` increment required**: **No** (dashboard/templates/docs/utilities only; no `.storage/choreops/choreops_data` schema changes).
-- **Compatibility note**: Template IDs must still satisfy regex compatibility (`^[a-z0-9]+-[a-z0-9-]+-v[0-9]+$`); backward compatibility with prior user-facing template naming is not required yet because this UX feature set is not released.
+- **Storage schema change required**: **Yes** (add `data/meta/shared_admin_ui_control`).
+- **`meta.schema_version` increment required**: **Yes** (`45`, because this work is pre-release for users and still in build phase).
+- **Compatibility note**: This remains a hard-fork UX track, but migration logic is still required for existing local storage instances when introducing the new `meta` branch.
+- **Template compatibility note**: Template IDs must still satisfy regex compatibility (`^[a-z0-9]+-[a-z0-9-]+-v[0-9]+$`).
 
 ## Translation keys (planned usage)
 
@@ -355,4 +430,4 @@ If new user-facing options/status text is introduced for UX iteration workflow, 
 - [x] Vendored assets synced + parity verified
 - [x] Dashboard tests updated and passing
 - [x] Dashboard docs updated (template guide + UI guideline + release notes) — foundational boundary/contract updates completed in Phase 1
-- [ ] User-template modernization/parity closure completed under Phase 4A
+- [x] User-template modernization/parity closure completed under Phase 4A

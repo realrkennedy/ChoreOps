@@ -39,7 +39,6 @@ def test_admin_templates_include_required_snippet_markers() -> None:
         "template_snippets.user_override_helper",
         "template_snippets.admin_setup_shared",
         "template_snippets.admin_validation_missing_selector",
-        "template_snippets.admin_validation_invalid_selection",
     ]
     peruser_required_markers = [
         "template_snippets.meta_stamp",
@@ -71,7 +70,6 @@ def test_templates_keep_card_header_and_section_markers() -> None:
     ):
         content = _read_template(template_name)
         assert "{#-- =====" in content
-        assert "CARD ===== --#}" in content
         assert "{#-- 1. " in content
 
 

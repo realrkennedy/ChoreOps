@@ -27,7 +27,9 @@ chore_row_v1:
             {
               "grid-template-areas": '"i n btn_undo btn_action" "i due btn_undo btn_action" "i description btn_undo btn_action" "i history btn_undo btn_action" "i progress btn_undo btn_action"',
             },
-            { "grid-template-columns": "30px minmax(0, 1fr) min-content min-content" },
+            {
+              "grid-template-columns": "30px minmax(0, 1fr) min-content min-content",
+            },
             {
               "grid-template-rows": "min-content min-content min-content min-content min-content",
             },
@@ -83,6 +85,7 @@ chore_row_v1:
                 { "justify-self": "start" },
                 { "min-width": "0" },
                 { "width": "100%" },
+                { "text-align": "left" },
                 { "font-size": "10px" },
                 { "line-height": "1.2" },
                 { "margin-bottom": "1px" },
@@ -178,7 +181,7 @@ chore_row_v1:
                   {
                     "action": "call-service",
                     "service": "button.press",
-                    "service_data":
+                    "data":
                       {
                         "entity_id": "[[[ return entity.attributes.disapprove_button_eid; ]]]",
                       },
@@ -226,7 +229,7 @@ chore_row_v1:
                   {
                     "action": "[[[ const rawState = entity.state; const state = (rawState === 'approved' || rawState === 'already_approved') ? 'completed' : (rawState === 'approved_in_part' ? 'completed_in_part' : rawState); const canClaim = entity.attributes.can_claim === true; if ((!canClaim && state !== 'claimed') || ['completed', 'completed_in_part'].includes(state)) return 'none'; return 'call-service'; ]]]",
                     "service": "button.press",
-                    "service_data":
+                    "data":
                       {
                         "entity_id": "[[[ if (entity.state === 'claimed') return entity.attributes.approve_button_eid; const claimButton = entity.attributes.claim_button_eid; if (claimButton) return claimButton; return entity.attributes.approve_button_eid; ]]]",
                       },

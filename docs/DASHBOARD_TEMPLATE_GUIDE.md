@@ -297,7 +297,9 @@ choreops-dashboards/templates/
 ├── user-gamification-premier-v1.yaml
 ├── user-kidschores-classic-v1.yaml
 ├── admin-shared-v1.yaml
-└── admin-peruser-v1.yaml
+├── admin-peruser-v1.yaml
+├── admin-shared-kidschores-classic.yaml
+└── admin-peruser-kidschores-classic.yaml
 
 custom_components/choreops/dashboards/templates/
 ├── user-chores-essential-v1.yaml
@@ -305,7 +307,9 @@ custom_components/choreops/dashboards/templates/
 ├── user-gamification-premier-v1.yaml
 ├── user-kidschores-classic-v1.yaml
 ├── admin-shared-v1.yaml
-└── admin-peruser-v1.yaml
+├── admin-peruser-v1.yaml
+├── admin-shared-kidschores-classic.yaml
+└── admin-peruser-kidschores-classic.yaml
 ```
 
 ### Output Format (CRITICAL)
