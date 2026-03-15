@@ -14,6 +14,8 @@ body:
         Before filing, check the troubleshooting guide:
         [ChoreOps troubleshooting wiki](https://github.com/ccpk1/choreops/wiki/Technical:-Troubleshooting)
 
+        If the issue involves dashboards, cards, or generated UI, update dashboard dependencies such as `button-card` to the latest available version first.
+
   - type: input
     id: home_assistant_version
     attributes:
@@ -47,11 +49,13 @@ body:
     id: prerequisites
     attributes:
       label: Prerequisites
-      description: "Confirm both items before submitting."
+      description: "Confirm these items before submitting."
       options:
         - label: I checked for existing open and closed issues
           required: true
         - label: I updated ChoreOps (or confirmed the issue still occurs on the latest version)
+          required: true
+        - label: If this is a dashboard issue, I updated dashboard dependencies such as button-card and confirmed the issue still occurs
           required: true
         - label: I enabled debug logging and can share logs
           required: true
