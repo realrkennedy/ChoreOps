@@ -37,6 +37,12 @@ Changes intended for `main` MUST preserve automated issue linking and generated 
 - **Release-note summary**: If the change is user-visible, summarize it in the PR description under the release-notes section.
 - **Validation before merge**: Before merging to `main`, pass the required validation gates and document what was run in the PR.
 
+Issue delivery lifecycle:
+
+- **Workflow status labels** (`status: ready`, `status: in-progress`, `status: blocked`) are for open issue triage only.
+- **Release delivery labels** (`release: pending`, `release: shipped`) are for closed issues after merge.
+- **Release-note source of truth**: Generated release notes remain PR-label driven via `.github/release.yml`; `release:*` issue labels track delivery state and do not replace changelog categories.
+
 Operational rule:
 
 - If a change bypasses PR metadata, automated release-note grouping cannot reliably classify it.
