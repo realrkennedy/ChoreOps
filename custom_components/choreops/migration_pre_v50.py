@@ -74,6 +74,35 @@ SCHEMA45_MARKER_CHALLENGES_TO_PERIODIC_BADGES = "schema45_challenges_to_periodic
 SCHEMA45_MARKER_REMOVE_CHALLENGE_LINKED_BADGES = (
     "schema45_remove_challenge_linked_badges"
 )
+SCHEMA45_MARKER_REMOVE_LEGACY_BADGE_PROGRESS_FIELDS = (
+    "schema45_remove_legacy_badge_progress_fields"
+)
+SCHEMA45_MARKER_USER_CONTRACT_HOOK = "schema45_user_contract_hook"
+SCHEMA45_MARKER_SEED_LAST_MIDNIGHT_PROCESSED = "schema45_seed_last_midnight_processed"
+SCHEMA45_APPROVER_ID_REMAP_KEY = "schema45_approver_id_remap"
+SCHEMA45_LAST_SUMMARY_KEY = "schema45_last_summary"
+
+SCHEMA100_REPAIR_SCHEMA45_MARKERS = (
+    SCHEMA45_MARKER_CHALLENGES_TO_PERIODIC_BADGES,
+    SCHEMA45_MARKER_REMOVE_CHALLENGE_LINKED_BADGES,
+    SCHEMA45_MARKER_REMOVE_LEGACY_BADGE_PROGRESS_FIELDS,
+    SCHEMA45_MARKER_USER_CONTRACT_HOOK,
+    const.MIGRATION_SCHEMA45_SHARED_ADMIN_UI_CONTROL,
+    SCHEMA45_MARKER_SEED_LAST_MIDNIGHT_PROCESSED,
+)
+
+SCHEMA100_IMPOSSIBLE_USER_FIELDS = (
+    const.DATA_ASSIGNEE_CLAIMED_CHORES_LEGACY,
+    const.DATA_ASSIGNEE_APPROVED_CHORES_LEGACY,
+    const.DATA_ASSIGNEE_CHORE_CLAIMS_LEGACY,
+    const.DATA_ASSIGNEE_CHORE_STREAKS_LEGACY,
+    const.DATA_ASSIGNEE_TODAY_CHORE_APPROVALS_LEGACY,
+    const.DATA_ASSIGNEE_PENDING_REWARDS_LEGACY,
+    const.DATA_ASSIGNEE_REWARD_CLAIMS_LEGACY,
+    const.DATA_ASSIGNEE_MAX_POINTS_EVER_LEGACY,
+    "overall_chore_streak",
+    "last_chore_date",
+)
 
 
 def _ensure_schema45_shared_admin_ui_control_bucket(data: dict[str, Any]) -> bool:
@@ -93,6 +122,70 @@ def _ensure_schema45_shared_admin_ui_control_bucket(data: dict[str, Any]) -> boo
 def has_legacy_migration_performed_marker(data: dict[str, Any]) -> bool:
     """Return True when pre-v50 legacy migration marker is present."""
     return LEGACY_MIGRATION_PERFORMED_KEY in data
+
+
+def prepare_schema100_legacy_repair(data: dict[str, Any]) -> dict[str, int]:
+    """Detect impossible legacy residue in schema-100 payloads and reset gates.
+
+    A modern schema-100 payload should not still contain pre-v50 chore contract
+    gaps or legacy user fields removed by the structural migration pipeline.
+    When those residues are present, the payload is treated as prematurely-modern
+    and prepared for a forced pre-v50 repair pass.
+
+    Returns:
+        A non-empty summary when repair should be forced, otherwise an empty dict.
+    """
+    meta_raw = data.get(const.DATA_META)
+    if not isinstance(meta_raw, dict):
+        return {}
+
+    meta = cast("dict[str, Any]", meta_raw)
+    if meta.get(const.DATA_META_SCHEMA_VERSION) != const.SCHEMA_VERSION_CURRENT:
+        return {}
+
+    chores = data.get(const.DATA_CHORES)
+    users = data.get(const.DATA_USERS)
+    if not isinstance(chores, dict) or not isinstance(users, dict):
+        return {}
+
+    missing_completion_criteria = sum(
+        1
+        for chore_raw in chores.values()
+        if isinstance(chore_raw, dict)
+        and const.DATA_CHORE_COMPLETION_CRITERIA not in chore_raw
+    )
+    missing_approval_reset_type = sum(
+        1
+        for chore_raw in chores.values()
+        if isinstance(chore_raw, dict)
+        and const.DATA_CHORE_APPROVAL_RESET_TYPE not in chore_raw
+    )
+    users_with_legacy_fields = sum(
+        1
+        for user_raw in users.values()
+        if isinstance(user_raw, dict)
+        and any(field in user_raw for field in SCHEMA100_IMPOSSIBLE_USER_FIELDS)
+    )
+
+    summary = {
+        "missing_completion_criteria": missing_completion_criteria,
+        "missing_approval_reset_type": missing_approval_reset_type,
+        "users_with_legacy_fields": users_with_legacy_fields,
+    }
+    summary = {key: value for key, value in summary.items() if value > 0}
+    if not summary:
+        return {}
+
+    applied_raw = meta.get(const.DATA_META_MIGRATIONS_APPLIED, [])
+    applied = applied_raw if isinstance(applied_raw, list) else []
+    meta[const.DATA_META_SCHEMA_VERSION] = const.SCHEMA_VERSION_TRANSITIONAL
+    meta[const.DATA_META_MIGRATIONS_APPLIED] = [
+        marker for marker in applied if marker not in SCHEMA100_REPAIR_SCHEMA45_MARKERS
+    ]
+    meta.pop(SCHEMA45_LAST_SUMMARY_KEY, None)
+    meta.pop(SCHEMA45_APPROVER_ID_REMAP_KEY, None)
+
+    return summary
 
 
 def _detect_or_stamp_legacy_schema_version(data: dict[str, Any]) -> int:
@@ -1754,61 +1847,89 @@ class PreV50Migrator:
         # fallback cascade (nuclear rebuild → auto-restore) works on clean data.
         # ===================================================================
         snapshot = copy.deepcopy(self.coordinator._data)
+        current_phase = "initialization"
+
+        def set_phase(phase: str) -> None:
+            """Track the active migration phase for debug and failure logging."""
+
+            nonlocal current_phase
+            current_phase = phase
+            const.LOGGER.debug("PreV50Migrator: Starting %s", phase)
 
         try:
             # Normalize legacy assignee buckets early so all migration phases,
             # especially legacy-field cleanup, run against canonical users.
+            set_phase("normalize legacy assignee buckets")
             self._normalize_legacy_assignee_buckets()
 
             # Phase 1: Schema migrations (data structure transformations)
+            set_phase("migrate datetime wrapper")
             self._migrate_datetime_wrapper()
+            set_phase("migrate stored datetimes")
             self._migrate_stored_datetimes()
+            set_phase("migrate chore data")
             self._migrate_chore_data()
+            set_phase("migrate assignee data")
             self._migrate_assignee_data()
+            set_phase("migrate legacy assignee chore data and streaks")
             self._migrate_legacy_assignee_chore_data_and_streaks()
+            set_phase("migrate badges")
             self._migrate_badges()
+            set_phase("migrate assignee legacy badges to cumulative progress")
             self._migrate_assignee_legacy_badges_to_cumulative_progress()
+            set_phase("migrate assignee legacy badges to badges earned")
             self._migrate_assignee_legacy_badges_to_badges_earned()
+            set_phase("migrate legacy point stats")
             self._migrate_legacy_point_stats()
 
             # Phase 2: Config sync (KC 3.x entity data from config → storage)
             # Phase 2: Independent chores migration (populate per-assignee due dates)
+            set_phase("migrate independent chores")
             self._migrate_independent_chores()
 
             # Phase 2a: Per-assignee applicable days migration (PKAD-2026-001)
+            set_phase("migrate per-assignee applicable days")
             self._migrate_per_assignee_applicable_days()
 
             # Phase 2b: Approval reset type migration (allow_multiple_claims_per_day → approval_reset_type)
+            set_phase("migrate approval reset type")
             self._migrate_approval_reset_type()
 
             # Phase 2c: Timestamp-based chore tracking migration
             # - Initialize approval_period_start for chores
             # - Delete deprecated claimed_chores/approved_chores lists from assignees
+            set_phase("migrate timestamp tracking")
             self._migrate_to_timestamp_tracking()
 
             # Phase 2d: Reward data migration to period-based structure
             # - Migrate pending_rewards[] → reward_data[id].pending_count
             # - Migrate reward_claims{} → reward_data[id].total_claims
             # - Migrate reward_approvals{} → reward_data[id].total_approved
+            set_phase("migrate reward data to periods")
             self._migrate_reward_data_to_periods()
 
             # Phase 3: Config sync (KC 3.x entity data from config → storage)
             const.LOGGER.info("Migrating KC 3.x config data to storage")
+            set_phase("initialize data from config")
             self._initialize_data_from_config()
 
             # Phase 4: Add new optional chore fields (defaults for existing chores)
+            set_phase("add chore optional fields")
             self._add_chore_optional_fields()
 
             # Phase 4b: Stats consolidation - Migrate max_points_ever → periods.all_time,
             # MUST run BEFORE _remove_legacy_fields which deletes max_points_ever
+            set_phase("consolidate point stats")
             self._consolidate_point_stats()
 
             # Phase 5: Clean up all legacy fields that have been migrated
             # This removes fields that were READ during migration but are no longer needed
+            set_phase("remove legacy fields")
             self._remove_legacy_fields()
 
             # Phase 6: Round all float values to standard precision
             # Fixes Python float arithmetic drift (e.g., 27.499999999999996 → 27.5)
+            set_phase("round float precision")
             self._round_float_precision()
 
             # Phase 7: v50 cleanup - Remove legacy due_date fields from assignee-level chore_data
@@ -1817,43 +1938,52 @@ class PreV50Migrator:
                 const.DATA_META_SCHEMA_VERSION, 42
             )
             if storage_version < 50:
+                set_phase("cleanup assignee chore data due dates v50")
                 self._cleanup_assignee_chore_data_due_dates_v50()
 
             # Phase 7a: v50 notification simplification - Migrate 3-field notification config
             # to single service selector (service presence = enabled, empty = disabled)
+            set_phase("simplify notification config v50")
             self._simplify_notification_config_v50()
 
             # Phase 8: Clean up orphaned/deprecated dynamic entities
             # This is called unconditionally because _initialize_data_from_config() only
             # calls this for KC 3.x config migrations, leaving storage-only users with
             # orphaned entities from previous versions (e.g., integer-delta buttons).
+            set_phase("remove deprecated button entities")
             self.remove_deprecated_button_entities()
+            set_phase("remove deprecated sensor entities")
             self.remove_deprecated_sensor_entities()
 
             # Phase 9: Strip temporal stats from storage (Phase 7.5 - The Great Stripping)
             # Derivative Data is Ephemeral - clock-based stats MUST NOT be saved to JSON.
             # These fields are now derived on-demand from period buckets (point_data.periods).
             # Keep: earned_all_time, highest_balance_all_time, longest_streak_all_time (High-Water Marks)
+            set_phase("strip temporal stats")
             self._strip_temporal_stats()
 
             # Phase 10: Backfill 'completed' metric from 'approved' (v0.5.0-beta4)
             # New approver-lag-proof statistics track work completion by claim date, not approval date.
             # Historical approvals have no 'completed' tracking - backfill with approved counts.
+            set_phase("migrate completed metric")
             self._migrate_completed_metric()
 
             # Phase 11 (4B): Move badge award_count from root to periods.all_time.all_time (v43)
             # "Lean Item" pattern - remove root-level duplication, use periods as canonical source
             # Matches Phase 2 (chore total_points) and Phase 3 (reward total_*)
+            set_phase("migrate badge award count to periods")
             self._migrate_badge_award_count_to_periods()
 
             # Phase 11: Flatten point_data → point_periods (v42 → v43, v0.5.0-beta3)
             # Remove nested structure and transform points_total → points_earned/spent
+            set_phase("migrate point periods v43")
             self._migrate_point_periods_v43()
 
             # Phase 12: Chore periods migration (v43) - "Lean Chore Architecture"
             # - Create assignee-level chore_periods bucket for aggregated history
             # - Remove total_points from individual chore items (use periods.all_time.points)
             # - Delete chore_stats dict entirely (now fully ephemeral)
+            set_phase("migrate chore periods v43")
             self._migrate_chore_periods_v43()
 
             # Phase 12b: Reward periods migration (v43) - "Lean Reward Architecture"
@@ -1861,19 +1991,26 @@ class PreV50Migrator:
             # - Remove total_* fields from reward_data items (use periods.all_time.*)
             # - Remove notification_ids from reward_data items (NotificationManager owns lifecycle)
             # - Delete reward_stats dict entirely (now fully ephemeral)
+            set_phase("migrate reward periods v43")
             self._migrate_reward_periods_v43()
 
             # Phase 12c: Bonus/Penalty periods migration (v43) - "Lean Item Period Tracking"
             # - Add periods structure to global bonuses_data[uuid] and penalties_data[uuid]
             # - No assignee-level aggregate buckets needed (unlike chores/rewards)
             # - Ledger enhancement: item_name field already added in Phase 4C.4
+            set_phase("migrate bonus and penalty periods v43")
             self._migrate_bonus_penalty_periods_v43()
 
             # Phase 13: Finalize migration metadata (MUST be last)
             # Sets v50+ meta section and cleans up legacy keys
+            set_phase("finalize migration metadata")
             self._finalize_migration_meta()
 
         except Exception:
+            const.LOGGER.exception(
+                "PreV50Migrator: Exception during pre-v50 migration phase '%s'",
+                current_phase,
+            )
             # ROLLBACK: Restore data to pre-migration snapshot (#243 defense)
             # This ensures the fallback cascade works on clean, untransformed data.
             const.LOGGER.warning(
@@ -2106,14 +2243,64 @@ class PreV50Migrator:
         """
         empty: dict[str, Any] = {}
         if builder_name == "assignee":
-            return dict(
+            rebuilt_assignee = dict(
                 db_module.build_user_assignment_profile(
                     user_input=empty,
                     existing=item_data,
                 )
             )
+            rebuilt_assignee[const.DATA_USER_ID] = item_data.get(
+                const.DATA_USER_ID,
+                rebuilt_assignee[const.DATA_USER_INTERNAL_ID],
+            )
+
+            # Preserve role-capable USER fields when a canonical approver/admin
+            # record already lives in DATA_USERS rather than the legacy approvers bucket.
+            for field, default in (
+                (const.DATA_USER_ASSOCIATED_USER_IDS, []),
+                (const.DATA_USER_CAN_BE_ASSIGNED, True),
+                (const.DATA_USER_ENABLE_CHORE_WORKFLOW, True),
+                (const.DATA_USER_ENABLE_GAMIFICATION, True),
+                (const.DATA_USER_CAN_APPROVE, False),
+                (const.DATA_USER_CAN_MANAGE, False),
+            ):
+                if field in item_data:
+                    rebuilt_assignee[field] = item_data.get(field, default)
+
+            return rebuilt_assignee
         if builder_name == "chore":
-            return dict(db_module.build_chore(user_input=empty, existing=item_data))
+            rebuilt_chore = dict(
+                db_module.build_chore(user_input=empty, existing=item_data)
+            )
+
+            # Rebuild fallback bypasses the normal structural migration sequence.
+            # Normalize independent chores so per-assignee dates remain the
+            # authoritative source even when the legacy chore-level due_date was
+            # still present in the recovery payload.
+            if (
+                rebuilt_chore.get(const.DATA_CHORE_COMPLETION_CRITERIA)
+                == const.COMPLETION_CRITERIA_INDEPENDENT
+            ):
+                due_date = rebuilt_chore.get(const.DATA_CHORE_DUE_DATE)
+                per_assignee_due_dates = rebuilt_chore.get(
+                    const.DATA_CHORE_PER_ASSIGNEE_DUE_DATES,
+                    {},
+                )
+                if not isinstance(per_assignee_due_dates, dict):
+                    per_assignee_due_dates = {}
+
+                if due_date is not None and not per_assignee_due_dates:
+                    assigned_user_ids = rebuilt_chore.get(
+                        const.DATA_CHORE_ASSIGNED_USER_IDS,
+                        [],
+                    )
+                    rebuilt_chore[const.DATA_CHORE_PER_ASSIGNEE_DUE_DATES] = (
+                        dict.fromkeys(assigned_user_ids, due_date)
+                    )
+
+                rebuilt_chore[const.DATA_CHORE_DUE_DATE] = None
+
+            return rebuilt_chore
         if builder_name == "reward":
             return dict(db_module.build_reward(user_input=empty, existing=item_data))
         if builder_name == "badge":
@@ -2899,17 +3086,34 @@ class PreV50Migrator:
 
         assignees_data = self.coordinator._data.get(const.DATA_USERS, {})
         migrated_count = 0
+        cleaned_legacy_count = 0
 
         for assignee_id, assignee_info in assignees_data.items():
             assignee_name = assignee_info.get(const.DATA_USER_NAME, assignee_id)
 
             # Skip if already migrated to v43 structure
             if const.DATA_USER_POINT_PERIODS in assignee_info:
-                const.LOGGER.debug(
-                    "Assignee '%s' (%s) already has point_periods - skipping",
-                    assignee_name,
-                    assignee_id,
-                )
+                self._normalize_all_time_point_periods(assignee_info)
+                removed_legacy = False
+                if const.DATA_ASSIGNEE_POINT_DATA_LEGACY in assignee_info:
+                    assignee_info.pop(const.DATA_ASSIGNEE_POINT_DATA_LEGACY, None)
+                    removed_legacy = True
+                if const.DATA_ASSIGNEE_POINT_STATS_LEGACY in assignee_info:
+                    assignee_info.pop(const.DATA_ASSIGNEE_POINT_STATS_LEGACY, None)
+                    removed_legacy = True
+                if removed_legacy:
+                    cleaned_legacy_count += 1
+                    const.LOGGER.debug(
+                        "Assignee '%s' (%s) already has point_periods - removed stale legacy point_data",
+                        assignee_name,
+                        assignee_id,
+                    )
+                else:
+                    const.LOGGER.debug(
+                        "Assignee '%s' (%s) already has point_periods - skipping",
+                        assignee_name,
+                        assignee_id,
+                    )
                 continue
 
             # Extract v42 structures
@@ -2966,6 +3170,8 @@ class PreV50Migrator:
                     current_balance - highest_balance
                 )
 
+            self._normalize_all_time_point_periods(assignee_info)
+
             # Set new structure
             assignee_info[const.DATA_USER_POINT_PERIODS] = point_periods
             migrated_count += 1
@@ -2977,9 +3183,67 @@ class PreV50Migrator:
             )
 
         const.LOGGER.info(
-            "Completed v42 → v43 migration: %d assignees migrated to point_periods",
+            "Completed v42 → v43 migration: %d assignees migrated to point_periods, %d stale legacy point buckets removed",
             migrated_count,
+            cleaned_legacy_count,
         )
+
+    def _normalize_all_time_point_periods(self, assignee_info: dict[str, Any]) -> None:
+        """Repair all-time point invariants for migrated point_periods.
+
+        Historical payloads can carry partial point_periods where all-time earned
+        reflects reconstructed transaction history, but current points already
+        include an older carried-forward balance. In that case, all-time earned
+        and highest_balance must not fall below the current balance.
+        """
+        point_periods_raw = assignee_info.get(const.DATA_USER_POINT_PERIODS)
+        if not isinstance(point_periods_raw, dict):
+            return
+
+        all_time_periods = point_periods_raw.setdefault(
+            const.DATA_USER_POINT_PERIODS_ALL_TIME, {}
+        )
+        if not isinstance(all_time_periods, dict):
+            all_time_periods = {}
+            point_periods_raw[const.DATA_USER_POINT_PERIODS_ALL_TIME] = all_time_periods
+
+        all_time_entry = all_time_periods.setdefault(const.PERIOD_ALL_TIME, {})
+        if not isinstance(all_time_entry, dict):
+            all_time_entry = {}
+            all_time_periods[const.PERIOD_ALL_TIME] = all_time_entry
+
+        current_balance = float(assignee_info.get(const.DATA_USER_POINTS, 0.0))
+        earned = float(
+            all_time_entry.get(const.DATA_USER_POINT_PERIOD_POINTS_EARNED, 0.0)
+        )
+        highest_balance = float(
+            all_time_entry.get(const.DATA_USER_POINT_PERIOD_HIGHEST_BALANCE, 0.0)
+        )
+        normalized_all_time = max(earned, highest_balance, current_balance)
+
+        all_time_entry[const.DATA_USER_POINT_PERIOD_POINTS_EARNED] = normalized_all_time
+        all_time_entry[const.DATA_USER_POINT_PERIOD_HIGHEST_BALANCE] = (
+            normalized_all_time
+        )
+        all_time_entry[const.DATA_USER_POINT_PERIOD_POINTS_SPENT] = (
+            current_balance - normalized_all_time
+        )
+
+        by_source = all_time_entry.get(const.DATA_USER_POINT_PERIOD_BY_SOURCE)
+        if not isinstance(by_source, dict):
+            by_source = {}
+            all_time_entry[const.DATA_USER_POINT_PERIOD_BY_SOURCE] = by_source
+
+        positive_by_source = sum(
+            float(value) for value in by_source.values() if float(value) > 0.0
+        )
+        if positive_by_source < normalized_all_time:
+            carry_forward_delta = normalized_all_time - positive_by_source
+            by_source[const.POINTS_SOURCE_OTHER] = round(
+                float(by_source.get(const.POINTS_SOURCE_OTHER, 0.0))
+                + carry_forward_delta,
+                const.DATA_FLOAT_PRECISION,
+            )
 
     def _migrate_chore_periods_v43(self) -> None:
         """Create assignee-level chore_periods bucket and remove deprecated fields (v43).
@@ -4537,6 +4801,20 @@ class PreV50Migrator:
                     ] = 0
 
                 periods = assignee_chore_data[const.DATA_USER_CHORE_DATA_PERIODS]
+                if not isinstance(periods, dict):
+                    periods = {}
+                    assignee_chore_data[const.DATA_USER_CHORE_DATA_PERIODS] = periods
+
+                for period_key in (
+                    const.DATA_USER_CHORE_DATA_PERIODS_DAILY,
+                    const.DATA_USER_CHORE_DATA_PERIODS_WEEKLY,
+                    const.DATA_USER_CHORE_DATA_PERIODS_MONTHLY,
+                    const.DATA_USER_CHORE_DATA_PERIODS_YEARLY,
+                    const.DATA_USER_CHORE_DATA_PERIODS_ALL_TIME,
+                ):
+                    period_bucket = periods.get(period_key)
+                    if not isinstance(period_bucket, dict):
+                        periods[period_key] = {}
 
                 # --- Migrate legacy current streaks for this chore ---
                 legacy_streak = legacy_streaks.get(chore_id, {})  # type: ignore[attr-defined]

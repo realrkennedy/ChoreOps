@@ -182,6 +182,84 @@ class TestSchemaStampFix:
         assert detected == const.DEFAULT_ZERO
         assert const.DATA_META not in payload
 
+    def test_prepare_schema100_legacy_repair_detects_impossible_modern_residue(
+        self,
+    ) -> None:
+        """Schema-100 mixed payloads are flagged for forced structural repair."""
+        payload: dict[str, Any] = {
+            const.DATA_META: {
+                const.DATA_META_SCHEMA_VERSION: const.SCHEMA_VERSION_CURRENT,
+                const.DATA_META_MIGRATIONS_APPLIED: [
+                    mp50.SCHEMA45_MARKER_USER_CONTRACT_HOOK,
+                    mp50.SCHEMA45_MARKER_CHALLENGES_TO_PERIODIC_BADGES,
+                    mp50.SCHEMA45_MARKER_REMOVE_CHALLENGE_LINKED_BADGES,
+                    mp50.SCHEMA45_MARKER_REMOVE_LEGACY_BADGE_PROGRESS_FIELDS,
+                    const.MIGRATION_SCHEMA45_SHARED_ADMIN_UI_CONTROL,
+                    mp50.SCHEMA45_MARKER_SEED_LAST_MIDNIGHT_PROCESSED,
+                ],
+                mp50.SCHEMA45_LAST_SUMMARY_KEY: {"users_migrated": 1},
+                mp50.SCHEMA45_APPROVER_ID_REMAP_KEY: {"old": "new"},
+            },
+            const.DATA_USERS: {
+                "user-1": {
+                    const.DATA_USER_INTERNAL_ID: "user-1",
+                    const.DATA_USER_NAME: "Alice",
+                    const.DATA_ASSIGNEE_CLAIMED_CHORES_LEGACY: [],
+                }
+            },
+            const.DATA_CHORES: {
+                "chore-1": {
+                    const.DATA_CHORE_INTERNAL_ID: "chore-1",
+                    const.DATA_CHORE_NAME: "Dishes",
+                }
+            },
+        }
+
+        summary = mp50.prepare_schema100_legacy_repair(payload)
+
+        assert summary == {
+            "missing_completion_criteria": 1,
+            "missing_approval_reset_type": 1,
+            "users_with_legacy_fields": 1,
+        }
+        meta = payload[const.DATA_META]
+        assert meta[const.DATA_META_SCHEMA_VERSION] == const.SCHEMA_VERSION_TRANSITIONAL
+        assert meta[const.DATA_META_MIGRATIONS_APPLIED] == []
+        assert mp50.SCHEMA45_LAST_SUMMARY_KEY not in meta
+        assert mp50.SCHEMA45_APPROVER_ID_REMAP_KEY not in meta
+
+    def test_prepare_schema100_legacy_repair_skips_clean_modern_payload(self) -> None:
+        """Clean schema-100 payloads should not trigger forced repair."""
+        payload: dict[str, Any] = {
+            const.DATA_META: {
+                const.DATA_META_SCHEMA_VERSION: const.SCHEMA_VERSION_CURRENT,
+                const.DATA_META_MIGRATIONS_APPLIED: [
+                    mp50.SCHEMA45_MARKER_USER_CONTRACT_HOOK
+                ],
+            },
+            const.DATA_USERS: {
+                "user-1": {
+                    const.DATA_USER_INTERNAL_ID: "user-1",
+                    const.DATA_USER_NAME: "Alice",
+                }
+            },
+            const.DATA_CHORES: {
+                "chore-1": {
+                    const.DATA_CHORE_INTERNAL_ID: "chore-1",
+                    const.DATA_CHORE_NAME: "Dishes",
+                    const.DATA_CHORE_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_INDEPENDENT,
+                    const.DATA_CHORE_APPROVAL_RESET_TYPE: const.DEFAULT_APPROVAL_RESET_TYPE,
+                }
+            },
+        }
+
+        summary = mp50.prepare_schema100_legacy_repair(payload)
+
+        assert summary == {}
+        assert payload[const.DATA_META][const.DATA_META_MIGRATIONS_APPLIED] == [
+            mp50.SCHEMA45_MARKER_USER_CONTRACT_HOOK
+        ]
+
     def test_existing_top_level_schema_is_preserved(self) -> None:
         """Legacy top-level schema is respected without stamping."""
         payload: dict[str, Any] = {
@@ -601,6 +679,201 @@ class TestNuclearRebuild:
 
         # Good assignee should be preserved
         assert "good-assignee" in migrator.coordinator._data[const.DATA_USERS]
+
+    def test_rebuild_preserves_role_capable_user_fields_in_users_bucket(
+        self, migrator
+    ) -> None:
+        """Nuclear rebuild must not flatten canonical approver records in users."""
+        user_id = "approver-user"
+        migrator.coordinator._data[const.DATA_USERS] = {
+            user_id: {
+                const.DATA_USER_INTERNAL_ID: user_id,
+                const.DATA_USER_ID: user_id,
+                const.DATA_USER_NAME: "Drew",
+                const.DATA_USER_HA_USER_ID: "ha-user-id",
+                const.DATA_USER_CAN_BE_ASSIGNED: False,
+                const.DATA_USER_ENABLE_CHORE_WORKFLOW: False,
+                const.DATA_USER_ENABLE_GAMIFICATION: False,
+                const.DATA_USER_ASSOCIATED_USER_IDS: ["kid-1", "kid-2"],
+                const.DATA_USER_CAN_APPROVE: True,
+                const.DATA_USER_CAN_MANAGE: True,
+                const.DATA_USER_UI_PREFERENCES: {},
+                const.DATA_USER_BONUS_APPLIES: {},
+                const.DATA_USER_PENALTY_APPLIES: {},
+            }
+        }
+
+        result = migrator._attempt_nuclear_rebuild()
+
+        assert result is True
+        rebuilt = migrator.coordinator._data[const.DATA_USERS][user_id]
+        assert rebuilt[const.DATA_USER_CAN_APPROVE] is True
+        assert rebuilt[const.DATA_USER_CAN_MANAGE] is True
+        assert rebuilt[const.DATA_USER_CAN_BE_ASSIGNED] is False
+        assert rebuilt[const.DATA_USER_ENABLE_CHORE_WORKFLOW] is False
+        assert rebuilt[const.DATA_USER_ENABLE_GAMIFICATION] is False
+        assert rebuilt[const.DATA_USER_ASSOCIATED_USER_IDS] == ["kid-1", "kid-2"]
+
+    def test_rebuild_normalizes_independent_chore_due_dates(self, migrator) -> None:
+        """Nuclear rebuild should move independent due dates into per-assignee storage."""
+        chore_id = "chore-uuid-1"
+        due_date = "2026-01-24T13:00:00+00:00"
+        migrator.coordinator._data[const.DATA_CHORES] = {
+            chore_id: {
+                const.DATA_CHORE_INTERNAL_ID: chore_id,
+                const.DATA_CHORE_NAME: "Sharkey Prep",
+                const.DATA_CHORE_ASSIGNED_USER_IDS: ["kid-1", "kid-2"],
+                const.DATA_CHORE_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_INDEPENDENT,
+                const.DATA_CHORE_DUE_DATE: due_date,
+                const.DATA_CHORE_PER_ASSIGNEE_DUE_DATES: {},
+            }
+        }
+
+        result = migrator._attempt_nuclear_rebuild()
+
+        assert result is True
+        rebuilt = migrator.coordinator._data[const.DATA_CHORES][chore_id]
+        assert rebuilt[const.DATA_CHORE_DUE_DATE] is None
+        assert rebuilt[const.DATA_CHORE_PER_ASSIGNEE_DUE_DATES] == {
+            "kid-1": due_date,
+            "kid-2": due_date,
+        }
+
+    def test_legacy_streak_migration_repairs_missing_period_buckets(
+        self, migrator
+    ) -> None:
+        """Legacy streak migration should tolerate partial chore period dicts."""
+        user_id = "user-1"
+        chore_id = "chore-1"
+        migrator.coordinator._data[const.DATA_USERS] = {
+            user_id: {
+                const.DATA_USER_INTERNAL_ID: user_id,
+                const.DATA_USER_NAME: "Alice",
+                const.DATA_USER_CHORE_DATA: {
+                    chore_id: {
+                        const.DATA_USER_CHORE_DATA_NAME: "Brush Teeth",
+                        const.DATA_USER_CHORE_DATA_STATE: const.CHORE_STATE_PENDING,
+                        const.DATA_USER_CHORE_DATA_PERIODS: {
+                            const.DATA_USER_CHORE_DATA_PERIODS_ALL_TIME: {}
+                        },
+                    }
+                },
+                const.DATA_ASSIGNEE_CHORE_STREAKS_LEGACY: {
+                    chore_id: {
+                        const.DATA_USER_LAST_STREAK_DATE: "2026-03-15",
+                        const.DATA_USER_CURRENT_STREAK: 3,
+                        const.DATA_ASSIGNEE_MAX_STREAK_LEGACY: 5,
+                    }
+                },
+            }
+        }
+        migrator.coordinator._data[const.DATA_CHORES] = {
+            chore_id: {
+                const.DATA_CHORE_INTERNAL_ID: chore_id,
+                const.DATA_CHORE_NAME: "Brush Teeth",
+                const.DATA_CHORE_ASSIGNED_USER_IDS: [user_id],
+            }
+        }
+        migrator.coordinator.assignees_data = migrator.coordinator._data[
+            const.DATA_USERS
+        ]
+        migrator.coordinator.chores_data = migrator.coordinator._data[const.DATA_CHORES]
+
+        migrator._migrate_legacy_assignee_chore_data_and_streaks()
+
+        periods = migrator.coordinator._data[const.DATA_USERS][user_id][
+            const.DATA_USER_CHORE_DATA
+        ][chore_id][const.DATA_USER_CHORE_DATA_PERIODS]
+        assert "2026-03-15" in periods[const.DATA_USER_CHORE_DATA_PERIODS_DAILY]
+        assert (
+            periods[const.DATA_USER_CHORE_DATA_PERIODS_ALL_TIME][const.PERIOD_ALL_TIME][
+                const.DATA_USER_CHORE_DATA_PERIOD_LONGEST_STREAK
+            ]
+            == 5
+        )
+
+    def test_point_period_migration_removes_stale_legacy_point_data(
+        self, migrator
+    ) -> None:
+        """Existing point_periods should win and stale point_data should be purged."""
+        user_id = "user-1"
+        migrator.coordinator._data[const.DATA_USERS] = {
+            user_id: {
+                const.DATA_USER_INTERNAL_ID: user_id,
+                const.DATA_USER_NAME: "Alice",
+                const.DATA_USER_POINT_PERIODS: {
+                    const.DATA_USER_POINT_PERIODS_ALL_TIME: {
+                        const.PERIOD_ALL_TIME: {
+                            const.DATA_USER_POINT_PERIOD_POINTS_EARNED: 150.0,
+                            const.DATA_USER_POINT_PERIOD_HIGHEST_BALANCE: 75.0,
+                            const.DATA_USER_POINT_PERIOD_BY_SOURCE: {"chores": 150.0},
+                        }
+                    }
+                },
+                mp50.const.DATA_ASSIGNEE_POINT_DATA_LEGACY: {
+                    const.DATA_ASSIGNEE_POINT_DATA_PERIODS_LEGACY: {
+                        const.DATA_USER_POINT_PERIODS_ALL_TIME: {
+                            const.PERIOD_ALL_TIME: {
+                                const.DATA_USER_POINT_PERIOD_POINTS_EARNED: 999.0,
+                                const.DATA_USER_POINT_PERIOD_HIGHEST_BALANCE: 999.0,
+                            }
+                        }
+                    }
+                },
+                mp50.const.DATA_ASSIGNEE_POINT_STATS_LEGACY: {
+                    const.DATA_USER_POINT_PERIOD_HIGHEST_BALANCE: 999.0
+                },
+            }
+        }
+
+        migrator._migrate_point_periods_v43()
+
+        migrated_user = migrator.coordinator._data[const.DATA_USERS][user_id]
+        assert mp50.const.DATA_ASSIGNEE_POINT_DATA_LEGACY not in migrated_user
+        assert mp50.const.DATA_ASSIGNEE_POINT_STATS_LEGACY not in migrated_user
+        assert (
+            migrated_user[const.DATA_USER_POINT_PERIODS][
+                const.DATA_USER_POINT_PERIODS_ALL_TIME
+            ][const.PERIOD_ALL_TIME][const.DATA_USER_POINT_PERIOD_POINTS_EARNED]
+            == 150.0
+        )
+
+    def test_point_period_migration_clamps_existing_all_time_to_current_balance(
+        self, migrator
+    ) -> None:
+        """Existing point_periods should never leave all-time below current points."""
+        user_id = "user-1"
+        migrator.coordinator._data[const.DATA_USERS] = {
+            user_id: {
+                const.DATA_USER_INTERNAL_ID: user_id,
+                const.DATA_USER_NAME: "Kian",
+                const.DATA_USER_POINTS: 481.0,
+                const.DATA_USER_POINT_PERIODS: {
+                    const.DATA_USER_POINT_PERIODS_ALL_TIME: {
+                        const.PERIOD_ALL_TIME: {
+                            const.DATA_USER_POINT_PERIOD_POINTS_EARNED: 167.0,
+                            const.DATA_USER_POINT_PERIOD_HIGHEST_BALANCE: 481.0,
+                            const.DATA_USER_POINT_PERIOD_BY_SOURCE: {"chores": 167.0},
+                        }
+                    }
+                },
+            }
+        }
+
+        migrator._migrate_point_periods_v43()
+
+        all_time_entry = migrator.coordinator._data[const.DATA_USERS][user_id][
+            const.DATA_USER_POINT_PERIODS
+        ][const.DATA_USER_POINT_PERIODS_ALL_TIME][const.PERIOD_ALL_TIME]
+        assert all_time_entry[const.DATA_USER_POINT_PERIOD_POINTS_EARNED] == 481.0
+        assert all_time_entry[const.DATA_USER_POINT_PERIOD_HIGHEST_BALANCE] == 481.0
+        assert all_time_entry[const.DATA_USER_POINT_PERIOD_POINTS_SPENT] == 0.0
+        assert (
+            all_time_entry[const.DATA_USER_POINT_PERIOD_BY_SOURCE][
+                const.POINTS_SOURCE_OTHER
+            ]
+            == 314.0
+        )
 
     def test_wipe_all_kc_entities(self, migrator) -> None:
         """Entity wipe removes all KC entities from registry."""
@@ -1036,6 +1309,126 @@ class TestFullCascade:
         ):
             await system_manager.ensure_data_integrity(
                 current_version=const.SCHEMA_VERSION_BETA4
+            )
+
+        mock_migrator_cls.assert_not_called()
+
+    async def test_ensure_data_integrity_forces_transitional_repair_for_schema100_residue(
+        self, hass: HomeAssistant, system_manager
+    ) -> None:
+        """Schema-100 mixed payloads are sent back through the schema-42 repair path."""
+        system_manager.coordinator._data = {
+            const.DATA_META: {
+                const.DATA_META_SCHEMA_VERSION: const.SCHEMA_VERSION_CURRENT,
+                const.DATA_META_MIGRATIONS_APPLIED: [
+                    mp50.SCHEMA45_MARKER_USER_CONTRACT_HOOK,
+                    mp50.SCHEMA45_MARKER_CHALLENGES_TO_PERIODIC_BADGES,
+                    mp50.SCHEMA45_MARKER_REMOVE_CHALLENGE_LINKED_BADGES,
+                    mp50.SCHEMA45_MARKER_REMOVE_LEGACY_BADGE_PROGRESS_FIELDS,
+                    const.MIGRATION_SCHEMA45_SHARED_ADMIN_UI_CONTROL,
+                    mp50.SCHEMA45_MARKER_SEED_LAST_MIDNIGHT_PROCESSED,
+                ],
+                mp50.SCHEMA45_LAST_SUMMARY_KEY: {"users_migrated": 2},
+            },
+            const.DATA_USERS: {
+                "user-1": {
+                    const.DATA_USER_INTERNAL_ID: "user-1",
+                    const.DATA_USER_NAME: "Alice",
+                    const.DATA_ASSIGNEE_REWARD_CLAIMS_LEGACY: {},
+                }
+            },
+            const.DATA_CHORES: {
+                "chore-1": {
+                    const.DATA_CHORE_INTERNAL_ID: "chore-1",
+                    const.DATA_CHORE_NAME: "Brush Teeth",
+                }
+            },
+        }
+
+        async def _assert_schema45_reset(coordinator: Any) -> dict[str, int]:
+            meta = coordinator._data[const.DATA_META]
+            assert meta[const.DATA_META_MIGRATIONS_APPLIED] == []
+            assert mp50.SCHEMA45_LAST_SUMMARY_KEY not in meta
+            return {
+                "users_migrated": 0,
+                "linked_approver_merges": 0,
+                "standalone_approver_creations": 0,
+                "approver_id_collisions": 0,
+                "approver_id_remap_entries_total": 0,
+                "approver_id_remap_entries_added": 0,
+            }
+
+        with (
+            patch(
+                "custom_components.choreops.migration_pre_v50.PreV50Migrator.run_full_pre_v50_cascade",
+                new_callable=AsyncMock,
+            ) as mock_cascade,
+            patch(
+                "custom_components.choreops.migration_pre_v50.async_apply_schema45_user_contract",
+                new_callable=AsyncMock,
+                side_effect=_assert_schema45_reset,
+            ),
+            patch.object(
+                system_manager, "run_startup_safety_net", new_callable=AsyncMock
+            ),
+            patch.object(system_manager, "emit"),
+        ):
+            await system_manager.ensure_data_integrity(
+                current_version=const.SCHEMA_VERSION_CURRENT
+            )
+
+        mock_cascade.assert_called_once_with(const.SCHEMA_VERSION_TRANSITIONAL)
+
+    async def test_ensure_data_integrity_skips_migrator_for_clean_schema100(
+        self, hass: HomeAssistant, system_manager
+    ) -> None:
+        """Clean schema-100 payloads should not be forced through pre-v50 repair."""
+        system_manager.coordinator._data = {
+            const.DATA_META: {
+                const.DATA_META_SCHEMA_VERSION: const.SCHEMA_VERSION_CURRENT,
+                const.DATA_META_MIGRATIONS_APPLIED: [
+                    mp50.SCHEMA45_MARKER_USER_CONTRACT_HOOK
+                ],
+            },
+            const.DATA_USERS: {
+                "user-1": {
+                    const.DATA_USER_INTERNAL_ID: "user-1",
+                    const.DATA_USER_NAME: "Alice",
+                }
+            },
+            const.DATA_CHORES: {
+                "chore-1": {
+                    const.DATA_CHORE_INTERNAL_ID: "chore-1",
+                    const.DATA_CHORE_NAME: "Brush Teeth",
+                    const.DATA_CHORE_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_INDEPENDENT,
+                    const.DATA_CHORE_APPROVAL_RESET_TYPE: const.DEFAULT_APPROVAL_RESET_TYPE,
+                }
+            },
+        }
+
+        with (
+            patch(
+                "custom_components.choreops.migration_pre_v50.PreV50Migrator",
+            ) as mock_migrator_cls,
+            patch(
+                "custom_components.choreops.migration_pre_v50.async_apply_schema45_user_contract",
+                new_callable=AsyncMock,
+                return_value={
+                    "users_migrated": 0,
+                    "linked_approver_merges": 0,
+                    "standalone_approver_creations": 0,
+                    "approver_id_collisions": 0,
+                    "approver_id_remap_entries_total": 0,
+                    "approver_id_remap_entries_added": 0,
+                },
+            ),
+            patch.object(
+                system_manager, "run_startup_safety_net", new_callable=AsyncMock
+            ),
+            patch.object(system_manager, "emit"),
+        ):
+            await system_manager.ensure_data_integrity(
+                current_version=const.SCHEMA_VERSION_CURRENT
             )
 
         mock_migrator_cls.assert_not_called()
