@@ -801,6 +801,34 @@ def get_multi_view_url_path(dashboard_name: str) -> str:
     return f"{const.DASHBOARD_URL_PATH_PREFIX}{slug}"
 
 
+def _canonical_dashboard_url_path(url_path: str) -> str:
+    """Return the canonical ChoreOps dashboard URL path.
+
+    Legacy dashboards used the ``kcd-`` prefix. Treat those as aliases of the
+    current ``cod-`` path so existence, dedupe, and delete flows operate on the
+    logical dashboard rather than a single historical URL variant.
+    """
+    if url_path.startswith(const.DASHBOARD_LEGACY_URL_PATH_PREFIX):
+        suffix = url_path.removeprefix(const.DASHBOARD_LEGACY_URL_PATH_PREFIX)
+        return f"{const.DASHBOARD_URL_PATH_PREFIX}{suffix}"
+    return url_path
+
+
+def _get_dashboard_url_aliases(url_path: str) -> tuple[str, ...]:
+    """Return all known URL path aliases for a ChoreOps dashboard."""
+    if not _is_choreops_dashboard_url_path(url_path):
+        return (url_path,)
+
+    canonical_url_path = _canonical_dashboard_url_path(url_path)
+    suffix = canonical_url_path.removeprefix(const.DASHBOARD_URL_PATH_PREFIX)
+    legacy_url_path = f"{const.DASHBOARD_LEGACY_URL_PATH_PREFIX}{suffix}"
+
+    if legacy_url_path == canonical_url_path:
+        return (canonical_url_path,)
+
+    return (canonical_url_path, legacy_url_path)
+
+
 def _is_choreops_dashboard_url_path(url_path: str) -> bool:
     """Return True for current or legacy ChoreOps dashboard URL paths."""
     return url_path.startswith(
@@ -837,14 +865,18 @@ def check_dashboard_exists(hass: HomeAssistant, url_path: str) -> bool:
     Returns:
         True if dashboard exists, False otherwise.
     """
+    aliases = _get_dashboard_url_aliases(url_path)
+
     # Check frontend panels
-    if DATA_PANELS in hass.data and url_path in hass.data[DATA_PANELS]:
+    if DATA_PANELS in hass.data and any(
+        alias in hass.data[DATA_PANELS] for alias in aliases
+    ):
         return True
 
     # Check lovelace dashboards
     if LOVELACE_DATA in hass.data:
         lovelace_data = hass.data[LOVELACE_DATA]
-        if url_path in lovelace_data.dashboards:
+        if any(alias in lovelace_data.dashboards for alias in aliases):
             return True
 
     return False
@@ -862,6 +894,8 @@ async def async_check_dashboard_exists(hass: HomeAssistant, url_path: str) -> bo
     Returns:
         True if dashboard exists, False otherwise.
     """
+    aliases = _get_dashboard_url_aliases(url_path)
+
     if check_dashboard_exists(hass, url_path):
         return True
 
@@ -869,7 +903,8 @@ async def async_check_dashboard_exists(hass: HomeAssistant, url_path: str) -> bo
     await dashboards_collection.async_load()
 
     for item in _get_collection_items(dashboards_collection):
-        if item.get(CONF_URL_PATH) == url_path:
+        item_url_path = item.get(CONF_URL_PATH)
+        if isinstance(item_url_path, str) and item_url_path in aliases:
             return True
 
     return False
@@ -919,6 +954,10 @@ async def async_dedupe_choreops_dashboards(
     dashboards_collection = DashboardsCollection(hass)
     await dashboards_collection.async_load()
 
+    target_canonical_url_path = (
+        _canonical_dashboard_url_path(url_path) if isinstance(url_path, str) else None
+    )
+
     matching_items: dict[str, list[dict[str, Any]]] = {}
     for item in _get_collection_items(dashboards_collection):
         item_url_path = item.get(CONF_URL_PATH)
@@ -926,9 +965,13 @@ async def async_dedupe_choreops_dashboards(
             continue
         if not _is_choreops_dashboard_url_path(item_url_path):
             continue
-        if url_path and item_url_path != url_path:
+        canonical_item_url_path = _canonical_dashboard_url_path(item_url_path)
+        if (
+            target_canonical_url_path is not None
+            and canonical_item_url_path != target_canonical_url_path
+        ):
             continue
-        matching_items.setdefault(item_url_path, []).append(item)
+        matching_items.setdefault(canonical_item_url_path, []).append(item)
 
     removed_by_path: dict[str, int] = {}
 
@@ -936,8 +979,11 @@ async def async_dedupe_choreops_dashboards(
         if len(items) <= 1:
             continue
 
-        # Keep newest item (last in collection order), remove older duplicates
-        to_remove = items[:-1]
+        preferred_items = [
+            item for item in items if item.get(CONF_URL_PATH) == target_url_path
+        ]
+        keep_item = preferred_items[-1] if preferred_items else items[-1]
+        to_remove = [item for item in items if item is not keep_item]
         removed_count = 0
         for duplicate_item in to_remove:
             duplicate_id = duplicate_item.get("id")
@@ -1788,16 +1834,17 @@ async def _delete_dashboard(hass: HomeAssistant, url_path: str) -> None:
         url_path: Dashboard URL path to delete.
     """
     const.LOGGER.debug("Deleting dashboard: %s", url_path)
+    aliases = _get_dashboard_url_aliases(url_path)
 
     # Step 1: Remove from DashboardsCollection (storage)
-    # Delete ALL items with matching url_path (handle duplicates)
+    # Delete ALL items with matching url_path aliases (handle legacy/current pairs)
     dashboards_collection = DashboardsCollection(hass)
     await dashboards_collection.async_load()
 
     items_to_delete = [
         item_id
         for item in _get_collection_items(dashboards_collection)
-        if item.get(CONF_URL_PATH) == url_path
+        if item.get(CONF_URL_PATH) in aliases
         if isinstance(item_id := item.get("id"), str)
     ]
 
@@ -1805,9 +1852,9 @@ async def _delete_dashboard(hass: HomeAssistant, url_path: str) -> None:
         try:
             await dashboards_collection.async_delete_item(item_id)
             const.LOGGER.debug(
-                "Removed dashboard entry from collection: id=%s, url_path=%s",
+                "Removed dashboard entry from collection: id=%s, url_paths=%s",
                 item_id,
-                url_path,
+                aliases,
             )
         except Exception as err:
             const.LOGGER.warning(
@@ -1817,20 +1864,24 @@ async def _delete_dashboard(hass: HomeAssistant, url_path: str) -> None:
     # Step 2: Remove from lovelace_data.dashboards (runtime)
     if LOVELACE_DATA in hass.data:
         lovelace_data = hass.data[LOVELACE_DATA]
-        if url_path in lovelace_data.dashboards:
-            dashboard = lovelace_data.dashboards.pop(url_path)
+        for alias in aliases:
+            if alias not in lovelace_data.dashboards:
+                continue
+
+            dashboard = lovelace_data.dashboards.pop(alias)
             # Delete the storage file
             try:
                 await dashboard.async_delete()
             except Exception as err:
                 const.LOGGER.warning(
-                    "Failed to delete dashboard storage for %s: %s", url_path, err
+                    "Failed to delete dashboard storage for %s: %s", alias, err
                 )
-            const.LOGGER.debug("Removed dashboard from lovelace_data: %s", url_path)
+            const.LOGGER.debug("Removed dashboard from lovelace_data: %s", alias)
 
     # Step 3: Remove the frontend panel
-    async_remove_panel(hass, url_path, warn_if_unknown=False)
-    const.LOGGER.debug("Removed dashboard panel: %s", url_path)
+    for alias in aliases:
+        async_remove_panel(hass, alias, warn_if_unknown=False)
+        const.LOGGER.debug("Removed dashboard panel: %s", alias)
 
 
 async def delete_choreops_dashboard(

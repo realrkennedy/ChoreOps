@@ -500,6 +500,31 @@ def test_get_existing_dashboards_prefers_config_title_over_url_path() -> None:
     assert options == [{"value": "cod-chores", "label": "Chores (cod-chores)"}]
 
 
+def test_get_existing_dashboards_collapses_legacy_and_current_aliases() -> None:
+    """Dashboard discovery should surface one logical option per dashboard."""
+
+    class _FakeDashboard:
+        def __init__(self, config: dict[str, Any]) -> None:
+            self.config = config
+
+    class _FakeLovelaceData:
+        def __init__(self) -> None:
+            self.dashboards = {
+                "kcd-chores": _FakeDashboard({"title": "Chores (legacy)"}),
+                "cod-chores": _FakeDashboard({"title": "Chores"}),
+            }
+
+    class _FakeHass:
+        def __init__(self) -> None:
+            self.data: dict[str, Any] = {
+                "lovelace": _FakeLovelaceData(),
+            }
+
+    options = dh.get_existing_choreops_dashboards(_FakeHass())
+
+    assert options == [{"value": "cod-chores", "label": "Chores (cod-chores)"}]
+
+
 @pytest.mark.asyncio
 async def test_dashboard_update_step_shows_release_controls(
     hass: HomeAssistant,
