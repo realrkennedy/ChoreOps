@@ -2138,10 +2138,16 @@ def get_existing_choreops_dashboards(
     """
     from homeassistant.components.lovelace.const import LOVELACE_DATA
 
-    discovered_dashboards: list[dict[str, str]] = []
+    discovered_dashboards: dict[str, dict[str, str]] = {}
+
+    def _canonical_dashboard_url_path(url_path: str) -> str:
+        if url_path.startswith(const.DASHBOARD_LEGACY_URL_PATH_PREFIX):
+            suffix = url_path.removeprefix(const.DASHBOARD_LEGACY_URL_PATH_PREFIX)
+            return f"{const.DASHBOARD_URL_PATH_PREFIX}{suffix}"
+        return url_path
 
     if LOVELACE_DATA not in hass.data:
-        return discovered_dashboards
+        return []
 
     lovelace_data = hass.data[LOVELACE_DATA]
 
@@ -2174,29 +2180,26 @@ def get_existing_choreops_dashboards(
                                 if isinstance(view_title, str) and view_title.strip():
                                     title = view_title.strip()
 
-            discovered_dashboards.append(
-                {
-                    "value": url_path,
-                    "title": str(title).strip() or url_path,
-                }
-            )
+            canonical_url_path = _canonical_dashboard_url_path(url_path)
+            entry = {
+                "value": url_path,
+                "title": str(title).strip() or url_path,
+                "display_path": canonical_url_path,
+            }
+            current_entry = discovered_dashboards.get(canonical_url_path)
+            if current_entry is None or url_path == canonical_url_path:
+                discovered_dashboards[canonical_url_path] = entry
 
     if not discovered_dashboards:
         return []
 
     dashboards: list[dict[str, str]] = []
     for dashboard in sorted(
-        discovered_dashboards, key=lambda item: item["title"].casefold()
+        discovered_dashboards.values(), key=lambda item: item["title"].casefold()
     ):
         url_path = dashboard["value"]
         title = dashboard["title"]
-        display_path = url_path
-        if display_path.startswith(const.DASHBOARD_LEGACY_URL_PATH_PREFIX):
-            display_path = display_path.replace(
-                const.DASHBOARD_LEGACY_URL_PATH_PREFIX,
-                const.DASHBOARD_URL_PATH_PREFIX,
-                1,
-            )
+        display_path = dashboard["display_path"]
         label = f"{title} ({display_path})"
         dashboards.append({"value": url_path, "label": label})
 

@@ -252,3 +252,136 @@ async def test_update_dashboard_prepared_assets_match_release_applied_template_o
     )
 
     assert prepared_output == release_applied_output
+
+
+@pytest.mark.asyncio
+async def test_async_check_dashboard_exists_treats_legacy_alias_as_existing() -> None:
+    """Canonical dashboard existence checks must honor legacy kcd aliases."""
+
+    class _FakeDashboardsCollection:
+        def __init__(self, _hass: Any) -> None:
+            self.data = {
+                "items": [
+                    {
+                        "id": "legacy-1",
+                        "url_path": "kcd-chores",
+                    }
+                ]
+            }
+
+        async def async_load(self) -> None:
+            return None
+
+    fake_hass = SimpleNamespace(data={})
+
+    with patch.object(builder, "DashboardsCollection", _FakeDashboardsCollection):
+        exists = await builder.async_check_dashboard_exists(fake_hass, "cod-chores")
+
+    assert exists is True
+
+
+@pytest.mark.asyncio
+async def test_delete_dashboard_removes_legacy_and_current_aliases() -> None:
+    """Deleting one dashboard variant must remove both cod and kcd aliases."""
+
+    class _FakeDashboard:
+        def __init__(self) -> None:
+            self.deleted = False
+
+        async def async_delete(self) -> None:
+            self.deleted = True
+
+    class _FakeDashboardsCollection:
+        def __init__(self, _hass: Any) -> None:
+            self.data = {
+                "items": [
+                    {"id": "legacy-1", "url_path": "kcd-chores"},
+                    {"id": "current-1", "url_path": "cod-chores"},
+                ]
+            }
+            self.deleted_ids: list[str] = []
+
+        async def async_load(self) -> None:
+            return None
+
+        async def async_delete_item(self, item_id: str) -> None:
+            self.deleted_ids.append(item_id)
+            self.data["items"] = [
+                item for item in self.data["items"] if item.get("id") != item_id
+            ]
+
+    fake_legacy_dashboard = _FakeDashboard()
+    fake_current_dashboard = _FakeDashboard()
+    fake_collection = _FakeDashboardsCollection(None)
+    removed_panels: list[str] = []
+    fake_hass = SimpleNamespace(
+        config=SimpleNamespace(recovery_mode=False),
+        data={
+            builder.LOVELACE_DATA: SimpleNamespace(
+                dashboards={
+                    "kcd-chores": fake_legacy_dashboard,
+                    "cod-chores": fake_current_dashboard,
+                }
+            )
+        },
+    )
+
+    with (
+        patch.object(
+            builder,
+            "DashboardsCollection",
+            side_effect=lambda _hass: fake_collection,
+        ),
+        patch.object(
+            builder,
+            "async_remove_panel",
+            side_effect=lambda _hass, url_path, warn_if_unknown=False: (
+                removed_panels.append(url_path)
+            ),
+        ),
+    ):
+        await builder.delete_choreops_dashboard(fake_hass, "cod-chores")
+
+    assert sorted(fake_collection.deleted_ids) == ["current-1", "legacy-1"]
+    assert fake_legacy_dashboard.deleted is True
+    assert fake_current_dashboard.deleted is True
+    assert fake_hass.data[builder.LOVELACE_DATA].dashboards == {}
+    assert sorted(removed_panels) == ["cod-chores", "kcd-chores"]
+
+
+@pytest.mark.asyncio
+async def test_async_dedupe_choreops_dashboards_removes_legacy_alias_duplicate() -> (
+    None
+):
+    """Startup dedupe must collapse legacy/current alias pairs to one entry."""
+
+    class _FakeDashboardsCollection:
+        def __init__(self, _hass: Any) -> None:
+            self.data = {
+                "items": [
+                    {"id": "legacy-1", "url_path": "kcd-chores"},
+                    {"id": "current-1", "url_path": "cod-chores"},
+                ]
+            }
+            self.deleted_ids: list[str] = []
+
+        async def async_load(self) -> None:
+            return None
+
+        async def async_delete_item(self, item_id: str) -> None:
+            self.deleted_ids.append(item_id)
+            self.data["items"] = [
+                item for item in self.data["items"] if item.get("id") != item_id
+            ]
+
+    fake_collection = _FakeDashboardsCollection(None)
+
+    with patch.object(
+        builder,
+        "DashboardsCollection",
+        side_effect=lambda _hass: fake_collection,
+    ):
+        removed = await builder.async_dedupe_choreops_dashboards(object())
+
+    assert removed == {"cod-chores": 1}
+    assert fake_collection.deleted_ids == ["legacy-1"]
