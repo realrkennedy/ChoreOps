@@ -85,7 +85,7 @@
             },
             "data_description": {
               "name": "Jedinečný názov pre tento používateľský profil.",
-              "ha_user_id": "Voliteľné: Prepojte tento profil s používateľom služby Home Assistant.",
+              "ha_user_id": "Voliteľné: Prepojte tento profil s používateľom služby Home Assistant. Ak je režim kiosku vypnutý, akcie nárokovania a uplatnenia na zdieľanom zariadení sa spoliehajú na toto prepojenie.",
               "dashboard_language": "Jazyk používaný pre obsah a upozornenia ovládacieho panela.",
               "mobile_notify_service": "Vyberte službu upozornení alebo nechajte pole prázdne, ak chcete upozornenia vypnúť."
             }
@@ -555,7 +555,7 @@
       },
       "add_user": {
         "title": "Pridať používateľa",
-        "description": "Poskytnite podrobnosti o novom používateľskom profile.\n\n ℹ️ [Sprievodca konfiguráciou]({documentation_url})",
+        "description": "Uveďte podrobnosti o novom používateľskom profile.\n\n{user_access_warning}\n\n ℹ️ [Sprievodca konfiguráciou]({documentation_url})",
         "sections": {
           "section_identity_profile": {
             "name": "Identita a profil",
@@ -568,7 +568,7 @@
             },
             "data_description": {
               "name": "Jedinečný názov pre tento používateľský profil.",
-              "ha_user_id": "Voliteľné: Prepojte tento profil s používateľom služby Home Assistant.",
+              "ha_user_id": "Voliteľné: Prepojte tento profil s používateľom služby Home Assistant. Ak je režim kiosku vypnutý, akcie nárokovania a uplatnenia na zdieľanom zariadení sa spoliehajú na toto prepojenie.",
               "dashboard_language": "Jazyk používaný pre obsah a upozornenia ovládacieho panela.",
               "mobile_notify_service": "Vyberte službu upozornení alebo nechajte pole prázdne, ak chcete upozornenia vypnúť."
             }
@@ -986,7 +986,7 @@
       },
       "edit_user": {
         "title": "Upraviť používateľa",
-        "description": "Upravte podrobnosti vybraného používateľského profilu.\n\n ℹ️ [Sprievodca konfiguráciou]({documentation_url})",
+        "description": "Upravte podrobnosti vybraného používateľského profilu.\n\n{user_access_warning}\n\n ℹ️ [Sprievodca konfiguráciou]({documentation_url})",
         "sections": {
           "section_identity_profile": {
             "name": "Identita a profil",
@@ -999,7 +999,7 @@
             },
             "data_description": {
               "name": "Jedinečný názov pre tento používateľský profil.",
-              "ha_user_id": "Voliteľné: Prepojte tento profil s používateľom služby Home Assistant.",
+              "ha_user_id": "Voliteľné: Prepojte tento profil s používateľom služby Home Assistant. Ak je režim kiosku vypnutý, akcie nárokovania a uplatnenia na zdieľanom zariadení sa spoliehajú na toto prepojenie.",
               "dashboard_language": "Jazyk používaný pre obsah a upozornenia ovládacieho panela.",
               "mobile_notify_service": "Vyberte službu upozornení alebo nechajte pole prázdne, ak chcete upozornenia vypnúť."
             }
@@ -1497,12 +1497,14 @@
       },
       "dashboard_missing_dependencies": {
         "title": "Skontrolujte zmeny na hlavnom paneli",
-        "description": "Pred použitím zmien na ovládacom paneli si skontrolujte stav závislostí a preferencie šablón pre vybraté šablóny.\n\n ℹ️ [Sprievodca konfiguráciou ovládacieho panela]({documentation_url})\n\n**Dostupné prispôsobenia**\n{dashboard_template_preferences}\n\n**Chýbajúce požadované závislosti**\n{dashboard_missing_required_dependencies}\n\n**Chýbajúce odporúčané závislosti**\n{dashboard_missing_recommended_dependencies}",
+        "description": "Pred použitím zmien na ovládacom paneli si skontrolujte stav závislostí a preferencie šablón pre vybraté šablóny.\n\n ℹ️ [Sprievodca konfiguráciou ovládacieho panela]({documentation_url})\n\n**Dostupné prispôsobenia**\n{dashboard_template_preferences}\n\n**Chýbajúce požadované závislosti**\n{dashboard_missing_required_dependencies}\n\n**Chýbajúce odporúčané závislosti**\n{dashboard_missing_recommended_dependencies}\n\n**Upozornenie na riadenie prístupu**\n{dashboard_access_warning}",
         "data": {
-          "dashboard_dependency_bypass": "🚫 Pokračovať aj tak (chýbajú požiadavky)"
+          "dashboard_dependency_bypass": "🚫 Pokračovať aj tak (chýbajú požiadavky)",
+          "dashboard_access_warning_ack": "⚠️ Pokračovať aj tak (vybraní používatelia nie sú prepojení)"
         },
         "data_description": {
-          "dashboard_dependency_bypass": "Potvrďte, že chýbajú požadované závislosti a aj tak pokračujte. Ovládací panel sa nemusí vykresliť alebo sa môže správať nesprávne, kým nebudú nainštalované požadované závislosti."
+          "dashboard_dependency_bypass": "Potvrďte, že chýbajú požadované závislosti a aj tak pokračujte. Ovládací panel sa nemusí vykresliť alebo sa môže správať nesprávne, kým nebudú nainštalované požadované závislosti.",
+          "dashboard_access_warning_ack": "Berte na vedomie, že niektorí vybraní používatelia nemajú prepojených používateľov služby Home Assistant, kým je režim kiosku vypnutý. Tlačidlá pre uplatnenie a nárokovanie nemusia na zdieľaných zariadeniach fungovať podľa očakávaní, kým títo používatelia nebudú prepojení alebo kým nebude povolený režim kiosku."
         }
       },
       "dashboard_create": {
@@ -1834,6 +1836,7 @@
       "dashboard_admin_per_assignee_template_required": "Šablóna správcu pre jednotlivých používateľov je vyžadovaná, keď rozloženie správcu zahŕňa možnosť „Na používateľa“.",
       "dashboard_admin_per_assignee_needs_assignees": "Rozloženie administrátora na používateľa vyžaduje aspoň jedného vybratého používateľa.",
       "dashboard_dependency_ack_required": "Ak chcete pokračovať, povoľte možnosť „Pokračovať aj tak“ alebo sa vráťte a najprv nainštalujte chýbajúce požadované závislosti.",
+      "dashboard_access_warning_ack_required": "Potvrďte upozornenie týkajúce sa kontroly prístupu a pokračujte, alebo sa vráťte a prepojte dotknutých používateľov, prípadne povoľte režim kiosku.",
       "dashboard_nonselectable_templates": "Jedna alebo viacero vybratých šablón nie je k dispozícii na generovanie.",
       "dashboard_release_strict_pin_failed": "Vybrané vydanie na dashboarde musí byť presne pripnuté, ale v čase vykonávania nebol k dispozícii žiadny platný referenčný odkaz na vydanie. V kroku 1 znova vyberte vydanie a skúste to znova.",
       "dashboard_release_asset_prep_failed": "Nepodarilo sa pripraviť vybrané prvky online ovládacieho panela. Vyberte inú verziu alebo použite najnovšie kompatibilné/aktuálne lokálne šablóny a skúste to znova."
@@ -5083,6 +5086,12 @@
     },
     "dashboard_label_preferences_guide_not_provided": {
       "message": "Sprievodca preferenciami nie je k dispozícii"
+    },
+    "user_non_kiosk_unlinked_warning": {
+      "message": "⚠️ **Upozornenie na prístup:** Režim kiosku je vypnutý a tento používateľ nie je prepojený s používateľom aplikácie Home Assistant. Tlačidlá na uplatnenie a nárokovanie na zdieľanom zariadení nemusia pre tohto používateľa fungovať, kým neprepojíte používateľa aplikácie Home Assistant alebo nepovolíte režim kiosku."
+    },
+    "dashboard_unlinked_users_warning": {
+      "message": "⚠️ Režim kiosku je vypnutý a títo vybraní používatelia nemajú prepojených používateľov služby Domáci asistent:\n{user_list}\n\nTlačidlá prevzatia a uplatnenia nemusia na zdieľaných zariadeniach fungovať podľa očakávaní, kým títo používatelia nebudú prepojení alebo kým nebude povolený režim kiosku."
     },
     "not_authorized_action": {
       "message": "Nemáte oprávnenie na {action} pre tohto nadobúdateľa."

@@ -85,7 +85,7 @@
             },
             "data_description": {
               "name": "Unikt navn for denne brugerprofil.",
-              "ha_user_id": "Valgfrit: Knyt denne profil til en Home Assistant-bruger.",
+              "ha_user_id": "Valgfrit: Link denne profil til en Home Assistant-bruger. Hvis kiosktilstand er deaktiveret, afhænger handlinger for krav og indløsning af delte enheder af dette link.",
               "dashboard_language": "Sprog, der bruges til dashboardindhold og meddelelser.",
               "mobile_notify_service": "Vælg notifikationstjeneste, eller lad feltet stå tomt for at deaktivere notifikationer."
             }
@@ -555,7 +555,7 @@
       },
       "add_user": {
         "title": "Tilføj bruger",
-        "description": "Angiv oplysningerne for den nye brugerprofil.\n\n ℹ️ [Konfigurationsvejledning]({documentation_url})",
+        "description": "Angiv oplysningerne for den nye brugerprofil.\n\n{user_access_warning}\n\n ℹ️ [Konfigurationsvejledning]({documentation_url})",
         "sections": {
           "section_identity_profile": {
             "name": "Identitet og profil",
@@ -568,7 +568,7 @@
             },
             "data_description": {
               "name": "Unikt navn for denne brugerprofil.",
-              "ha_user_id": "Valgfrit: Knyt denne profil til en Home Assistant-bruger.",
+              "ha_user_id": "Valgfrit: Link denne profil til en Home Assistant-bruger. Hvis kiosktilstand er deaktiveret, afhænger handlinger for krav og indløsning af delte enheder af dette link.",
               "dashboard_language": "Sprog, der bruges til dashboardindhold og meddelelser.",
               "mobile_notify_service": "Vælg notifikationstjeneste, eller lad feltet stå tomt for at deaktivere notifikationer."
             }
@@ -986,7 +986,7 @@
       },
       "edit_user": {
         "title": "Rediger bruger",
-        "description": "Rediger detaljerne for den valgte brugerprofil.\n\n ℹ️ [Konfigurationsvejledning]({documentation_url})",
+        "description": "Rediger oplysningerne for den valgte brugerprofil.\n\n{user_access_warning}\n\n ℹ️ [Konfigurationsvejledning]({documentation_url})",
         "sections": {
           "section_identity_profile": {
             "name": "Identitet og profil",
@@ -999,7 +999,7 @@
             },
             "data_description": {
               "name": "Unikt navn for denne brugerprofil.",
-              "ha_user_id": "Valgfrit: Knyt denne profil til en Home Assistant-bruger.",
+              "ha_user_id": "Valgfrit: Link denne profil til en Home Assistant-bruger. Hvis kiosktilstand er deaktiveret, afhænger handlinger for krav og indløsning af delte enheder af dette link.",
               "dashboard_language": "Sprog, der bruges til dashboardindhold og meddelelser.",
               "mobile_notify_service": "Vælg notifikationstjeneste, eller lad feltet stå tomt for at deaktivere notifikationer."
             }
@@ -1497,12 +1497,14 @@
       },
       "dashboard_missing_dependencies": {
         "title": "Gennemgå ændringer i dashboardet",
-        "description": "Gennemgå afhængighedsstatus og skabelonpræferencer for dine valgte skabeloner, før du anvender ændringer af dashboardet.\n\n ℹ️ [Konfigurationsvejledning til dashboard]({documentation_url})\n\n**Tilgængelige tilpasninger**\n{dashboard_template_preferences}\n\n**Mangler nødvendige afhængigheder**\n{dashboard_missing_required_dependencies}\n\n**Mangler anbefalede afhængigheder**\n{dashboard_missing_recommended_dependencies}",
+        "description": "Gennemgå afhængighedsstatus og skabelonpræferencer for dine valgte skabeloner, før du anvender ændringer af dashboardet.\n\n ℹ️ [Konfigurationsvejledning til dashboard]({documentation_url})\n\n**Tilgængelige tilpasninger**\n{dashboard_template_preferences}\n\n**Mangler nødvendige afhængigheder**\n{dashboard_missing_required_dependencies}\n\n**Mangler anbefalede afhængigheder**\n{dashboard_missing_recommended_dependencies}\n\n**Advarsel om adgangskontrol**\n{dashboard_access_warning}",
         "data": {
-          "dashboard_dependency_bypass": "🚫 Fortsæt alligevel (krav mangler)"
+          "dashboard_dependency_bypass": "🚫 Fortsæt alligevel (krav mangler)",
+          "dashboard_access_warning_ack": "⚠️ Fortsæt alligevel (de valgte brugere er ikke linket)"
         },
         "data_description": {
-          "dashboard_dependency_bypass": "Anerkend, at der mangler nødvendige afhængigheder, og fortsæt alligevel. Dashboardet gengives muligvis ikke eller fungerer muligvis forkert, før de nødvendige afhængigheder er installeret."
+          "dashboard_dependency_bypass": "Anerkend, at der mangler nødvendige afhængigheder, og fortsæt alligevel. Dashboardet gengives muligvis ikke eller fungerer muligvis forkert, før de nødvendige afhængigheder er installeret.",
+          "dashboard_access_warning_ack": "Anerkend, at nogle udvalgte brugere ikke har tilknyttede Home Assistant-brugere, mens kiosktilstand er deaktiveret. Knapper til at gøre krav på og indløse fungerer muligvis ikke som forventet på delte enheder, før disse brugere er tilknyttet, eller kiosktilstand er aktiveret."
         }
       },
       "dashboard_create": {
@@ -1834,6 +1836,7 @@
       "dashboard_admin_per_assignee_template_required": "En administratorskabelon pr. bruger er påkrævet, når administratorlayoutet inkluderer pr. bruger.",
       "dashboard_admin_per_assignee_needs_assignees": "Adminlayout pr. bruger kræver mindst én valgt bruger.",
       "dashboard_dependency_ack_required": "Aktivér 'Fortsæt alligevel' for at fortsætte, eller gå tilbage og installer manglende nødvendige afhængigheder først.",
+      "dashboard_access_warning_ack_required": "Bekræft advarslen om adgangskontrol for at fortsætte, eller gå tilbage og forbind de berørte brugere eller aktiver kiosktilstand.",
       "dashboard_nonselectable_templates": "En eller flere valgte skabeloner kan ikke genereres.",
       "dashboard_release_strict_pin_failed": "Den valgte dashboard-udgivelse skal være præcist fastgjort, men der var ingen effektiv udgivelsesreference tilgængelig på udførelsestidspunktet. Vælg udgivelsen igen i trin 1, og prøv igen.",
       "dashboard_release_asset_prep_failed": "De valgte online dashboard-aktiver kunne ikke forberedes. Vælg en anden udgivelse, eller brug de seneste kompatible/aktuelle lokale skabeloner, og prøv igen."
@@ -5083,6 +5086,12 @@
     },
     "dashboard_label_preferences_guide_not_provided": {
       "message": "Præferencevejledning ikke medtaget"
+    },
+    "user_non_kiosk_unlinked_warning": {
+      "message": "⚠️ **Adgangsadvarsel:** Kiosktilstand er deaktiveret, og denne bruger er ikke knyttet til en Home Assistant-bruger. Knapper til krav og indløsning af delte enheder fungerer muligvis ikke for denne bruger, før du linker en Home Assistant-bruger eller aktiverer kiosktilstand."
+    },
+    "dashboard_unlinked_users_warning": {
+      "message": "⚠️ Kiosktilstand er deaktiveret, og disse valgte brugere har ikke tilknyttede Home Assistant-brugere:\n{user_list}\n\nKnapper til at gøre krav på og indløse fungerer muligvis ikke som forventet på delte enheder, før disse brugere er tilknyttet, eller kiosktilstand er aktiveret."
     },
     "not_authorized_action": {
       "message": "Du er ikke autoriseret til at {action} for denne overdragelsesmodtager."

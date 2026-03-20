@@ -85,7 +85,7 @@
             },
             "data_description": {
               "name": "Nom únic per a aquest perfil d'usuari.",
-              "ha_user_id": "Opcional: Enllaça aquest perfil a un usuari de Home Assistant.",
+              "ha_user_id": "Opcional: Enllaça aquest perfil a un usuari de Home Assistant. Si el mode quiosc està desactivat, les accions de reclamació i bescanvi de dispositius compartits depenen d'aquest enllaç.",
               "dashboard_language": "Idioma utilitzat per al contingut i les notificacions del tauler de control.",
               "mobile_notify_service": "Seleccioneu el servei de notificacions o deixeu-ho en blanc per desactivar les notificacions."
             }
@@ -555,7 +555,7 @@
       },
       "add_user": {
         "title": "Afegeix un usuari",
-        "description": "Proporcioneu els detalls del nou perfil d'usuari.\n\n ℹ️ [Guia de configuració]({documentation_url})",
+        "description": "Proporcioneu els detalls del nou perfil d'usuari.\n\n{user_access_warning}\n\n ℹ️ [Guia de configuració]({documentation_url})",
         "sections": {
           "section_identity_profile": {
             "name": "Identitat i perfil",
@@ -568,7 +568,7 @@
             },
             "data_description": {
               "name": "Nom únic per a aquest perfil d'usuari.",
-              "ha_user_id": "Opcional: Enllaça aquest perfil a un usuari de Home Assistant.",
+              "ha_user_id": "Opcional: Enllaça aquest perfil a un usuari de Home Assistant. Si el mode quiosc està desactivat, les accions de reclamació i bescanvi de dispositius compartits depenen d'aquest enllaç.",
               "dashboard_language": "Idioma utilitzat per al contingut i les notificacions del tauler de control.",
               "mobile_notify_service": "Seleccioneu el servei de notificacions o deixeu-ho en blanc per desactivar les notificacions."
             }
@@ -986,7 +986,7 @@
       },
       "edit_user": {
         "title": "Edita l'usuari",
-        "description": "Modifiqueu els detalls del perfil d'usuari seleccionat.\n\n ℹ️ [Guia de configuració]({documentation_url})",
+        "description": "Modifiqueu els detalls del perfil d'usuari seleccionat.\n\n{user_access_warning}\n\n ℹ️ [Guia de configuració]({documentation_url})",
         "sections": {
           "section_identity_profile": {
             "name": "Identitat i perfil",
@@ -999,7 +999,7 @@
             },
             "data_description": {
               "name": "Nom únic per a aquest perfil d'usuari.",
-              "ha_user_id": "Opcional: Enllaça aquest perfil a un usuari de Home Assistant.",
+              "ha_user_id": "Opcional: Enllaça aquest perfil a un usuari de Home Assistant. Si el mode quiosc està desactivat, les accions de reclamació i bescanvi de dispositius compartits depenen d'aquest enllaç.",
               "dashboard_language": "Idioma utilitzat per al contingut i les notificacions del tauler de control.",
               "mobile_notify_service": "Seleccioneu el servei de notificacions o deixeu-ho en blanc per desactivar les notificacions."
             }
@@ -1497,12 +1497,14 @@
       },
       "dashboard_missing_dependencies": {
         "title": "Revisa els canvis del tauler de control",
-        "description": "Reviseu l'estat de les dependències i les preferències de plantilla per a les plantilles seleccionades abans d'aplicar els canvis al tauler de control.\n\n ℹ️ [Guia de configuració del tauler de control]({documentation_url})\n\n**Personalitzacions disponibles**\n{dashboard_template_preferences}\n\n**Falten les dependències obligatòries**\n{dashboard_missing_required_dependencies}\n\n**Falten les dependències recomanades**\n{dashboard_missing_recommended_dependencies}",
+        "description": "Reviseu l'estat de les dependències i les preferències de plantilla per a les plantilles seleccionades abans d'aplicar els canvis al tauler de control.\n\n ℹ️ [Guia de configuració del tauler de control]({documentation_url})\n\n**Personalitzacions disponibles**\n{dashboard_template_preferences}\n\n**Falten dependències obligatòries**\n{dashboard_missing_required_dependencies}\n\n**Falten dependències recomanades**\n{dashboard_missing_recommended_dependencies}\n\n**Avís de control d'accés**\n{dashboard_access_warning}",
         "data": {
-          "dashboard_dependency_bypass": "🚫 Continua igualment (falten requisits)"
+          "dashboard_dependency_bypass": "🚫 Continua igualment (falten requisits)",
+          "dashboard_access_warning_ack": "⚠️ Continua igualment (els usuaris seleccionats no estan vinculats)"
         },
         "data_description": {
-          "dashboard_dependency_bypass": "Reconeix que falten dependències necessàries i continua igualment. És possible que el tauler de control no es renderitzi o es comporti incorrectament fins que no s'instal·lin les dependències necessàries."
+          "dashboard_dependency_bypass": "Reconeix que falten dependències necessàries i continua igualment. És possible que el tauler de control no es renderitzi o es comporti incorrectament fins que no s'instal·lin les dependències necessàries.",
+          "dashboard_access_warning_ack": "Tingueu en compte que alguns usuaris seleccionats no tenen usuaris de Home Assistant vinculats mentre el mode quiosc està desactivat. És possible que els botons de reclamació i bescanvi no funcionin correctament en dispositius compartits fins que aquests usuaris no estiguin vinculats o el mode quiosc estigui activat."
         }
       },
       "dashboard_create": {
@@ -1834,6 +1836,7 @@
       "dashboard_admin_per_assignee_template_required": "Cal una plantilla d'administració per usuari quan el disseny d'administració inclou Per usuari.",
       "dashboard_admin_per_assignee_needs_assignees": "El disseny d'administració per usuari requereix com a mínim un usuari seleccionat.",
       "dashboard_dependency_ack_required": "Activeu \"Continua igualment\" per continuar o torneu enrere i instal·leu primer les dependències necessàries que falten.",
+      "dashboard_access_warning_ack_required": "Reconeix l'avís de control d'accés per continuar, torna enrere i enllaça els usuaris afectats o activa el mode quiosc.",
       "dashboard_nonselectable_templates": "Una o més plantilles seleccionades no estan disponibles per a la generació.",
       "dashboard_release_strict_pin_failed": "La versió seleccionada del tauler de control ha d'estar fixada exactament, però no hi havia cap referència de versió efectiva disponible en el moment de l'execució. Torneu a seleccionar la versió al pas 1 i torneu-ho a provar.",
       "dashboard_release_asset_prep_failed": "No s'han pogut preparar els recursos del tauler de control en línia seleccionats. Trieu una versió diferent o utilitzeu les plantilles locals compatibles/actuals més recents i torneu-ho a provar."
@@ -5083,6 +5086,12 @@
     },
     "dashboard_label_preferences_guide_not_provided": {
       "message": "Guia de preferències no proporcionada"
+    },
+    "user_non_kiosk_unlinked_warning": {
+      "message": "⚠️ **Avís d'accés:** El mode quiosc està desactivat i aquest usuari no està vinculat a cap usuari de Home Assistant. És possible que els botons de reclamació i bescanvi de dispositius compartits no funcionin per a aquest usuari fins que no vinculis un usuari de Home Assistant o activis el mode quiosc."
+    },
+    "dashboard_unlinked_users_warning": {
+      "message": "⚠️ El mode quiosc està desactivat i aquests usuaris seleccionats no tenen usuaris de Home Assistant vinculats:\n{user_list}\n\nÉs possible que els botons de reclamació i bescanvi no funcionin correctament en dispositius compartits fins que aquests usuaris no estiguin vinculats o el mode quiosc estigui habilitat."
     },
     "not_authorized_action": {
       "message": "No esteu autoritzat a {action} per a aquest cessionari."

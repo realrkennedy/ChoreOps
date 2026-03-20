@@ -85,7 +85,7 @@
             },
             "data_description": {
               "name": "Unieke naam voor dit gebruikersprofiel.",
-              "ha_user_id": "Optioneel: koppel dit profiel aan een Home Assistant-gebruiker.",
+              "ha_user_id": "Optioneel: Koppel dit profiel aan een Home Assistant-gebruiker. Als de kioskmodus is uitgeschakeld, zijn het claimen en inwisselen van gedeelde apparaten afhankelijk van deze koppeling.",
               "dashboard_language": "De taal die wordt gebruikt voor de inhoud van het dashboard en meldingen.",
               "mobile_notify_service": "Selecteer de notificatieservice of laat het veld leeg om notificaties uit te schakelen."
             }
@@ -555,7 +555,7 @@
       },
       "add_user": {
         "title": "Gebruiker toevoegen",
-        "description": "Geef de gegevens voor het nieuwe gebruikersprofiel op.\n\n ℹ️ [Configuratiehandleiding]({documentation_url})",
+        "description": "Geef de gegevens voor het nieuwe gebruikersprofiel op.\n\n{user_access_warning}\n\n ℹ️ [Configuratiehandleiding]({documentation_url})",
         "sections": {
           "section_identity_profile": {
             "name": "Identiteit en profiel",
@@ -568,7 +568,7 @@
             },
             "data_description": {
               "name": "Unieke naam voor dit gebruikersprofiel.",
-              "ha_user_id": "Optioneel: koppel dit profiel aan een Home Assistant-gebruiker.",
+              "ha_user_id": "Optioneel: Koppel dit profiel aan een Home Assistant-gebruiker. Als de kioskmodus is uitgeschakeld, zijn het claimen en inwisselen van gedeelde apparaten afhankelijk van deze koppeling.",
               "dashboard_language": "De taal die wordt gebruikt voor de inhoud van het dashboard en meldingen.",
               "mobile_notify_service": "Selecteer de notificatieservice of laat het veld leeg om notificaties uit te schakelen."
             }
@@ -986,7 +986,7 @@
       },
       "edit_user": {
         "title": "Gebruiker bewerken",
-        "description": "Wijzig de details van het geselecteerde gebruikersprofiel.\n\n ℹ️ [Configuratiehandleiding]({documentation_url})",
+        "description": "Wijzig de details van het geselecteerde gebruikersprofiel.\n\n{user_access_warning}\n\n ℹ️ [Configuratiehandleiding]({documentation_url})",
         "sections": {
           "section_identity_profile": {
             "name": "Identiteit en profiel",
@@ -999,7 +999,7 @@
             },
             "data_description": {
               "name": "Unieke naam voor dit gebruikersprofiel.",
-              "ha_user_id": "Optioneel: koppel dit profiel aan een Home Assistant-gebruiker.",
+              "ha_user_id": "Optioneel: Koppel dit profiel aan een Home Assistant-gebruiker. Als de kioskmodus is uitgeschakeld, zijn het claimen en inwisselen van gedeelde apparaten afhankelijk van deze koppeling.",
               "dashboard_language": "De taal die wordt gebruikt voor de inhoud van het dashboard en meldingen.",
               "mobile_notify_service": "Selecteer de notificatieservice of laat het veld leeg om notificaties uit te schakelen."
             }
@@ -1497,12 +1497,14 @@
       },
       "dashboard_missing_dependencies": {
         "title": "Wijzigingen in het dashboard bekijken",
-        "description": "Controleer de afhankelijkheidsstatus en sjabloonvoorkeuren voor uw geselecteerde sjablonen voordat u wijzigingen in het dashboard toepast.\n\n ℹ️ [Dashboardconfiguratiehandleiding]({documentation_url})\n\n**Beschikbare aanpassingen**\n{dashboard_template_preferences}\n\n**Ontbrekende vereiste afhankelijkheden**\n{dashboard_missing_required_dependencies}\n\n**Ontbrekende aanbevolen afhankelijkheden**\n{dashboard_missing_recommended_dependencies}",
+        "description": "Controleer de afhankelijkheidsstatus en sjabloonvoorkeuren voor uw geselecteerde sjablonen voordat u dashboardwijzigingen toepast.\n\n ℹ️ [Dashboardconfiguratiehandleiding]({documentation_url})\n\n**Beschikbare aanpassingen**\n{dashboard_template_preferences}\n\n**Ontbrekende vereiste afhankelijkheden**\n{dashboard_missing_required_dependencies}\n\n**Ontbrekende aanbevolen afhankelijkheden**\n{dashboard_missing_recommended_dependencies}\n\n**Waarschuwing toegangsbeheer**\n{dashboard_access_warning}",
         "data": {
-          "dashboard_dependency_bypass": "🚫 Toch doorgaan (vereisten ontbreken)"
+          "dashboard_dependency_bypass": "🚫 Toch doorgaan (vereisten ontbreken)",
+          "dashboard_access_warning_ack": "⚠️ Toch doorgaan (geselecteerde gebruikers zijn niet gekoppeld)"
         },
         "data_description": {
-          "dashboard_dependency_bypass": "Erken dat de vereiste afhankelijkheden ontbreken en ga desondanks verder. Het dashboard kan mogelijk niet correct worden weergegeven of onjuist functioneren totdat de vereiste afhankelijkheden zijn geïnstalleerd."
+          "dashboard_dependency_bypass": "Erken dat de vereiste afhankelijkheden ontbreken en ga desondanks verder. Het dashboard kan mogelijk niet correct worden weergegeven of onjuist functioneren totdat de vereiste afhankelijkheden zijn geïnstalleerd.",
+          "dashboard_access_warning_ack": "Houd er rekening mee dat sommige geselecteerde gebruikers geen gekoppelde Home Assistant-gebruikers hebben wanneer de kioskmodus is uitgeschakeld. De knoppen voor claimen en inwisselen werken mogelijk niet zoals verwacht op gedeelde apparaten totdat die gebruikers zijn gekoppeld of de kioskmodus is ingeschakeld."
         }
       },
       "dashboard_create": {
@@ -1834,6 +1836,7 @@
       "dashboard_admin_per_assignee_template_required": "Een beheerdersjabloon per gebruiker is vereist wanneer de beheerdersindeling 'Per gebruiker' bevat.",
       "dashboard_admin_per_assignee_needs_assignees": "Voor de beheerderslay-out per gebruiker is minimaal één geselecteerde gebruiker vereist.",
       "dashboard_dependency_ack_required": "Schakel 'Toch doorgaan' in om verder te gaan, of ga terug en installeer eerst de ontbrekende vereiste afhankelijkheden.",
+      "dashboard_access_warning_ack_required": "Bevestig de waarschuwing over toegangscontrole om verder te gaan, of ga terug en koppel de betreffende gebruikers of schakel de kioskmodus in.",
       "dashboard_nonselectable_templates": "Een of meer geselecteerde sjablonen kunnen niet worden gegenereerd.",
       "dashboard_release_strict_pin_failed": "De geselecteerde dashboardversie moet exact worden vastgezet, maar er was geen geldige versiereferentie beschikbaar tijdens de uitvoering. Selecteer de versie in stap 1 opnieuw en probeer het nogmaals.",
       "dashboard_release_asset_prep_failed": "Het lukt niet om de geselecteerde online dashboard-elementen voor te bereiden. Kies een andere versie of gebruik de nieuwste compatibele/actuele lokale sjablonen en probeer het opnieuw."
@@ -5083,6 +5086,12 @@
     },
     "dashboard_label_preferences_guide_not_provided": {
       "message": "Voorkeurenhandleiding niet beschikbaar"
+    },
+    "user_non_kiosk_unlinked_warning": {
+      "message": "⚠️ **Toegangswaarschuwing:** De kioskmodus is uitgeschakeld en deze gebruiker is niet gekoppeld aan een Home Assistant-gebruiker. De knoppen voor het claimen en inwisselen van gedeelde apparaten werken mogelijk niet voor deze gebruiker totdat u een Home Assistant-gebruiker koppelt of de kioskmodus inschakelt."
+    },
+    "dashboard_unlinked_users_warning": {
+      "message": "⚠️ De kioskmodus is uitgeschakeld en de volgende geselecteerde gebruikers hebben geen gekoppelde Home Assistant-gebruikers:\n{user_list}\n\nDe knoppen 'Claim' en 'Reserveer' werken mogelijk niet zoals verwacht op gedeelde apparaten totdat deze gebruikers zijn gekoppeld of de kioskmodus is ingeschakeld."
     },
     "not_authorized_action": {
       "message": "U bent niet gemachtigd om {action} namens deze toegewezen persoon uit te voeren."
