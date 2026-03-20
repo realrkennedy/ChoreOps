@@ -68,8 +68,8 @@ jobs:
               echo "::notice::Dedicated PR automation token detected. Translation PR automation will run."
             elif [ -n "$EFFECTIVE_PR_TOKEN" ]; then
               echo "run_pr_automation=true" >> "$GITHUB_OUTPUT"
-              echo "::warning::TRANSLATION_PR_TOKEN is not configured. Falling back to the default GitHub Actions token for translation PR automation."
-              echo "::notice::Translation PR creation and labeling will still run, but downstream workflows triggered by the automation branch or PR may be limited."
+              echo "::notice::Using the default GitHub Actions token for translation PR automation."
+              echo "::notice::Set TRANSLATION_PR_TOKEN to enable a dedicated PR automation token when needed."
             else
               echo "run_pr_automation=false" >> "$GITHUB_OUTPUT"
               echo "::warning::No GitHub token is available for translation PR automation. Crowdin sync will run, but the downloaded translations will not be committed automatically."
@@ -127,14 +127,14 @@ jobs:
           PR_TITLE: "chore(l10n): sync translations from Crowdin"
         run: |
           if ! git ls-remote --exit-code --heads origin "$L10N_BRANCH" >/dev/null 2>&1; then
-            echo "No translation branch found to open a PR from"
+            echo "Translation branch '$L10N_BRANCH' was not found; skipping translation PR creation"
             exit 0
           fi
 
           if git diff --quiet "origin/$TARGET_BRANCH" "origin/$L10N_BRANCH" -- \
             custom_components/choreops/translations \
             custom_components/choreops/translations_custom; then
-            echo "No translation changes to open a PR for"
+            echo "Translation PR is already up to date for '$TARGET_BRANCH'"
             exit 0
           fi
 
@@ -198,4 +198,4 @@ jobs:
       - name: Translation PR automation skipped
         if: steps.crowdin_preflight.outputs.run_crowdin == 'true' && steps.crowdin_preflight.outputs.run_pr_automation != 'true'
         run: |
-          echo "Translation PR automation skipped: TRANSLATION_PR_TOKEN is not configured yet."
+          echo "Translation PR automation skipped: no GitHub token is available."
