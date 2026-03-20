@@ -56,23 +56,23 @@
           "default_chore_points": "Standardmäßiger Punktewert verwendet, wenn eine Aufgabe erstellt wird, es sei denn, du legst für diese Aufgabe benutzerdefinierte Punkte fest.",
           "update_interval": "Wie oft sollen die Daten aktualisiert werden (Minimum: 1 Minute)",
           "calendar_show_period": "Tage des Verlaufs, die im Kalender angezeigt werden sollen (mindestens 1)",
-          "retention_daily": "Tage, um die täglichen Aggregate zu erfassen",
-          "retention_weekly": "Wochen, um wöchentliche Aggregate zu erfassen",
-          "retention_monthly": "Monate, um monatliche Aggregate zu erfassen",
-          "retention_yearly": "Jahre, um die jährlichen Aggregate zu erfassen",
+          "retention_daily": "Tage, um die tägliche Gesamtsumme zu erfassen",
+          "retention_weekly": "Wochen, um wöchentliche Gesamtsumme zu erfassen",
+          "retention_monthly": "Monate, um monatliche Gesamtsumme zu erfassen",
+          "retention_yearly": "Jahre, um jährliche Gesamtsumme zu erfassen",
           "points_adjust_values": "Durch Pipes getrennte Punktwerte für manuelle Einstellknöpfe (z. B. +1,0|-1,0|+10,0|-10,0)"
         }
       },
       "user_count": {
         "title": "Anzahl der Nutzer",
-        "description": "Wie viele Benutzer möchten Sie anfänglich definieren?",
+        "description": "Wie viele Benutzer möchtest du anfänglich definieren?",
         "data": {
           "user_count": "Anzahl der Nutzer"
         }
       },
       "users": {
         "title": "Benutzer definieren",
-        "description": "Geben Sie die Details für jedes Benutzerprofil ein.",
+        "description": "Gib die Details für jedes Benutzerprofil ein.",
         "sections": {
           "section_identity_profile": {
             "name": "Identität und Profil",
@@ -85,14 +85,14 @@
             },
             "data_description": {
               "name": "Eindeutiger Name für dieses Benutzerprofil.",
-              "ha_user_id": "Optional: Verknüpfen Sie dieses Profil mit einem Home Assistant-Benutzer.",
+              "ha_user_id": "Optional: Verknüpfen Sie dieses Profil mit einem Home Assistant-Benutzer. Wenn der Kioskmodus deaktiviert ist, basieren Aktionen zum Beanspruchen und Einlösen von gemeinsam genutzten Geräten auf dieser Verknüpfung.",
               "dashboard_language": "Sprache, die für Dashboard-Inhalte und Benachrichtigungen verwendet wird.",
-              "mobile_notify_service": "Wählen Sie einen Benachrichtigungsdienst aus oder lassen Sie das Feld leer, um Benachrichtigungen zu deaktivieren."
+              "mobile_notify_service": "Wähle einen Benachrichtigungsdienst aus oder lass das Feld leer, um Benachrichtigungen zu deaktivieren."
             }
           },
           "section_system_usage": {
             "name": "Systemnutzung",
-            "description": "Steuerungsmöglichkeiten für die normale Nutzung bei Hausarbeiten und Gamifizierung.",
+            "description": "Steuerungsmöglichkeiten für die normale Nutzung von Aufgaben und Gamifizierung.",
             "data": {
               "can_be_assigned": "Kann zugewiesen werden",
               "enable_chore_workflow": "Workflow aktiviert",
@@ -101,15 +101,15 @@
             "data_description": {
               "can_be_assigned": "Ermöglicht es, diesem Profil Aufgaben zuzuweisen.",
               "enable_chore_workflow": "Ermöglicht die Annahme/Ablehnung von Workflow-Aktionen für zugewiesene Aufgaben.",
-              "enable_gamification": "Ermöglicht das Sammeln von Punkten, Abzeichen und Belohnungen für die Teilnahme."
+              "enable_gamification": "Ermöglicht die Teilnahme an Punkten, Abzeichen und Belohnungen."
             }
           },
           "section_admin_approval": {
             "name": "Verwaltungs- und Genehmigungsoptionen",
-            "description": "Höherprivilegierte Genehmigungs- und Managementkontrollen.",
+            "description": "Genehmigungs- und Managementkontrollen mit höheren Berechtigungen.",
             "data": {
               "can_approve": "Kann genehmigen",
-              "can_manage": "Kann ich bewältigen",
+              "can_manage": "Kann verwalten",
               "associated_user_ids": "Zugehörige Benutzer"
             },
             "data_description": {
@@ -121,24 +121,24 @@
         }
       },
       "chore_count": {
-        "title": "Anzahl der Hausarbeiten",
-        "description": "Wie viele Hausarbeiten möchten Sie definieren?",
+        "title": "Anzahl der Aufgaben",
+        "description": "Wie viele Aufgaben möchtest du definieren?",
         "data": {
-          "chore_count": "Anzahl der Hausarbeiten"
+          "chore_count": "Anzahl der Aufgaben"
         }
       },
       "chores": {
-        "title": "Hausarbeit hinzufügen",
-        "description": "Geben Sie die Details für die neue Hausarbeit ein.",
+        "title": "Aufgabe hinzufügen",
+        "description": "Erstelle eine neue Aufgabe mit Punkten, Zuweisungen und einem wiederkehrenden Zeitplan.",
         "sections": {
           "section_root_form": {
             "name": "Definition",
-            "description": "Identität, Zuordnung und Kernvertragseinstellungen.",
+            "description": "Identität, Zuordnung und Kernvereinbarungseinstellungen.",
             "data": {
-              "name": "Name der Hausarbeit",
-              "chore_description": "Beschreibung (optional)",
-              "icon": "Symbol (mdi:xxx)",
-              "default_points": "Standard-Punkte",
+              "name": "📋 Name der Aufgabe",
+              "chore_description": "📋 Beschreibung (optional)",
+              "icon": "📋 Symbol (mdi:xxx)",
+              "default_points": "💰 Vergebene Punkte",
               "assigned_user_ids": "👥 Zugewiesen an",
               "completion_criteria": "👥 Abschlusskriterien"
             },
@@ -212,12 +212,12 @@
           "approval_reset_pending_claim_action": "➡️ Bearbeitung ausstehender Anträge nach Genehmigungs-Reset",
           "overdue_handling_type": "⏰ Überfällig: Bearbeitung",
           "chore_claim_lock_until_window": "🔒 Anspruch bis zum Fälligkeitstermin sperren?",
-          "auto_approve": "✅ Automatische Genehmigung von Schadensfällen?",
-          "recurring_frequency": "Wiederkehrende Häufigkeit",
-          "custom_interval": "Benutzerdefiniertes Intervall (nur verwenden, wenn benutzerdefinierte Häufigkeit gewählt ist)",
-          "custom_interval_unit": "Benutzerdefinierte wiederkehrende Periodizität",
-          "applicable_days": "Anwendbare Tage",
-          "due_date": "Fälligkeitsdatum",
+          "auto_approve": "✅ Automatische Genehmigung von Ansprüchen?",
+          "recurring_frequency": "🔄 Zeitplan: Häufigkeit",
+          "custom_interval": "🔄 Zeitplan: Benutzerdefiniertes Intervall (für benutzerdefinierte Frequenz)",
+          "custom_interval_unit": "🔄 Zeitplan: Benutzerdefinierte Intervalleinheit",
+          "applicable_days": "📅 Zeitplan: Anwendbare Tage (optional)",
+          "due_date": "📅 Zeitplan: Fälligkeitsdatum (optional)",
           "chore_due_window_offset": "⏱️ Fälligkeitszeitraum: Versatz vor dem Fälligkeitsdatum",
           "chore_due_reminder_offset": "🔔 Fälligkeitserinnerung: Verrechnung vor dem Fälligkeitsdatum",
           "show_on_calendar": "📅 Im Kalender anzeigen?",
@@ -226,48 +226,48 @@
         "data_description": {
           "name": "Eindeutiger Name, der im gesamten System angezeigt wird.",
           "chore_description": "Optionale Anweisungen oder Details zur Erledigung dieser Aufgabe.",
-          "icon": "Material Design Icon (z. B. mdi:broom, mdi:dishwasher).",
+          "icon": "Material Design Symbol (z. B. mdi:broom, mdi:dishwasher).",
           "chore_labels": "Schlagwörter zur Organisation von Aufgaben (z. B. „Küche“, „Garten“). Felder leer lassen, falls nicht benötigt.",
-          "default_points": "Punkte werden nach Abschluss gutgeschrieben.",
-          "assigned_user_ids": "Zugewiesene Personen, die diese Aufgabe sehen und übernehmen können.",
-          "completion_criteria": "Steuert, wie die Aufgabe erledigt wird, wenn mehrere Personen zugewiesen sind: individuelle Nachverfolgung, gemeinsame Erledigung oder turnusbasierte Rotation.",
+          "default_points": "Erhaltene Punkte nach Fertigstellung.",
+          "assigned_user_ids": "Zugewiesene Personen, die diese Aufgabe sehen und beanspruchen können.",
+          "completion_criteria": "Steuert, wie die Aufgabe erledigt wird, wenn mehrere Personen zugewiesen sind: individuelle Nachverfolgung, gemeinsame Erledigung oder wechselnde Rotation.",
           "approval_reset_type": "Steuert, wann die Genehmigungszyklusgrenze der Aufgabe ausgelöst wird (Mitternacht, Fälligkeitsdatum, nach Abschluss oder manueller Auslöser).",
-          "approval_reset_pending_claim_action": "Dies geschieht mit Anträgen, die noch auf Genehmigung warten, wenn der Genehmigungs-Reset erfolgt.",
-          "overdue_handling_type": "Vorgehensweise nach Ablauf der Frist: Überfälligen Status ausblenden, überfällig bis zur Inanspruchnahme beibehalten oder im nächsten Genehmigungszyklus auf ausstehend zurücksetzen.",
-          "chore_claim_lock_until_window": "Wenn diese Option aktiviert ist, können die Bearbeiter diese Aufgabe erst ab Beginn des Fälligkeitszeitraums beanspruchen.",
-          "auto_approve": "Wenn diese Funktion aktiviert ist, werden Anträge sofort und ohne Genehmigungsprüfung freigegeben.",
+          "approval_reset_pending_claim_action": "Dies geschieht mit Ansprüchen, die noch auf Genehmigung warten, wenn der Genehmigungs-Reset erfolgt.",
+          "overdue_handling_type": "Aktion nach dem Fälligkeitstermin: Status überfällig ausblenden, überfällig bis zur Inanspruchnahme beibehalten oder im nächsten Genehmigungszyklus auf ausstehend zurücksetzen.",
+          "chore_claim_lock_until_window": "Wenn diese Option aktiviert ist, können die zugewiesenen Personen diese Aufgabe nicht vor Beginn des Fälligkeitszeitraums beanspruchen.",
+          "auto_approve": "Wenn diese Funktion aktiviert ist, werden Ansprüche sofort und ohne Genehmigungsprüfung freigegeben.",
           "recurring_frequency": "Wie häufig die Aufgabe anfällt: Täglich, Wöchentlich, Monatlich, Jährlich, Benutzerdefiniert oder Keine.",
-          "custom_interval": "Anzahl der Zeiteinheiten zwischen den Wiederholungen (z. B. 3 für „alle 3 Wochen“). Wird nur bei benutzerdefinierter Frequenz verwendet.",
-          "custom_interval_unit": "Zeiteinheit für benutzerdefinierte Intervalle (Tage, Wochen, Monate). Nur bei benutzerdefinierter Frequenz verwendbar.",
-          "applicable_days": "Lassen Sie alle Felder leer. Wählen Sie NUR die gewünschten Tage aus, um die Einschränkung zu aktivieren.",
-          "due_date": "Optionale Frist. Kann mit wiederkehrenden Terminen kombiniert werden.",
-          "chore_due_window_offset": "Wenn sich der Status der Aufgabe von „Ausstehend“ auf „Fällig“ ändert. Format: „1d 6h 30m“ oder einfach „30“ für Minuten. Geben Sie „0“ ein, um die Funktion zu deaktivieren. Beispiel: „1d“ bedeutet, dass die Aufgabe einen Tag vor dem Fälligkeitstermin als „Fällig“ angezeigt wird.",
-          "chore_due_reminder_offset": "Wann soll die Erinnerungsbenachrichtigung versendet werden? Format: „1d 6h 30m“ oder einfach „30“ für Minuten. Standard: 30m (30 Minuten vor Fälligkeit). Geben Sie „0“ ein, um die Benachrichtigung zu deaktivieren.",
+          "custom_interval": "Anzahl der Zeiteinheiten zwischen den Wiederholungen (z. B. 3 für „alle 3 Wochen“). Wird nur bei benutzerdefinierter Häufigkeit verwendet.",
+          "custom_interval_unit": "Zeiteinheit für benutzerdefinierte Intervalle (Tage, Wochen, Monate). Nur bei benutzerdefinierter Häufigkeit verwendbar.",
+          "applicable_days": "Leer lassen für alle Tage. NUR auswählen, um auf bestimmte Tage einzuschränken.",
+          "due_date": "Optionale Frist. Kann mit wiederkehrenden Zeitplänen kombiniert werden.",
+          "chore_due_window_offset": "Wann sich der Status der Aufgabe von „Ausstehend“ auf „Fällig“ ändert. Format: „1d 6h 30m“ oder einfach „30“ für Minuten. Geben Sie „0“ ein, um die Funktion zu deaktivieren. Beispiel: „1d“ bedeutet, dass die Aufgabe einen Tag vor dem Fälligkeitstermin als „Fällig“ angezeigt wird.",
+          "chore_due_reminder_offset": "Wann die Erinnerungsbenachrichtigung versendet werden soll. Format: „1d 6h 30m“ oder einfach „30“ für Minuten. Standard: 30m (30 Minuten vor Fälligkeit). Gib „0“ ein, um die Benachrichtigung zu deaktivieren.",
           "show_on_calendar": "Diese Aufgabe in der Kalenderansicht anzeigen.",
-          "chore_notifications": "Wann Benachrichtigungen versendet werden sollen: Bei Antragstellung, bei Genehmigung, bei Ablehnung oder in beliebiger Kombination."
+          "chore_notifications": "Wann Benachrichtigungen versendet werden sollen: Bei Anspruch, bei Genehmigung, bei Ablehnung oder in beliebiger Kombination."
         }
       },
       "badge_count": {
         "title": "Anzahl der Abzeichen",
-        "description": "Wie viele Abzeichen möchten Sie definieren?",
+        "description": "Wie viele Abzeichen möchtest du definieren?",
         "data": {
           "badge_count": "Anzahl der Abzeichen"
         }
       },
       "badges": {
-        "title": "Abzeichen definieren",
-        "description": "Konfigurieren Sie die Details für ein kumulatives Abzeichen. Diese Abzeichen belohnen Empfänger für das Erreichen bestimmter Punktzahlen und unterstützen Wartungszyklen, um kontinuierliche Leistung zu fördern.\n\n ℹ️ [Konfigurationsanleitung]({documentation_url})",
+        "title": "Kumulatives Abzeichen hinzufügen",
+        "description": "Konfiguriere die Details für ein kumulatives Abzeichen. Diese Abzeichen belohnen Empfänger für das Erreichen bestimmter Punktzahlen und unterstützen Aufrechterhaltungszyklen, um kontinuierliche Leistung zu fördern.\n\n ℹ️ [Konfigurationsanleitung]({documentation_url})",
         "data": {
           "badge_name": "Abzeichenname",
-          "badge_description": "Beschreibung (optional)",
-          "badge_labels": "Abzeichen-Etiketten",
-          "icon": "Symbol (mdi:xxx)",
+          "badge_description": "Abzeichenbeschreibung (optional)",
+          "badge_labels": "Label (Optional)",
+          "icon": "Abzeichensymbol (mdi:xxx)",
           "target_type": "🎯 ZIEL: Zieltyp",
-          "threshold_value": "Schwellenwert",
-          "maintenance_rules": "Mindestaufrechterhaltungspunkte",
-          "occasion_type": "Art des Anlasses",
-          "associated_achievement": "Zugehörige Errungenschaft",
-          "selected_chores": "🧹 Erfasste Aufgaben (optional)",
+          "threshold_value": "🎯 ZIEL: Schwellenwert",
+          "maintenance_rules": "🎯 ZIEL: Aufrechterhaltungspunkte (optional)",
+          "occasion_type": "🎉 Anlassart",
+          "associated_achievement": "🏆 Zugehöriger Erfolg",
+          "selected_chores": "🧹 Verfolgte Aufgaben (optional)",
           "assigned_user_ids": "🧒 Zugewiesen an",
           "award_items": "🎁 AUSZEICHNUNGEN: Punkte, Prämien, Boni, Multiplikator auswählen (optional)",
           "award_points": "Punkte vergeben",
@@ -342,44 +342,44 @@
       },
       "bonus_count": {
         "title": "Anzahl der Boni",
-        "description": "Wie viele Boni möchten Sie definieren?",
+        "description": "Wie viele Boni möchtest du definieren?",
         "data": {
           "bonus_count": "Anzahl der Boni"
         }
       },
       "bonuses": {
         "title": "Bonus definieren",
-        "description": "Geben Sie Details für jeden Bonus ein.",
+        "description": "Gib Details für jeden Bonus ein.",
         "data": {
           "name": "Bonusname",
           "bonus_description": "Beschreibung (optional)",
-          "bonus_labels": "Bonus-Etiketten",
+          "bonus_labels": "Bonus-Label",
           "internal_id": "Interne ID",
           "bonus_points": "Bonuspunkte",
           "icon": "Symbol (mdi:xxx)"
         }
       },
       "achievement_count": {
-        "title": "Anzahl der Errungenschaften",
-        "description": "Wie viele Errungenschaften möchten Sie definieren?",
+        "title": "Anzahl der Erfolge",
+        "description": "Wie viele Erfolge möchtest du definieren?",
         "data": {
-          "achievement_count": "Anzahl der Errungenschaften"
+          "achievement_count": "Anzahl der Erfolge"
         }
       },
       "achievements": {
-        "title": "Errungenschaft definieren",
-        "description": "Geben Sie Details für jede Errungenschaft ein.",
+        "title": "Erfolge definieren",
+        "description": "Gib Details für jeden Erfolg ein.",
         "data": {
-          "name": "Name der Errungenschaft",
+          "name": "Name des Erfolgs",
           "description": "Beschreibung (optional)",
-          "achievement_labels": "Errungenschaft-Etiketten",
+          "achievement_labels": "Erfolgslabel",
           "icon": "Symbol (mdi:xxx)",
           "assigned_user_ids": "Zugewiesen an",
-          "type": "Art der Errungenschaft",
-          "selected_chore_id": "Zugehörige Hausarbeit auswählen",
+          "type": "Art des Erfolgs",
+          "selected_chore_id": "Zugehörige Aufgabe auswählen",
           "criteria": "Kriterien (optional)",
-          "target_value": "Zielwert für die Errungenschaft",
-          "reward_points": "Extrapunkte für das Erreichen der Errungenschaft",
+          "target_value": "Erfolgsziel",
+          "reward_points": "Extrapunkte für das Erreichen des Erfolgs",
           "internal_id": "Interne ID"
         }
       },
@@ -555,7 +555,7 @@
       },
       "add_user": {
         "title": "Benutzer hinzufügen",
-        "description": "Geben Sie die Details für das neue Benutzerprofil an.\n\n ℹ️ [Konfigurationsanleitung]({documentation_url})",
+        "description": "Geben Sie die Details für das neue Benutzerprofil an.\n\n{user_access_warning}\n\n ℹ️ [Konfigurationsanleitung]({documentation_url})",
         "sections": {
           "section_identity_profile": {
             "name": "Identität und Profil",
@@ -568,7 +568,7 @@
             },
             "data_description": {
               "name": "Eindeutiger Name für dieses Benutzerprofil.",
-              "ha_user_id": "Optional: Verknüpfen Sie dieses Profil mit einem Home Assistant-Benutzer.",
+              "ha_user_id": "Optional: Verknüpfen Sie dieses Profil mit einem Home Assistant-Benutzer. Wenn der Kioskmodus deaktiviert ist, basieren Aktionen zum Beanspruchen und Einlösen von gemeinsam genutzten Geräten auf dieser Verknüpfung.",
               "dashboard_language": "Sprache, die für Dashboard-Inhalte und Benachrichtigungen verwendet wird.",
               "mobile_notify_service": "Wählen Sie einen Benachrichtigungsdienst aus oder lassen Sie das Feld leer, um Benachrichtigungen zu deaktivieren."
             }
@@ -986,7 +986,7 @@
       },
       "edit_user": {
         "title": "Benutzer bearbeiten",
-        "description": "Ändern Sie die Details des ausgewählten Benutzerprofils.\n\n ℹ️ [Konfigurationsanleitung]({documentation_url})",
+        "description": "Ändern Sie die Details des ausgewählten Benutzerprofils.\n\n{user_access_warning}\n\n ℹ️ [Konfigurationsanleitung]({documentation_url})",
         "sections": {
           "section_identity_profile": {
             "name": "Identität und Profil",
@@ -999,7 +999,7 @@
             },
             "data_description": {
               "name": "Eindeutiger Name für dieses Benutzerprofil.",
-              "ha_user_id": "Optional: Verknüpfen Sie dieses Profil mit einem Home Assistant-Benutzer.",
+              "ha_user_id": "Optional: Verknüpfen Sie dieses Profil mit einem Home Assistant-Benutzer. Wenn der Kioskmodus deaktiviert ist, basieren Aktionen zum Beanspruchen und Einlösen von gemeinsam genutzten Geräten auf dieser Verknüpfung.",
               "dashboard_language": "Sprache, die für Dashboard-Inhalte und Benachrichtigungen verwendet wird.",
               "mobile_notify_service": "Wählen Sie einen Benachrichtigungsdienst aus oder lassen Sie das Feld leer, um Benachrichtigungen zu deaktivieren."
             }
@@ -1497,12 +1497,14 @@
       },
       "dashboard_missing_dependencies": {
         "title": "Änderungen im Dashboard überprüfen",
-        "description": "Überprüfen Sie den Abhängigkeitsstatus und die Vorlageneinstellungen Ihrer ausgewählten Vorlagen, bevor Sie Dashboard-Änderungen anwenden.\n\n ℹ️ [Dashboard-Konfigurationsleitfaden]({documentation_url})\n\n**Verfügbare Anpassungen**\n{dashboard_template_preferences}\n\n**Fehlende erforderliche Abhängigkeiten**\n{dashboard_missing_required_dependencies}\n\n**Fehlende empfohlene Abhängigkeiten**\n{dashboard_missing_recommended_dependencies}",
+        "description": "Überprüfen Sie den Abhängigkeitsstatus und die Vorlageneinstellungen Ihrer ausgewählten Vorlagen, bevor Sie Dashboard-Änderungen anwenden.\n\n ℹ️ [Dashboard-Konfigurationsleitfaden]({documentation_url})\n\n**Verfügbare Anpassungen**\n{dashboard_template_preferences}\n\n**Fehlende erforderliche Abhängigkeiten**\n{dashboard_missing_required_dependencies}\n\n**Fehlende empfohlene Abhängigkeiten**\n{dashboard_missing_recommended_dependencies}\n\n**Warnung zur Zugriffskontrolle**\n{dashboard_access_warning}",
         "data": {
-          "dashboard_dependency_bypass": "🚫 Trotzdem fortfahren (Voraussetzungen fehlen)"
+          "dashboard_dependency_bypass": "🚫 Trotzdem fortfahren (Voraussetzungen fehlen)",
+          "dashboard_access_warning_ack": "⚠️ Trotzdem fortfahren (ausgewählte Benutzer sind nicht verknüpft)"
         },
         "data_description": {
-          "dashboard_dependency_bypass": "Beachten Sie, dass erforderliche Abhängigkeiten fehlen, und fahren Sie trotzdem fort. Das Dashboard wird möglicherweise nicht korrekt angezeigt oder verhält sich fehlerhaft, bis die erforderlichen Abhängigkeiten installiert sind."
+          "dashboard_dependency_bypass": "Beachten Sie, dass erforderliche Abhängigkeiten fehlen, und fahren Sie trotzdem fort. Das Dashboard wird möglicherweise nicht korrekt angezeigt oder verhält sich fehlerhaft, bis die erforderlichen Abhängigkeiten installiert sind.",
+          "dashboard_access_warning_ack": "Beachten Sie, dass bei einigen ausgewählten Nutzern keine Home Assistant-Benutzer verknüpft sind, solange der Kioskmodus deaktiviert ist. Die Schaltflächen zum Beanspruchen und Einlösen funktionieren auf gemeinsam genutzten Geräten möglicherweise nicht wie erwartet, bis diese Benutzer verknüpft oder der Kioskmodus aktiviert ist."
         }
       },
       "dashboard_create": {
@@ -1834,6 +1836,7 @@
       "dashboard_admin_per_assignee_template_required": "Die Administratorvorlage pro Benutzer ist erforderlich, wenn das Administratorlayout die Option „Pro Benutzer“ enthält.",
       "dashboard_admin_per_assignee_needs_assignees": "Für das benutzerbasierte Admin-Layout ist mindestens ein ausgewählter Benutzer erforderlich.",
       "dashboard_dependency_ack_required": "Aktivieren Sie „Trotzdem fortfahren“, um fortzufahren, oder gehen Sie zurück und installieren Sie zuerst die fehlenden erforderlichen Abhängigkeiten.",
+      "dashboard_access_warning_ack_required": "Bestätigen Sie die Warnung zur Zugriffskontrolle, um fortzufahren, oder gehen Sie zurück und verknüpfen Sie die betroffenen Benutzer oder aktivieren Sie den Kioskmodus.",
       "dashboard_nonselectable_templates": "Eine oder mehrere ausgewählte Vorlagen können nicht generiert werden.",
       "dashboard_release_strict_pin_failed": "Die ausgewählte Dashboard-Version muss exakt festgelegt werden, jedoch war zum Zeitpunkt der Ausführung keine gültige Versionsreferenz verfügbar. Wählen Sie die Version in Schritt 1 erneut aus und versuchen Sie es noch einmal.",
       "dashboard_release_asset_prep_failed": "Die ausgewählten Online-Dashboard-Elemente konnten nicht vorbereitet werden. Wählen Sie eine andere Version oder verwenden Sie die neuesten kompatiblen/aktuellen lokalen Vorlagen und versuchen Sie es erneut."
@@ -5083,6 +5086,12 @@
     },
     "dashboard_label_preferences_guide_not_provided": {
       "message": "Präferenzleitfaden nicht verfügbar"
+    },
+    "user_non_kiosk_unlinked_warning": {
+      "message": "⚠️ **Zugriffshinweis:** Der Kioskmodus ist deaktiviert und dieser Benutzer ist keinem Home Assistant-Benutzer zugeordnet. Die Schaltflächen zum Einlösen und Anfordern von gemeinsam genutzten Geräten funktionieren für diesen Benutzer möglicherweise erst, nachdem Sie einen Home Assistant-Benutzer zugeordnet oder den Kioskmodus aktiviert haben."
+    },
+    "dashboard_unlinked_users_warning": {
+      "message": "⚠️ Der Kioskmodus ist deaktiviert und diese ausgewählten Benutzer haben keine verknüpften Home Assistant-Benutzer:\n{user_list}\n\nDie Schaltflächen „Anfordern“ und „Einlösen“ funktionieren auf gemeinsam genutzten Geräten möglicherweise nicht wie erwartet, bis diese Benutzer verknüpft sind oder der Kioskmodus aktiviert ist."
     },
     "not_authorized_action": {
       "message": "Sie sind nicht berechtigt, für diesen Beauftragten {action} zu verwenden."

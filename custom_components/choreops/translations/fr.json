@@ -3,7 +3,7 @@
   "config": {
     "step": {
       "intro": {
-        "title": "Bienvenue chez ChoreOps",
+        "title": "Bienvenue sur ChoreOps",
         "description": "Cet assistant vous guidera tout au long de la configuration de ChoreOps.\n\n ℹ️ [Guide de démarrage rapide]({documentation_url})"
       },
       "data_recovery": {
@@ -55,7 +55,7 @@
           "points_icon": "Icône MDI pour les points (ex. : « mdi:star », « mdi:coin », « mdi:trophy »)",
           "default_chore_points": "Valeur de points par défaut utilisée lors de la création d'une tâche, sauf si des points personnalisés sont définis.",
           "update_interval": "Fréquence de mise à jour des données (minimum : 1 minute)",
-          "calendar_show_period": "Jours historiques à afficher dans le calendrier (minimum 1)",
+          "calendar_show_period": "Jours d'historiques à afficher dans le calendrier (minimum 1)",
           "retention_daily": "Jours pour conserver les agrégats quotidiens",
           "retention_weekly": "Semaines pour conserver les agrégats hebdomadaires",
           "retention_monthly": "Mois pour conserver les agrégats mensuels",
@@ -85,7 +85,7 @@
             },
             "data_description": {
               "name": "Nom unique pour ce profil utilisateur.",
-              "ha_user_id": "Facultatif : Liez ce profil à un utilisateur Home Assistant.",
+              "ha_user_id": "Facultatif : associez ce profil à un utilisateur Home Assistant. Si le mode kiosque est désactivé, les actions de revendication et d’utilisation d’appareils partagés dépendent de cette association.",
               "dashboard_language": "Langue utilisée pour le contenu du tableau de bord et les notifications.",
               "mobile_notify_service": "Sélectionnez un service de notification ou laissez vide pour désactiver les notifications."
             }
@@ -96,7 +96,7 @@
             "data": {
               "can_be_assigned": "Peut être attribué",
               "enable_chore_workflow": "Flux de travail activé",
-              "enable_gamification": "La gamification a permis"
+              "enable_gamification": "Activer la ludification"
             },
             "data_description": {
               "can_be_assigned": "Permet d'attribuer des tâches à ce profil.",
@@ -113,8 +113,8 @@
               "associated_user_ids": "Utilisateurs associés"
             },
             "data_description": {
-              "can_approve": "Permet les actions d'approbation et de désapprobation.",
-              "can_manage": "Autorise les actions de gestion nécessitant des autorisations élevées.",
+              "can_approve": "Permet les actions d'approbation et de refus.",
+              "can_manage": "Autorise la gestion d'actions demandant une permission élevé",
               "associated_user_ids": "Utilisateurs supervisés par cet approbateur/administrateur pour les actions d'approbation."
             }
           }
@@ -152,17 +152,17 @@
             }
           },
           "section_schedule": {
-            "name": "Calendrier",
+            "name": "Programmation",
             "description": "Paramètres de programmation, de fenêtre d'accès et d'intervalle de récurrence.",
             "data": {
-              "recurring_frequency": "🔄 Horaire : Fréquence",
-              "due_date": "📅 Calendrier : Date d’échéance (facultatif)",
-              "clear_due_date": "🗑️ Date d'échéance claire",
-              "applicable_days": "📅 Calendrier : Jours concernés (facultatif)",
+              "recurring_frequency": "🔄 Programmation : Fréquence",
+              "due_date": "📅 Programmation : Date d’échéance (facultatif)",
+              "clear_due_date": "🗑️ Date d'effacement",
+              "applicable_days": "📅 Programmation: Jours concernés (facultatif)",
               "chore_due_window_offset": "⏱️ Délai d'échéance : Décalage avant la date d'échéance",
               "chore_claim_lock_until_window": "🔒 Verrouiller la réclamation jusqu'à l'ouverture de la période d'échéance ?",
               "custom_interval": "🔄 Programmation : Intervalle personnalisé (pour une fréquence personnalisée)",
-              "custom_interval_unit": "🔄 Programme : Unité d’intervalle personnalisée"
+              "custom_interval_unit": "🔄 Programmation : Unité d’intervalle personnalisée"
             },
             "data_description": {
               "recurring_frequency": "Fréquence de répétition de la tâche : Quotidienne, Hebdomadaire, Mensuelle, Annuelle, Personnalisée ou Aucune.",
@@ -190,7 +190,7 @@
             },
             "data_description": {
               "approval_reset_type": "Contrôle le déclenchement du cycle d'approbation de la tâche (minuit, date d'échéance, à l'achèvement ou déclenchement manuel).",
-              "approval_reset_pending_claim_action": "Voici ce qui arrive aux demandes d'indemnisation toujours en attente d'approbation lors de la réinitialisation du processus d'approbation.",
+              "approval_reset_pending_claim_action": "Voici ce qui arrive aux réclamations toujours en attente d'approbation lors de la réinitialisation des approbations.",
               "auto_approve": "Lorsqu'elle est activée, cette option permet d'approuver instantanément les demandes sans examen par un approbateur.",
               "overdue_handling_type": "Actions à entreprendre après la date d'échéance : Masquer le statut de retard, maintenir le statut de retard jusqu'à ce que la demande soit réclamée, ou réinitialiser le statut à « en attente » lors du prochain cycle d'approbation.",
               "chore_due_reminder_offset": "Quand envoyer la notification de rappel d'échéance ? Format : « 1j 6h 30m » ou simplement « 30 » pour les minutes. Par défaut : 30 min (30 minutes avant l'échéance). Saisissez « 0 » pour désactiver.",
@@ -213,11 +213,11 @@
           "overdue_handling_type": "⏰ En retard : Traitement",
           "chore_claim_lock_until_window": "🔒 Verrouiller la réclamation jusqu'à l'ouverture de la période d'échéance ?",
           "auto_approve": "✅ Approbation automatique des demandes ?",
-          "recurring_frequency": "🔄 Horaire : Fréquence",
+          "recurring_frequency": "🔄 Programmation : Fréquence",
           "custom_interval": "🔄 Programmation : Intervalle personnalisé (pour une fréquence personnalisée)",
-          "custom_interval_unit": "🔄 Programme : Unité d’intervalle personnalisée",
-          "applicable_days": "📅 Calendrier : Jours concernés (facultatif)",
-          "due_date": "📅 Calendrier : Date d’échéance (facultatif)",
+          "custom_interval_unit": "🔄 Programmation : Unité d’intervalle personnalisée",
+          "applicable_days": "📅 Programmation : Jours concernés (facultatif)",
+          "due_date": "📅 Programmation : Date d’échéance (facultatif)",
           "chore_due_window_offset": "⏱️ Délai d'échéance : Décalage avant la date d'échéance",
           "chore_due_reminder_offset": "🔔 Rappel d'échéance : Effectuez votre compensation avant la date d'échéance",
           "show_on_calendar": "📅 Afficher dans le calendrier ?",
@@ -232,7 +232,7 @@
           "assigned_user_ids": "Personnes désignées qui peuvent voir et revendiquer cette tâche.",
           "completion_criteria": "Contrôle la manière dont la tâche est effectuée lorsque plusieurs personnes sont désignées : suivi individuel, exécution partagée ou rotation à tour de rôle.",
           "approval_reset_type": "Contrôle le déclenchement du cycle d'approbation de la tâche (minuit, date d'échéance, à l'achèvement ou déclenchement manuel).",
-          "approval_reset_pending_claim_action": "Voici ce qui arrive aux demandes d'indemnisation toujours en attente d'approbation lors de la réinitialisation du processus d'approbation.",
+          "approval_reset_pending_claim_action": "Voici ce qui arrive aux réclamations toujours en attente d'approbation lors de la réinitialisation du processus d'approbation.",
           "overdue_handling_type": "Actions à entreprendre après la date d'échéance : Masquer le statut de retard, maintenir le statut de retard jusqu'à ce que la demande soit réclamée, ou réinitialiser le statut à « en attente » lors du prochain cycle d'approbation.",
           "chore_claim_lock_until_window": "Lorsque cette option est activée, les personnes assignées ne peuvent pas prendre en charge cette tâche avant le début de la période d'échéance.",
           "auto_approve": "Lorsqu'elle est activée, cette option permet d'approuver instantanément les demandes sans examen par un approbateur.",
@@ -272,12 +272,12 @@
           "award_items": "🎁 RÉCOMPENSES : Points, Récompenses, Bonus, Multiplicateur (Optionnel)",
           "award_points": "🎁 RÉCOMPENSES : Points attribués (facultatif)",
           "points_multiplier": "🎁 RÉCOMPENSES : Multiplicateur de points (Par défaut 💎 1,0x)",
-          "recurring_frequency": "🔄 CYCLE D'ENTRETIEN : Fréquence",
-          "custom_interval": "🔄 CYCLE D'ENTRETIEN : Intervalle personnalisé (requis pour une fréquence personnalisée)",
-          "custom_interval_unit": "🔄 CYCLE DE MAINTENANCE : Unité d’intervalle personnalisée (requise pour une fréquence personnalisée)",
-          "start_date": "🔄 RÉINITIALISER LE CYCLE : Date de début (facultatif)",
-          "end_date": "🔄 CYCLE DE MAINTENANCE : Date de fin (facultatif)",
-          "grace_period_days": "🔄 CYCLE DE MAINTENANCE : Délai de grâce en jours (facultatif)"
+          "recurring_frequency": "🔄 Programmation : Fréquence",
+          "custom_interval": "🔄 Programmation : Intervalle personnalisé (requis pour une fréquence personnalisée)",
+          "custom_interval_unit": "🔄 Programmation : Unité d’intervalle personnalisée (requise pour une fréquence personnalisée)",
+          "start_date": "🔄 Reset du cycle : Date de début (facultatif)",
+          "end_date": "🔄 Programmation : Date de fin (facultatif)",
+          "grace_period_days": "🔄 Programmation : Délai de grâce en jours (facultatif)"
         },
         "data_description": {
           "badge_name": "Saisissez un nom unique pour le badge. Ce nom sera affiché dans le système.",
@@ -297,7 +297,7 @@
           "recurring_frequency": "Activez le cycle de maintenance, exigeant que le nombre minimum de points spécifié soit atteint avant la fin de la période (par exemple, hebdomadaire, mensuel).",
           "custom_interval": "Indiquez le NOMBRE de jours, de semaines, de mois, etc. pour la fréquence personnalisée (par exemple, 3 si vous définissez 3 semaines). Ceci s'applique uniquement à la fréquence personnalisée.",
           "custom_interval_unit": "Sélectionnez l'unité de l'intervalle personnalisé (par exemple, jours, semaines). S'applique uniquement à la fréquence personnalisée.",
-          "start_date": "Définissez la date de début (facultatif).",
+          "start_date": "Sélectionnez la date de début (facultatif).",
           "end_date": "Sélectionnez la date de fin du cycle de maintenance. (facultatif).",
           "grace_period_days": "Indiquez le nombre de jours supplémentaires après la fin du cycle pour que les personnes affectées puissent accumuler les points requis avant une rétrogradation. (facultatif)."
         }
@@ -344,7 +344,7 @@
         "title": "Nombre de bonus",
         "description": "Combien de bonus souhaitez-vous définir ?",
         "data": {
-          "bonus_count": "Les bonus comptent"
+          "bonus_count": "Décompte des bonus"
         }
       },
       "bonuses": {
@@ -360,26 +360,26 @@
         }
       },
       "achievement_count": {
-        "title": "Nombre de réalisations",
+        "title": "Nombre de succès",
         "description": "Combien de réalisations souhaitez-vous définir ?",
         "data": {
-          "achievement_count": "Nombre de réalisations"
+          "achievement_count": "Nombre de succès"
         }
       },
       "achievements": {
-        "title": "Définir la réussite",
-        "description": "Saisissez les détails de chaque réalisation.",
+        "title": "Définir le succès",
+        "description": "Saisissez les détails de chaque succès.",
         "data": {
           "name": "Nom du succès",
           "description": "Description (facultatif)",
-          "achievement_labels": "Étiquettes de réussite",
+          "achievement_labels": "Étiquettes de succès",
           "icon": "Icône (mdi:xxx)",
           "assigned_user_ids": "Affecté à",
-          "type": "Type de réalisation",
+          "type": "Type de succès",
           "selected_chore_id": "Sélectionner la tâche associée",
           "criteria": "Critères (facultatif)",
-          "target_value": "Objectif de réalisation",
-          "reward_points": "Points bonus pour avoir accompli la mission",
+          "target_value": "Objectif de succès",
+          "reward_points": "Points bonus pour avoir accompli le succès",
           "internal_id": "ID interne"
         }
       },
@@ -387,7 +387,7 @@
         "title": "Nombre de défis",
         "description": "Combien de défis souhaitez-vous définir ?",
         "data": {
-          "challenge_count": "Défi du nombre"
+          "challenge_count": "Décompte du défi"
         }
       },
       "challenges": {
@@ -402,7 +402,7 @@
           "type": "Type de défi",
           "selected_chore_id": "Sélectionnez la tâche associée au défi (facultatif)",
           "criteria": "Critères (facultatif)",
-          "target_value": "Défis Cible",
+          "target_value": "Cible du défi",
           "reward_points": "Points bonus pour avoir relevé le défi",
           "start_date": "Date de début",
           "end_date": "Date de fin",
@@ -417,7 +417,7 @@
     "error": {
       "a_chore_must_be_selected": "Une tâche doit être sélectionnée",
       "badge_requires_assignment": "Au moins une personne doit être affectée à ce badge.",
-      "error_badge_achievement_required": "Une réalisation doit être sélectionnée pour les badges liés aux réalisations.",
+      "error_badge_achievement_required": "Une réalisation doit être sélectionnée pour les badges liés aux succès.",
       "error_badge_occasion_type_required": "Un type d'occasion est requis pour les badges d'occasions spéciales.",
       "target_threshold_required": "Un seuil cible est requis",
       "invalid_maintenance_rules": "La valeur des règles de maintenance est invalide.",
@@ -432,7 +432,7 @@
       "duplicate_badge": "Un badge portant ce nom existe déjà.",
       "duplicate_challenge": "Un défi portant ce nom existe déjà.",
       "duplicate_chore": "Il existe déjà une tâche portant ce nom",
-      "duplicate_assignee": "Un cessionnaire portant ce nom existe déjà.",
+      "duplicate_assignee": "Une personne portant ce nom existe déjà.",
       "duplicate_approver": "Un utilisateur portant ce nom existe déjà.",
       "duplicate_penalty": "Une sanction portant ce nom existe déjà.",
       "duplicate_reward": "Une récompense portant ce nom existe déjà.",
@@ -466,8 +466,8 @@
       "invalid_due_date": "Date d'échéance invalide",
       "date_required_for_frequency": "Une date d'échéance est requise pour cette fréquence récurrente. L'option « Date d'échéance » ne fonctionne qu'avec les fréquences « Aucune » ou « Quotidienne ».",
       "invalid_end_date": "Date de fin invalide.",
-      "invalid_assignee_count": "Nombre de bénéficiaires invalide",
-      "invalid_assignee_name": "Nom du bénéficiaire invalide",
+      "invalid_assignee_count": "Nombre personne invalide",
+      "invalid_assignee_name": "Nom de la personne invalide",
       "invalid_user_count": "Nombre d'utilisateurs invalide",
       "invalid_approver_name": "Nom d'utilisateur invalide",
       "no_assignees_assigned": "Au moins une personne doit être affectée à cette tâche.",
@@ -555,7 +555,7 @@
       },
       "add_user": {
         "title": "Ajouter un utilisateur",
-        "description": "Veuillez fournir les informations nécessaires au nouveau profil utilisateur.\n\n ℹ️ [Guide de configuration]({documentation_url})",
+        "description": "Veuillez fournir les informations du nouveau profil utilisateur.\n\n{user_access_warning}\n\n ℹ️ [Guide de configuration]({documentation_url})",
         "sections": {
           "section_identity_profile": {
             "name": "Identité et profil",
@@ -568,7 +568,7 @@
             },
             "data_description": {
               "name": "Nom unique pour ce profil utilisateur.",
-              "ha_user_id": "Facultatif : Liez ce profil à un utilisateur Home Assistant.",
+              "ha_user_id": "Facultatif : associez ce profil à un utilisateur Home Assistant. Si le mode kiosque est désactivé, les actions de revendication et d’utilisation d’appareils partagés dépendent de cette association.",
               "dashboard_language": "Langue utilisée pour le contenu du tableau de bord et les notifications.",
               "mobile_notify_service": "Sélectionnez un service de notification ou laissez vide pour désactiver les notifications."
             }
@@ -579,7 +579,7 @@
             "data": {
               "can_be_assigned": "Peut être attribué",
               "enable_chore_workflow": "Flux de travail activé",
-              "enable_gamification": "La gamification a permis"
+              "enable_gamification": "Activer la ludification"
             },
             "data_description": {
               "can_be_assigned": "Permet d'attribuer des tâches à ce profil.",
@@ -631,14 +631,14 @@
             "name": "Calendrier",
             "description": "Paramètres de programmation, de fenêtre d'accès et d'intervalle de récurrence.",
             "data": {
-              "recurring_frequency": "🔄 Horaire : Fréquence",
-              "due_date": "📅 Calendrier : Date d’échéance (facultatif)",
-              "clear_due_date": "🗑️ Date d'échéance claire",
-              "applicable_days": "📅 Calendrier : Jours concernés (facultatif)",
+              "recurring_frequency": "🔄 Programmation : Fréquence",
+              "due_date": "📅 Programmation : Date d’échéance (facultatif)",
+              "clear_due_date": "🗑️ Effacement de la date d'échéance",
+              "applicable_days": "📅 Programmation : Jours concernés (facultatif)",
               "chore_due_window_offset": "⏱️ Délai d'échéance : Décalage avant la date d'échéance",
               "chore_claim_lock_until_window": "🔒 Verrouiller la réclamation jusqu'à l'ouverture de la période d'échéance ?",
               "custom_interval": "🔄 Programmation : Intervalle personnalisé (pour une fréquence personnalisée)",
-              "custom_interval_unit": "🔄 Programme : Unité d’intervalle personnalisée"
+              "custom_interval_unit": "🔄 Programmation : Unité d’intervalle personnalisée"
             },
             "data_description": {
               "recurring_frequency": "Fréquence de la tâche : Quotidienne, Hebdomadaire, Mensuelle, Annuelle, Personnalisée ou Aucune. Si vous sélectionnez « Quotidienne – Plusieurs fois par jour », un écran supplémentaire s’affichera pour configurer les horaires précis.",
@@ -689,12 +689,12 @@
           "overdue_handling_type": "⏰ En retard : Traitement",
           "chore_claim_lock_until_window": "🔒 Verrouiller la réclamation jusqu'à l'ouverture de la période d'échéance ?",
           "auto_approve": "✅ Approbation automatique des demandes ?",
-          "recurring_frequency": "🔄 Horaire : Fréquence",
+          "recurring_frequency": "🔄 Programmation : Fréquence",
           "custom_interval": "🔄 Programmation : Intervalle personnalisé (pour une fréquence personnalisée)",
-          "custom_interval_unit": "🔄 Programme : Unité d’intervalle personnalisée",
-          "applicable_days": "📅 Calendrier : Jours concernés (facultatif)",
-          "due_date": "📅 Calendrier : Date d’échéance (facultatif)",
-          "clear_due_date": "🗑️ Date d'échéance claire",
+          "custom_interval_unit": "🔄 Programmation : Unité d’intervalle personnalisée",
+          "applicable_days": "📅 Programmation : Jours concernés (facultatif)",
+          "due_date": "📅 Programmation : Date d’échéance (facultatif)",
+          "clear_due_date": "Effacement de la date d'échéance",
           "chore_due_window_offset": "⏱️ Délai d'échéance : Décalage avant la date d'échéance",
           "chore_due_reminder_offset": "🔔 Rappel d'échéance : Effectuez votre compensation avant la date d'échéance",
           "show_on_calendar": "📅 Afficher dans le calendrier ?",
@@ -750,12 +750,12 @@
           "award_items": "🎁 RÉCOMPENSES : Points, Récompenses, Bonus, Multiplicateur (Optionnel)",
           "award_points": "🎁 RÉCOMPENSES : Points attribués (facultatif)",
           "points_multiplier": "🎁 RÉCOMPENSES : Multiplicateur de points (Par défaut 💎 1,0x)",
-          "recurring_frequency": "🔄 CYCLE D'ENTRETIEN : Fréquence",
-          "custom_interval": "🔄 CYCLE D'ENTRETIEN : Intervalle personnalisé (requis pour une fréquence personnalisée)",
-          "custom_interval_unit": "🔄 CYCLE DE MAINTENANCE : Unité d’intervalle personnalisée (requise pour une fréquence personnalisée)",
-          "start_date": "🔄 RÉINITIALISER LE CYCLE : Date de début (facultatif)",
-          "end_date": "🔄 CYCLE DE MAINTENANCE : Date de fin (facultatif)",
-          "grace_period_days": "🔄 CYCLE DE MAINTENANCE : Délai de grâce en jours (facultatif)"
+          "recurring_frequency": "🔄 Programmation : Fréquence",
+          "custom_interval": "🔄 Programmation : Intervalle personnalisé (requis pour une fréquence personnalisée)",
+          "custom_interval_unit": "🔄 Programmation : Unité d’intervalle personnalisée (requise pour une fréquence personnalisée)",
+          "start_date": "🔄 Reset du cycle : Date de début (facultatif)",
+          "end_date": "🔄 Programmation : Date de fin (facultatif)",
+          "grace_period_days": "🔄 Programmation : Délai de grâce en jours (facultatif)"
         },
         "data_description": {
           "badge_name": "Saisissez un nom unique pour le badge. Ce nom sera affiché dans le système.",
@@ -820,16 +820,16 @@
           "threshold_value": "🎯 CIBLE : Valeur seuil",
           "maintenance_rules": "🎯 CIBLE : Points de maintenance (facultatif)",
           "occasion_type": "🎉 Type d'occasion",
-          "associated_achievement": "🏆 Réalisation associée",
+          "associated_achievement": "🏆 Succès associé",
           "selected_chores": "🧹 Suivi des tâches ménagères (facultatif)",
           "assigned_user_ids": "🧒 Attribué à",
           "award_items": "🎁 RÉCOMPENSES : Points, récompenses, bonus, pénalités (facultatif)",
           "award_points": "🎁 RÉCOMPENSES : Points attribués (facultatif)",
-          "recurring_frequency": "🔄 CYCLE DE RÉINITIALISATION : Fréquence",
-          "custom_interval": "🔄 CYCLE DE RÉINITIALISATION : Intervalle personnalisé (requis pour une fréquence personnalisée)",
-          "custom_interval_unit": "🔄 CYCLE DE RÉINITIALISATION : Unité d’intervalle personnalisée (requise pour une fréquence personnalisée)",
-          "start_date": "🔄 RÉINITIALISER LE CYCLE : Date de début (facultatif)",
-          "end_date": "🔄 RÉINITIALISATION DU CYCLE : Date de fin (facultatif)"
+          "recurring_frequency": "🔄 Reset du cycle : Fréquence",
+          "custom_interval": "🔄 Reset du cycle  : Intervalle personnalisé (requis pour une fréquence personnalisée)",
+          "custom_interval_unit": "🔄 Reset du cycle  : Unité d’intervalle personnalisée (requise pour une fréquence personnalisée)",
+          "start_date": "🔄 Reset du cycle  : Date de début (facultatif)",
+          "end_date": "🔄 Reset du cycle  : Date de fin (facultatif)"
         },
         "data_description": {
           "badge_name": "Saisissez un nom unique pour le badge. Ce nom sera affiché dans le système.",
@@ -954,13 +954,13 @@
         "data": {
           "name": "Nom du succès",
           "description": "Description (facultatif)",
-          "achievement_labels": "Étiquettes de réussite",
+          "achievement_labels": "Étiquettes de succès",
           "icon": "Icône (mdi:xxx)",
           "assigned_user_ids": "Affecté à",
           "type": "Type de réalisation",
           "selected_chore_id": "Sélectionner la tâche associée",
           "criteria": "Critères (facultatif)",
-          "target_value": "Objectif de réalisation",
+          "target_value": "Objectif du succès",
           "reward_points": "Points bonus pour avoir accompli la mission",
           "internal_id": "ID interne"
         }
@@ -986,7 +986,7 @@
       },
       "edit_user": {
         "title": "Modifier l'utilisateur",
-        "description": "Modifier les détails du profil utilisateur sélectionné.\n\n ℹ️ [Guide de configuration]({documentation_url})",
+        "description": "Modifier les détails du profil utilisateur sélectionné.\n\n{user_access_warning}\n\n ℹ️ [Guide de configuration]({documentation_url})",
         "sections": {
           "section_identity_profile": {
             "name": "Identité et profil",
@@ -999,7 +999,7 @@
             },
             "data_description": {
               "name": "Nom unique pour ce profil utilisateur.",
-              "ha_user_id": "Facultatif : Liez ce profil à un utilisateur Home Assistant.",
+              "ha_user_id": "Facultatif : associez ce profil à un utilisateur Home Assistant. Si le mode kiosque est désactivé, les actions de revendication et d’utilisation d’appareils partagés dépendent de cette association.",
               "dashboard_language": "Langue utilisée pour le contenu du tableau de bord et les notifications.",
               "mobile_notify_service": "Sélectionnez un service de notification ou laissez vide pour désactiver les notifications."
             }
@@ -1062,14 +1062,14 @@
             "name": "Calendrier",
             "description": "Paramètres de programmation, de fenêtre d'accès et d'intervalle de récurrence.",
             "data": {
-              "recurring_frequency": "🔄 Horaire : Fréquence",
-              "due_date": "📅 Calendrier : Date d’échéance (facultatif)",
-              "clear_due_date": "🗑️ Date d'échéance claire",
-              "applicable_days": "📅 Calendrier : Jours concernés (facultatif)",
+              "recurring_frequency": "🔄 Programmation : Fréquence",
+              "due_date": "📅 Programmation : Date d’échéance (facultatif)",
+              "clear_due_date": "🗑️ Effacement à la date d'échéance",
+              "applicable_days": "📅 Programmation : Jours concernés (facultatif)",
               "chore_due_window_offset": "⏱️ Délai d'échéance : Décalage avant la date d'échéance",
               "chore_claim_lock_until_window": "🔒 Verrouiller la réclamation jusqu'à l'ouverture de la période d'échéance ?",
               "custom_interval": "🔄 Programmation : Intervalle personnalisé (pour une fréquence personnalisée)",
-              "custom_interval_unit": "🔄 Programme : Unité d’intervalle personnalisée"
+              "custom_interval_unit": "🔄 Programmation : Unité d’intervalle personnalisée"
             },
             "data_description": {
               "recurring_frequency": "Fréquence de la tâche : Quotidienne, Hebdomadaire, Mensuelle, Annuelle, Personnalisée ou Aucune. Si vous sélectionnez « Quotidienne – Plusieurs fois par jour », un écran supplémentaire s’affichera pour configurer les horaires précis.",
@@ -1121,12 +1121,12 @@
           "overdue_handling_type": "⏰ En retard : Traitement",
           "chore_claim_lock_until_window": "🔒 Verrouiller la réclamation jusqu'à l'ouverture de la période d'échéance ?",
           "auto_approve": "✅ Approbation automatique des demandes ?",
-          "recurring_frequency": "🔄 Horaire : Fréquence",
+          "recurring_frequency": "🔄 Programmation : Fréquence",
           "custom_interval": "🔄 Programmation : Intervalle personnalisé (pour une fréquence personnalisée)",
-          "custom_interval_unit": "🔄 Programme : Unité d’intervalle personnalisée",
-          "applicable_days": "📅 Calendrier : Jours concernés (facultatif)",
-          "due_date": "📅 Calendrier : Date d’échéance (facultatif)",
-          "clear_due_date": "🗑️ Date d'échéance claire",
+          "custom_interval_unit": "🔄 Programmation : Unité d’intervalle personnalisée",
+          "applicable_days": "📅 Programmation : Jours concernés (facultatif)",
+          "due_date": "📅 Programmation: Date d’échéance (facultatif)",
+          "clear_due_date": "🗑️Effacement à l'échéance",
           "chore_due_window_offset": "⏱️ Délai d'échéance : Décalage avant la date d'échéance",
           "chore_due_reminder_offset": "🔔 Rappel d'échéance : Effectuez votre compensation avant la date d'échéance",
           "show_on_calendar": "📅 Afficher dans le calendrier ?",
@@ -1203,18 +1203,18 @@
           "threshold_value": "🎯 CIBLE : Valeur seuil",
           "maintenance_rules": "🎯 CIBLE : Points de maintenance (facultatif)",
           "occasion_type": "🎉 Type d'occasion",
-          "associated_achievement": "🏆 Réalisation associée",
+          "associated_achievement": "🏆 Succès associée",
           "selected_chores": "🧹 Suivi des tâches ménagères (facultatif)",
           "assigned_user_ids": "🧒 Attribué à",
           "award_items": "🎁 RÉCOMPENSES : Points, Récompenses, Bonus, Multiplicateur (Optionnel)",
           "award_points": "🎁 RÉCOMPENSES : Points attribués (facultatif)",
           "points_multiplier": "🎁 RÉCOMPENSES : Multiplicateur de points (Par défaut 💎 1,0x)",
-          "recurring_frequency": "🔄 CYCLE D'ENTRETIEN : Fréquence",
-          "custom_interval": "🔄 CYCLE D'ENTRETIEN : Intervalle personnalisé (requis pour une fréquence personnalisée)",
-          "custom_interval_unit": "🔄 CYCLE DE MAINTENANCE : Unité d’intervalle personnalisée (requise pour une fréquence personnalisée)",
-          "start_date": "🔄 RÉINITIALISER LE CYCLE : Date de début (facultatif)",
-          "end_date": "🔄 CYCLE DE MAINTENANCE : Date de fin (facultatif)",
-          "grace_period_days": "🔄 CYCLE DE MAINTENANCE : Délai de grâce en jours (facultatif)"
+          "recurring_frequency": "🔄 Programmation : Fréquence",
+          "custom_interval": "🔄 Programmation : Intervalle personnalisé (requis pour une fréquence personnalisée)",
+          "custom_interval_unit": "🔄 Programmation : Unité d’intervalle personnalisée (requise pour une fréquence personnalisée)",
+          "start_date": "🔄 Reset du cycle : Date de début (facultatif)",
+          "end_date": "🔄 Programmation : Date de fin (facultatif)",
+          "grace_period_days": "🔄 Programmation : Délai de grâce en jours (facultatif)"
         },
         "data_description": {
           "badge_name": "Saisissez un nom unique pour le badge. Ce nom sera affiché dans le système.",
@@ -1279,16 +1279,16 @@
           "threshold_value": "🎯 CIBLE : Valeur seuil",
           "maintenance_rules": "🎯 CIBLE : Points de maintenance (facultatif)",
           "occasion_type": "🎉 Type d'occasion",
-          "associated_achievement": "🏆 Réalisation associée",
+          "associated_achievement": "🏆 Succès associée",
           "selected_chores": "🧹 Suivi des tâches ménagères (facultatif)",
           "assigned_user_ids": "🧒 Attribué à",
           "award_items": "🎁 RÉCOMPENSES : Points, récompenses, bonus, pénalités (facultatif)",
           "award_points": "🎁 RÉCOMPENSES : Points attribués (facultatif)",
-          "recurring_frequency": "🔄 CYCLE DE RÉINITIALISATION : Fréquence",
-          "custom_interval": "🔄 CYCLE DE RÉINITIALISATION : Intervalle personnalisé (requis pour une fréquence personnalisée)",
-          "custom_interval_unit": "🔄 CYCLE DE RÉINITIALISATION : Unité d’intervalle personnalisée (requise pour une fréquence personnalisée)",
-          "start_date": "🔄 RÉINITIALISER LE CYCLE : Date de début (facultatif)",
-          "end_date": "🔄 RÉINITIALISATION DU CYCLE : Date de fin (facultatif)"
+          "recurring_frequency": "🔄 Reset du cycle : Fréquence",
+          "custom_interval": "🔄 Reset du cycle : Intervalle personnalisé (requis pour une fréquence personnalisée)",
+          "custom_interval_unit": "🔄 Reset du cycle : Unité d’intervalle personnalisée (requise pour une fréquence personnalisée)",
+          "start_date": "🔄 Reset du cycle : Date de début (facultatif)",
+          "end_date": "🔄 Reset du cycle : Date de fin (facultatif)"
         },
         "data_description": {
           "badge_name": "Saisissez un nom unique pour le badge. Ce nom sera affiché dans le système.",
@@ -1319,7 +1319,7 @@
           "badge_description": "Description du badge (facultatif)",
           "badge_labels": "Étiquettes (facultatif)",
           "icon": "Icône de badge (mdi:xxx)",
-          "associated_achievement": "🏆 Réalisation associée",
+          "associated_achievement": "🏆 Succès associée",
           "assigned_user_ids": "🧒 Attribué à",
           "award_items": "🎁 RÉCOMPENSES : Points, récompenses, bonus au choix (facultatif)",
           "award_points": "🎁 RÉCOMPENSES : Points attribués (facultatif)"
@@ -1408,19 +1408,19 @@
         }
       },
       "edit_achievement": {
-        "title": "Définir la réussite",
+        "title": "Définir le succès",
         "description": "Saisissez les détails de chaque succès.\n\n ℹ️ [Guide de configuration]({documentation_url})",
         "data": {
           "name": "Nom du succès",
           "description": "Description (facultatif)",
-          "achievement_labels": "Étiquettes de réussite",
+          "achievement_labels": "Étiquettes du succès",
           "icon": "Icône (mdi:xxx)",
           "assigned_user_ids": "Affecté à",
-          "type": "Type de réalisation",
+          "type": "Type de succès",
           "selected_chore_id": "Sélectionner la tâche associée",
           "criteria": "Critères (facultatif)",
           "target_value": "Objectif de réalisation",
-          "reward_points": "Points bonus pour avoir accompli la mission",
+          "reward_points": "Points bonus pour avoir accompli le succès",
           "internal_id": "ID interne"
         }
       },
@@ -1436,7 +1436,7 @@
           "type": "Type de défi",
           "selected_chore_id": "Sélectionnez la tâche associée au défi (facultatif)",
           "criteria": "Critères (facultatif)",
-          "target_value": "Défis Cible",
+          "target_value": "Cible du défi",
           "reward_points": "Points bonus pour avoir relevé le défi",
           "start_date": "Date de début",
           "end_date": "Date de fin",
@@ -1479,7 +1479,7 @@
         "data": {}
       },
       "delete_challenge": {
-        "title": "Défi de suppression",
+        "title": "Supprimer le défi",
         "description": "Êtes-vous sûr de vouloir supprimer le défi {challenge_name}?",
         "data": {}
       },
@@ -1497,12 +1497,14 @@
       },
       "dashboard_missing_dependencies": {
         "title": "Consulter les modifications du tableau de bord",
-        "description": "Vérifiez l'état des dépendances et les préférences des modèles sélectionnés avant d'appliquer les modifications au tableau de bord.\n\n ℹ️ [Guide de configuration du tableau de bord]({documentation_url})\n\n**Personnalisations disponibles**\n{dashboard_template_preferences}\n\n**Dépendances requises manquantes**\n{dashboard_missing_required_dependencies}\n\n**Dépendances recommandées manquantes**\n{dashboard_missing_recommended_dependencies}",
+        "description": "Vérifiez l'état des dépendances et les préférences des modèles sélectionnés avant d'appliquer les modifications au tableau de bord.\n\n ℹ️ [Guide de configuration du tableau de bord]({documentation_url})\n\n**Personnalisations disponibles**\n{dashboard_template_preferences}\n\n**Dépendances requises manquantes**\n{dashboard_missing_required_dependencies}\n\n**Dépendances recommandées manquantes**\n{dashboard_missing_recommended_dependencies}\n\n**Avertissement relatif au contrôle d'accès**\n{dashboard_access_warning}",
         "data": {
-          "dashboard_dependency_bypass": "🚫 Continuez quand même (conditions requises manquantes)"
+          "dashboard_dependency_bypass": "🚫 Continuez quand même (conditions requises manquantes)",
+          "dashboard_access_warning_ack": "⚠️ Continuez quand même (les utilisateurs sélectionnés ne sont pas liés)"
         },
         "data_description": {
-          "dashboard_dependency_bypass": "Veuillez noter que des dépendances requises sont manquantes et poursuivre malgré tout. Le tableau de bord risque de ne pas s'afficher correctement ou de fonctionner incorrectement tant que les dépendances requises ne seront pas installées."
+          "dashboard_dependency_bypass": "Veuillez noter que des dépendances requises sont manquantes et poursuivre malgré tout. Le tableau de bord risque de ne pas s'afficher correctement ou de fonctionner incorrectement tant que les dépendances requises ne seront pas installées.",
+          "dashboard_access_warning_ack": "Veuillez noter que certains utilisateurs sélectionnés n'ont pas d'utilisateur Home Assistant associé lorsque le mode kiosque est désactivé. Les boutons « Réclamer » et « Utiliser » peuvent ne pas fonctionner correctement sur les appareils partagés tant que ces utilisateurs ne sont pas associés ou que le mode kiosque n'est pas activé."
         }
       },
       "dashboard_create": {
@@ -1761,7 +1763,7 @@
       "duplicate_badge": "Un badge portant ce nom existe déjà.",
       "duplicate_challenge": "Un défi portant ce nom existe déjà.",
       "duplicate_chore": "Il existe déjà une tâche portant ce nom",
-      "duplicate_assignee": "Un cessionnaire portant ce nom existe déjà.",
+      "duplicate_assignee": "Une personne portant ce nom existe déjà.",
       "duplicate_approver": "Un utilisateur portant ce nom existe déjà.",
       "duplicate_penalty": "Une sanction portant ce nom existe déjà.",
       "duplicate_reward": "Une récompense portant ce nom existe déjà.",
@@ -1834,19 +1836,20 @@
       "dashboard_admin_per_assignee_template_required": "Un modèle d'administration par utilisateur est requis lorsque la mise en page d'administration inclut « Par utilisateur ».",
       "dashboard_admin_per_assignee_needs_assignees": "La configuration d'administration par utilisateur nécessite au moins un utilisateur sélectionné.",
       "dashboard_dependency_ack_required": "Activez l'option « Continuer quand même » pour poursuivre, ou revenez en arrière et installez d'abord les dépendances requises manquantes.",
+      "dashboard_access_warning_ack_required": "Accusez réception de l'avertissement de contrôle d'accès pour continuer, ou revenez en arrière et associez les utilisateurs concernés ou activez le mode kiosque.",
       "dashboard_nonselectable_templates": "Un ou plusieurs modèles sélectionnés ne sont pas disponibles pour la génération.",
       "dashboard_release_strict_pin_failed": "La version du tableau de bord sélectionnée doit être épinglée avec précision, mais aucune référence de version valide n'était disponible au moment de l'exécution. Veuillez resélectionner la version à l'étape 1 et réessayer.",
       "dashboard_release_asset_prep_failed": "Impossible de préparer les éléments sélectionnés du tableau de bord en ligne. Choisissez une autre version ou utilisez les modèles locaux compatibles les plus récents et réessayez."
     },
     "abort": {
       "invalid_action": "Action invalide",
-      "invalid_achievement": "Réalisation invalide",
+      "invalid_achievement": "Succès invalide",
       "invalid_badge": "Badge invalide",
       "invalid_badge_type": "Type de badge invalide",
       "invalid_challenge": "Défi invalide",
       "invalid_chore": "Tâche invalide",
       "invalid_entity": "Entité invalide",
-      "invalid_assignee": "Cessionnaire invalide",
+      "invalid_assignee": "Personne invalide",
       "invalid_approver": "Approbateur invalide",
       "invalid_penalty": "Pénalité invalide",
       "invalid_reward": "Récompense invalide",
@@ -1870,13 +1873,13 @@
       "options": {
         "manage_points": "Gérer les points",
         "manage_user": "Gérer les utilisateurs",
-        "manage_approver": "Gérer les utilisateurs",
+        "manage_approver": "Gérer les administrateurs",
         "manage_chore": "Gérer les tâches ménagères",
         "manage_badge": "Gérer les badges",
         "manage_reward": "Gérer les récompenses",
         "manage_penalty": "Gérer les pénalités",
         "manage_bonus": "Gérer les bonus",
-        "manage_achievement": "Gérer les réalisations",
+        "manage_achievement": "Gérer les succès",
         "manage_challenge": "Gérer le défi",
         "dashboard_generator": "Tableau de bord de gestion",
         "general_options": "Options générales",
@@ -1953,7 +1956,7 @@
         "cumulative": "Cumulatif",
         "daily": "Tous les jours",
         "periodic": "Périodique",
-        "achievement_linked": "Réussite liée",
+        "achievement_linked": "Succès liée",
         "special_occasion": "Occasion spéciale"
       }
     },
@@ -1962,7 +1965,7 @@
         "points": "Points",
         "points_all_time": "Points (tous temps confondus)",
         "points_chores": "Points obtenus grâce aux tâches ménagères",
-        "chore_count": "Compte des tâches",
+        "chore_count": "Décompte des tâches",
         "days_all_chores": "Jours Tâches sélectionnées terminées",
         "days_80pct_chores": "Jours où 80 % des tâches sélectionnées sont terminées",
         "days_all_chores_no_overdue": "Jours où les tâches sélectionnées ont été effectuées (aucune tâche en retard)",
@@ -2017,7 +2020,7 @@
         "at_midnight_multi": "Plusieurs fois par jour - Réinitialisation à minuit",
         "at_due_date_once": "Une fois par période - Réinitialisation à la date d'échéance",
         "at_due_date_multi": "Plusieurs fois par période - Réinitialisation à la date d'échéance",
-        "upon_completion": "Nombre de complétions illimité - Réinitialisation une fois la complétion terminée",
+        "upon_completion": "Nombre d'achèvements illimité - Réinitialisation une fois la complétion terminée",
         "manual": "Réinitialisation manuelle uniquement - Aucune réinitialisation automatique"
       }
     },
@@ -2059,11 +2062,11 @@
         "monthly": "Mensuel",
         "quarterly": "Trimestriel",
         "yearly": "Annuel",
-        "custom": "Coutume",
+        "custom": "Personnalisé",
         "custom_from_complete": "Personnalisé (Reprogrammer à partir de la date d'achèvement)",
-        "custom_1_week": "Délai de livraison : 1 semaine",
+        "custom_1_week": "Personnalisé : 1 semaine",
         "custom_1_month": "Personnalisé : 1 mois",
-        "custom_1_quarter": "Personnalisé : 1 quart",
+        "custom_1_quarter": "Personnalisé : 1 trimestre",
         "custom_1_year": "Personnalisation : 1 an",
         "week_end": "Fin de semaine",
         "month_end": "Fin de mois",
@@ -2075,7 +2078,7 @@
       "options": {
         "birthday": "Anniversaire",
         "holiday": "Vacances",
-        "custom": "Coutume"
+        "custom": "Personnalisé"
       }
     },
     "custom_interval_unit": {
@@ -2100,7 +2103,7 @@
     "threshold_type": {
       "options": {
         "points": "Points",
-        "chore_count": "Compte des tâches"
+        "chore_count": "Décompte des tâches"
       }
     },
     "daily_threshold_type": {
@@ -2183,7 +2186,7 @@
       }
     },
     "disapprove_chore": {
-      "name": "Désapprouver la corvée",
+      "name": "Désapprouver la tâche",
       "description": "L'approbateur refuse une tâche confiée à un désigné, annulant ainsi son statut.",
       "fields": {
         "config_entry_id": {
@@ -2209,7 +2212,7 @@
         "chore_name": {
           "name": "Nom de la tâche",
           "description": "Le nom de la tâche désapprouvé.",
-          "example": "salle blanche"
+          "example": "Nettoyer la pièce"
         }
       }
     },
@@ -2337,12 +2340,12 @@
         "penalty_name": {
           "name": "Nom de la pénalité",
           "description": "Le nom de la sanction à appliquer.",
-          "example": "Cris"
+          "example": "Râler / répondre"
         }
       }
     },
     "apply_bonus": {
-      "name": "Postuler à la prime",
+      "name": "Appliquer un bonus",
       "description": "Un approbateur attribue une prime à un mandataire, en lui octroyant des points.",
       "fields": {
         "config_entry_id": {
@@ -2368,12 +2371,12 @@
         "bonus_name": {
           "name": "Nom du bonus",
           "description": "Le nom de la prime à appliquer.",
-          "example": "Très utile"
+          "example": "A bien aidé"
         }
       }
     },
     "manual_adjust_points": {
-      "name": "Points de réglage manuel",
+      "name": "Ajuster les points manuellement",
       "description": "Ajuster manuellement les points d'un utilisateur à l'aide d'un montant entier signé et d'une raison requise enregistrée dans le registre.",
       "fields": {
         "config_entry_id": {
@@ -2543,7 +2546,7 @@
         "name": {
           "name": "Nom de la tâche",
           "description": "Le nom de la tâche à créer.",
-          "example": "salle blanche"
+          "example": "Nettoyage de la pièce"
         },
         "assigned_user_names": {
           "name": "Affecté à",
@@ -2603,12 +2606,12 @@
         "chore_claim_lock_until_window": {
           "name": "Verrouiller la réclamation jusqu'à l'ouverture de la fenêtre",
           "description": "Si cela s'avère exact, les cessionnaires ne pourront pas prétendre à cette tâche avant le début du délai imparti.",
-          "example": "FAUX"
+          "example": "Faux"
         },
         "auto_approve": {
           "name": "Approbation automatique",
           "description": "Si cela s'avère exact, la tâche est automatiquement approuvée lorsqu'elle est demandée.",
-          "example": "FAUX"
+          "example": "Faux"
         },
         "due_date": {
           "name": "Date d'échéance",
@@ -2616,12 +2619,12 @@
           "example": "2025-03-01T23:59:00Z"
         },
         "due_window_offset": {
-          "name": "Décalage de fenêtre dû",
+          "name": "Décalage de l'échéance",
           "description": "Durée avant la date d'échéance lorsque la tâche passe à l'état « à faire ». Format : « 30 min », « 1 h », « 1 j 6 h 30 min », etc. Utilisez « 0 » pour désactiver l'affichage de la période d'échéance.",
           "example": "30 m"
         },
         "due_reminder_offset": {
-          "name": "Compensation du rappel d'échéance",
+          "name": "Décalage du rappel d'échéance",
           "description": "Durée avant l'échéance pour l'envoi d'un rappel. Format : « 30 min », « 1 h », « 1 j 6 h 30 min », etc. Utilisez « 0 » pour désactiver les rappels.",
           "example": "30 m"
         }
@@ -2649,7 +2652,7 @@
         "name": {
           "name": "Nom de la tâche (Identifiant)",
           "description": "Nom de la tâche à mettre à jour (alternative à l'identifiant). Plus convivial que l'identifiant.",
-          "example": "salle blanche"
+          "example": "Nettoyer la pièce"
         },
         "assigned_user_names": {
           "name": "Affecté à",
@@ -2673,7 +2676,7 @@
         },
         "labels": {
           "name": "Étiquettes",
-          "description": "De nouvelles étiquettes pour la corvée.",
+          "description": "De nouvelles étiquettes pour la tâche",
           "example": "['hebdomadaire', 'nettoyage']"
         },
         "frequency": {
@@ -2750,7 +2753,7 @@
         "name": {
           "name": "Nom",
           "description": "Nom de la tâche à supprimer.",
-          "example": "salle blanche"
+          "example": "Nettoyage de la pièce"
         }
       }
     },
@@ -2812,7 +2815,7 @@
         "chore_name": {
           "name": "Nom de la tâche",
           "description": "Nom de la tâche de rotation à réinitialiser. Facultatif si chore_id est fourni.",
-          "example": "Chambre propre"
+          "example": "Nettoyer la chambre"
         }
       }
     },
@@ -2838,7 +2841,7 @@
         "chore_name": {
           "name": "Nom de la tâche",
           "description": "Nom de la tâche de rotation à ouvrir. Facultatif si chore_id est fourni.",
-          "example": "Chambre propre"
+          "example": "Nettoyer la chambre"
         }
       }
     },
@@ -2866,7 +2869,7 @@
         },
         "report_title": {
           "name": "Titre du rapport",
-          "description": "Personnalisation optionnelle du titre pour la sortie Markdown."
+          "description": "Titre optionnel pour un texte plus petit"
         },
         "notify_service": {
           "name": "Service de notification",
@@ -2915,7 +2918,7 @@
         "key": {
           "name": "Chemin clé",
           "description": "Chemin d'accès aux contrôles d'interface utilisateur délimité par des barres obliques, par exemple : gamification/rewards/header_collapse. Laissez ce champ vide uniquement pour l'action de suppression, qui efface toutes les valeurs enregistrées pour la cible sélectionnée.",
-          "example": "gamification/récompenses/réduire_l'en-tête"
+          "example": "gamification/récompenses/réduire l'en-tête"
         },
         "value": {
           "name": "Valeur",
@@ -3117,7 +3120,7 @@
           "pending": "En attente",
           "completed": "Complété",
           "claimed": "Réclamé",
-          "due": "Exigible",
+          "due": "À faire",
           "overdue": "En retard",
           "completed_by_other": "Réalisé par d'autres",
           "waiting": "En attente (fenêtre fermée)",
@@ -3201,7 +3204,7 @@
             }
           },
           "chore_due_window_offset": {
-            "name": "Décalage de fenêtre dû"
+            "name": "Décalage de l'échéance"
           },
           "auto_approve": {
             "name": "Approbation automatique des demandes de remboursement",
@@ -3211,7 +3214,7 @@
             }
           },
           "recurring_frequency": {
-            "name": "Fréquence récurrente",
+            "name": "Fréquence de récurrence",
             "state": {
               "none": "Aucun",
               "daily": "Tous les jours",
@@ -3221,11 +3224,11 @@
               "monthly": "Mensuel",
               "quarterly": "Trimestriel",
               "yearly": "Annuel",
-              "custom": "Coutume",
+              "custom": "Personnalisé",
               "custom_from_complete": "Personnalisé (Reprogrammer à partir de la date d'achèvement)",
-              "custom_1_week": "Délai de livraison : 1 semaine",
+              "custom_1_week": "Personnalisé : 1 semaine",
               "custom_1_month": "Personnalisé : 1 mois",
-              "custom_1_quarter": "Personnalisé : 1 quart",
+              "custom_1_quarter": "Personnalisé : 1 trimestre",
               "custom_1_year": "Personnalisation : 1 an"
             }
           },
@@ -3295,25 +3298,25 @@
             "name": "Manqué (toutes périodes confondues)"
           },
           "chore_last_missed": {
-            "name": "Dernière absence"
+            "name": "Dernières manquées"
           },
           "last_claimed": {
-            "name": "Dernière réclamation"
+            "name": "Dernières réclamations"
           },
           "last_approved": {
-            "name": "Dernière approbation"
+            "name": "Dernières approbations"
           },
           "last_completed": {
-            "name": "Dernières données terminées"
+            "name": "Dernières terminées"
           },
           "last_disapproved": {
-            "name": "Dernière désapprobation"
+            "name": "Dernières désapprobations"
           },
           "last_overdue": {
             "name": "Dernière échéance"
           },
           "global_state": {
-            "name": "État mondial",
+            "name": "État global",
             "state": {
               "pending": "En attente",
               "completed": "Complété",
@@ -3322,7 +3325,7 @@
               "completed_in_part": "Terminé (en partie)",
               "claimed_in_part": "Revendiqué (en partie)",
               "independent": "Indépendant",
-              "due": "Exigible",
+              "due": "À faire",
               "waiting": "En attendant",
               "missed": "Manqué (Verrouillé)"
             }
@@ -3351,7 +3354,7 @@
             "name": "ID d'entité du bouton de réclamation"
           },
           "due_window_start": {
-            "name": "Début de la fenêtre d'échéance"
+            "name": "Début de l'échéance"
           },
           "time_until_due": {
             "name": "Délai jusqu'à l'échéance"
@@ -3363,11 +3366,11 @@
             "name": "Mode de réclamation",
             "state": {
               "claimable": "Réclamation",
-              "steal_available": "Offre spéciale disponible",
+              "steal_available": "Vol disponible",
               "blocked_completed_by_other": "Complété par d'autres",
               "blocked_already_approved": "Déjà approuvé",
               "blocked_pending_claim": "Réclamation en cours",
-              "blocked_waiting_window": "En attente de la fenêtre d'échéance",
+              "blocked_waiting_window": "En attente de l'échéance",
               "blocked_not_my_turn": "À votre tour",
               "blocked_missed_locked": "Manqué et verrouillé"
             }
@@ -3408,13 +3411,13 @@
             "name": "Gagné cette année"
           },
           "point_stat_points_earned_all_time": {
-            "name": "Gagné tout le temps"
+            "name": "Gagné depuis le début"
           },
           "point_stat_points_by_source_today": {
             "name": "Par Source Aujourd'hui"
           },
           "point_stat_points_by_source_week": {
-            "name": "Source : This Week"
+            "name": "Par Source cette semaine"
           },
           "point_stat_points_by_source_month": {
             "name": "Par Source Ce mois-ci"
@@ -3423,7 +3426,7 @@
             "name": "Par source Cette année"
           },
           "point_stat_points_by_source_all_time": {
-            "name": "Par Source All Time"
+            "name": "Par Source depuis le début"
           },
           "point_stat_points_spent_today": {
             "name": "Dépensé aujourd'hui"
@@ -3438,10 +3441,10 @@
             "name": "Dépensé cette année"
           },
           "point_stat_points_spent_all_time": {
-            "name": "J'ai passé tout mon temps"
+            "name": "Dépensé depuis le début"
           },
           "point_stat_points_net_today": {
-            "name": "Net Today"
+            "name": "Net aujourd'hui"
           },
           "point_stat_points_net_week": {
             "name": "Net cette semaine"
@@ -3453,13 +3456,13 @@
             "name": "Net cette année"
           },
           "point_stat_points_net_all_time": {
-            "name": "Temps net"
+            "name": "Net depuis le début"
           },
           "point_stat_points_earning_streak_current": {
             "name": "Série de gains actuelle"
           },
           "point_stat_points_earning_streak_longest": {
-            "name": "Plus longue période de gains"
+            "name": "Plus longue Série de gains"
           },
           "point_stat_avg_points_per_day_week": {
             "name": "Moyenne par jour (semaine)"
@@ -3471,12 +3474,12 @@
             "name": "Moyenne par tâche"
           },
           "point_stat_highest_balance_all_time": {
-            "name": "Solde le plus élevé jamais enregistré"
+            "name": "Solde le plus élevé jamais atteint"
           }
         }
       },
       "assignee_points_max_ever_sensor": {
-        "name": "Maximum {points} Jamais",
+        "name": "Maximum {points} Jamais atteint",
         "state_attributes": {
           "purpose": {
             "name": "But",
@@ -3531,8 +3534,8 @@
         }
       },
       "assignee_chores_sensor": {
-        "name": "Corvées",
-        "unit_of_measurement": "Corvées",
+        "name": "Tâches",
+        "unit_of_measurement": "Tâches",
         "state_attributes": {
           "purpose": {
             "name": "But",
@@ -3556,7 +3559,7 @@
             "name": "Approuvé cette année"
           },
           "chore_stat_approved_all_time": {
-            "name": "Approuvé en permanence"
+            "name": "Approuvé depuis le début"
           },
           "chore_stat_most_completed_chore_all_time": {
             "name": "Tâche la plus accomplie (depuis toujours)"
@@ -3571,7 +3574,7 @@
             "name": "Tâche la plus accomplie (Année)"
           },
           "chore_stat_total_points_from_chores_today": {
-            "name": "Points tirés des tâches ménagères d'aujourd'hui"
+            "name": "Points obtenus grâce aux tâches ménagères d'aujourd'hui"
           },
           "chore_stat_total_points_from_chores_week": {
             "name": "Points obtenus grâce aux tâches ménagères cette semaine"
@@ -3580,46 +3583,46 @@
             "name": "Points obtenus grâce aux tâches ménagères ce mois-ci"
           },
           "chore_stat_total_points_from_chores_year": {
-            "name": "Points obtenus grâce aux corvées cette année"
+            "name": "Points obtenus grâce aux tâches ménagères cette année"
           },
           "chore_stat_total_points_from_chores_all_time": {
-            "name": "Points obtenus grâce aux corvées (tous temps)"
+            "name": "Points obtenus grâce aux tâches ménagères depuis le début"
           },
           "chore_stat_overdue_today": {
             "name": "En retard aujourd'hui"
           },
           "chore_stat_missed_today": {
-            "name": "J'ai manqué aujourd'hui"
+            "name": "Manquées aujourd'hui"
           },
           "chore_stat_overdue_week": {
             "name": "En retard cette semaine"
           },
           "chore_stat_missed_week": {
-            "name": "J'ai manqué cette semaine"
+            "name": "Manquées cette semaine"
           },
           "chore_stat_overdue_month": {
             "name": "En retard ce mois-ci"
           },
           "chore_stat_missed_month": {
-            "name": "J'ai manqué ce mois-ci"
+            "name": "Manquées ce mois-ci"
           },
           "chore_stat_overdue_year": {
             "name": "En retard cette année"
           },
           "chore_stat_missed_year": {
-            "name": "J'ai manqué cette année"
+            "name": "Manquées cette année"
           },
           "chore_stat_overdue_count_all_time": {
             "name": "En retard depuis toujours"
           },
           "chore_stat_missed_all_time": {
-            "name": "Manqué à tout le temps"
+            "name": "Manquées depuis le début"
           },
           "chore_stat_claimed_today": {
             "name": "Réclamé aujourd'hui"
           },
           "chore_stat_claimed_week": {
-            "name": "Affirmé cette semaine"
+            "name": "Réclamé cette semaine"
           },
           "chore_stat_claimed_month": {
             "name": "Réclamé ce mois-ci"
@@ -3628,7 +3631,7 @@
             "name": "Réclamé cette année"
           },
           "chore_stat_claimed_all_time": {
-            "name": "Réclamé à tout moment"
+            "name": "Réclamé depuis le début"
           },
           "chore_stat_disapproved_today": {
             "name": "Désapprouvé aujourd'hui"
@@ -3643,7 +3646,7 @@
             "name": "Désapprouvé cette année"
           },
           "chore_stat_disapproved_all_time": {
-            "name": "Désapprouvé en permanence"
+            "name": "Désapprouvé depuis le début"
           },
           "chore_stat_completed_today": {
             "name": "Terminé aujourd'hui"
@@ -3658,7 +3661,7 @@
             "name": "Terminé cette année"
           },
           "chore_stat_completed_all_time": {
-            "name": "Terminé à tout moment"
+            "name": "Terminé depuis le début"
           },
           "chore_stat_points_today": {
             "name": "Points aujourd'hui"
@@ -3673,7 +3676,7 @@
             "name": "Points cette année"
           },
           "chore_stat_points_all_time": {
-            "name": "Points marqués au total"
+            "name": "Points depuis le début"
           },
           "chore_stat_top_chores_week": {
             "name": "Tâche principale (semaine)"
@@ -3697,16 +3700,16 @@
             "name": "Terminé cette année"
           },
           "chore_stat_current_due_today": {
-            "name": "Échéance actuelle aujourd'hui"
+            "name": "Faites couramment"
           },
           "chore_stat_current_overdue": {
-            "name": "En retard de paiement"
+            "name": "En retard couramment"
           },
           "chore_stat_current_claimed": {
-            "name": "Revendus actuels"
+            "name": "Revendiquée couramment"
           },
           "chore_stat_current_approved": {
-            "name": "Approuvé en vigueur"
+            "name": "Approuvé couramment"
           },
           "chore_stat_longest_streak_week": {
             "name": "Série la plus longue (semaine)"
@@ -3718,13 +3721,13 @@
             "name": "Série la plus longue (année)"
           },
           "chore_stat_longest_streak_all_time": {
-            "name": "Plus longue série (de tous les temps)"
+            "name": "Série la plus longue (depuis le début)"
           },
           "chore_stat_longest_streak": {
-            "name": "Plus longue série"
+            "name": "Série la plus longue"
           },
           "chore_stat_longest_missed_streak": {
-            "name": "Plus longue série d'échecs"
+            "name": "Série la plus longue manquée"
           },
           "chore_stat_avg_per_day_week": {
             "name": "Moyenne par jour (semaine)"
@@ -3806,25 +3809,25 @@
             "name": "Points de cycle"
           },
           "maintenance_grace_end_date": {
-            "name": "Date de fin de grâce pour la maintenance"
+            "name": "Maintenance : Date de fin de grâce"
           },
           "maintenance_points_required": {
-            "name": "Points de maintenance requis"
+            "name": "Maintenance : Points requis"
           },
           "maintenance_end_date": {
-            "name": "Date de fin de maintenance"
+            "name": "Maintenance : Date de fin"
           },
           "maintenance_points_remaining": {
-            "name": "Points de maintenance restants"
+            "name": "Maintenance : Points restants"
           },
           "reset_schedule": {
-            "name": "Réinitialiser le calendrier"
+            "name": "Réinitialiser le programme"
           },
           "target": {
             "name": "Cible"
           },
           "awards": {
-            "name": "Prix"
+            "name": "Récompenses"
           }
         }
       },
@@ -3848,9 +3851,9 @@
             "name": "Type de badge",
             "state": {
               "cumulative": "Cumulatif",
-              "achievement": "Réalisation",
+              "achievement": "Succès",
               "challenge": "Défi",
-              "daily": "Tous les jours",
+              "daily": "Journalier",
               "periodic": "Périodique",
               "special": "Spécial"
             }
@@ -3868,7 +3871,7 @@
             "name": "Cible"
           },
           "associated_achievement": {
-            "name": "Réalisation associée"
+            "name": "Succès associé"
           },
           "associated_challenge": {
             "name": "Défi associé"
@@ -3883,7 +3886,7 @@
             "name": "Récompenses pour badges"
           },
           "reset_schedule": {
-            "name": "Réinitialiser le calendrier"
+            "name": "Réinitialiser le programme"
           }
         }
       },
@@ -3906,7 +3909,7 @@
             "name": "Type de badge",
             "state": {
               "cumulative": "Cumulatif",
-              "achievement": "Réalisation",
+              "achievement": "Succès",
               "challenge": "Défi",
               "daily": "Tous les jours",
               "periodic": "Périodique",
@@ -3924,10 +3927,10 @@
           "target_type": {
             "name": "Type de cible",
             "state": {
-              "chores": "Corvées",
+              "chores": "Tâches",
               "points": "Points",
               "days": "Jours",
-              "achievement": "Réalisation",
+              "achievement": "Succès",
               "challenge": "Défi"
             }
           },
@@ -3979,7 +3982,7 @@
             "name": "Cible"
           },
           "required_chores": {
-            "name": "Tâches obligatoires"
+            "name": "Tâches requises"
           },
           "tracked_chores": {
             "name": "Tâches suivies"
@@ -3988,10 +3991,10 @@
             "name": "Prix"
           },
           "reset_schedule": {
-            "name": "Réinitialiser le calendrier"
+            "name": "Réinitialiser le programme"
           },
           "associated_achievement": {
-            "name": "Réalisation associée"
+            "name": "Succès associé"
           },
           "associated_challenge": {
             "name": "Défi associé"
@@ -4032,7 +4035,7 @@
           "pending": "En attente",
           "completed": "Complété",
           "claimed": "Réclamé",
-          "due": "Exigible",
+          "due": "À faire",
           "overdue": "En retard",
           "completed_in_part": "Terminé (en partie)",
           "claimed_in_part": "Revendiqué (en partie)",
@@ -4094,7 +4097,7 @@
               "weekly": "Hebdomadaire",
               "biweekly": "Bihebdomadaire",
               "monthly": "Mensuel",
-              "custom": "Coutume"
+              "custom": "Personnalisé"
             }
           },
           "applicable_days": {
@@ -4133,7 +4136,7 @@
             "name": "Dernière approbation"
           },
           "last_completed": {
-            "name": "Dernières données terminées"
+            "name": "Dernière complétée"
           },
           "chore_claimed_by": {
             "name": "Revendiqué par"
@@ -4142,7 +4145,7 @@
             "name": "Terminé par"
           },
           "due_window_start": {
-            "name": "Début de la fenêtre d'échéance"
+            "name": "Début de l'échéance"
           },
           "time_until_due": {
             "name": "Délai jusqu'à l'échéance"
@@ -4155,7 +4158,7 @@
       "assignee_reward_status_sensor": {
         "name": "Statut de récompense - {reward_name}",
         "state": {
-          "locked": "Fermé",
+          "locked": "Verrouillée",
           "available": "Disponible",
           "requested": "Demandé",
           "approved": "Approuvé",
@@ -4209,7 +4212,7 @@
             "name": "Réclamations cette année"
           },
           "claimed_all_time": {
-            "name": "Réclamations à tout moment"
+            "name": "Réclamations depuis le début"
           },
           "approved_today": {
             "name": "Approuvé aujourd'hui"
@@ -4224,7 +4227,7 @@
             "name": "Approuvé cette année"
           },
           "approved_all_time": {
-            "name": "Approuvé en permanence"
+            "name": "Approuvé depuis le début"
           },
           "disapproved_today": {
             "name": "Désapprouvé aujourd'hui"
@@ -4239,7 +4242,7 @@
             "name": "Désapprouvé cette année"
           },
           "disapproved_all_time": {
-            "name": "Désapprouvé en permanence"
+            "name": "Désapprouvé depuis le début"
           },
           "points_spent_today": {
             "name": "Points dépensés aujourd'hui"
@@ -4254,16 +4257,16 @@
             "name": "Points dépensés cette année"
           },
           "points_spent_all_time": {
-            "name": "Points dépensés au total"
+            "name": "Points dépensés depuis le début"
           },
           "approval_rate": {
             "name": "Taux d'approbation (%)"
           },
           "claim_rate_week": {
-            "name": "Nombre moyen de sinistres par jour (semaine)"
+            "name": "Moyenne des réclamations par jour (semaine)"
           },
           "claim_rate_month": {
-            "name": "Nombre moyen de sinistres par jour (mois)"
+            "name": "Moyenne des réclamations par jour (mois)"
           },
           "claim_button_eid": {
             "name": "ID d'entité du bouton de réclamation"
@@ -4386,7 +4389,7 @@
             "name": "Taper",
             "state": {
               "chore_total": "Total des tâches",
-              "chore_streak": "Série de corvées",
+              "chore_streak": "Série de tâches",
               "daily_minimum": "Minimum quotidien"
             }
           },
@@ -4486,7 +4489,7 @@
             "name": "Taper",
             "state": {
               "chore_total": "Total des tâches",
-              "chore_streak": "Série de corvées",
+              "chore_streak": "Série de tâches",
               "daily_minimum": "Minimum quotidien"
             }
           },
@@ -4648,7 +4651,7 @@
             }
           },
           "chores": {
-            "name": "Corvées"
+            "name": "Tâches"
           },
           "rewards": {
             "name": "Récompenses"
@@ -4666,7 +4669,7 @@
             "name": "Pénalités"
           },
           "achievements": {
-            "name": "Réalisations"
+            "name": "Succès"
           },
           "challenges": {
             "name": "Défis"
@@ -4681,7 +4684,7 @@
             "name": "Approbations en attente"
           },
           "core_sensors": {
-            "name": "Capteurs principaux"
+            "name": "Capteurs essentiels"
           },
           "dashboard_helpers": {
             "name": "Assistants de tableau de bord"
@@ -4714,7 +4717,7 @@
         }
       },
       "system_rewards_select": {
-        "name": "Récompense Select",
+        "name": "Sélection de récompenses",
         "state_attributes": {
           "purpose": {
             "name": "But",
@@ -4725,7 +4728,7 @@
         }
       },
       "system_penalties_select": {
-        "name": "Sélectionner la pénalité",
+        "name": "Sélection de pénalités",
         "state_attributes": {
           "purpose": {
             "name": "But",
@@ -4736,7 +4739,7 @@
         }
       },
       "system_bonuses_select": {
-        "name": "Sélectionner le bonus",
+        "name": "Sélection de bonus",
         "state_attributes": {
           "purpose": {
             "name": "But",
@@ -4855,12 +4858,12 @@
         }
       },
       "approver_chore_disapprove_button": {
-        "name": "Désapprouver la corvée - {chore_name}",
+        "name": "Désapprouver la tâche - {chore_name}",
         "state_attributes": {
           "purpose": {
             "name": "But",
             "state": {
-              "purpose_button_chore_disapprove": "L'approbateur désapprouve la tâche revendiquée"
+              "purpose_button_chore_disapprove": "L'approbateur refuse la tâche revendiquée"
             }
           },
           "user_name": {
@@ -4920,7 +4923,7 @@
           "purpose": {
             "name": "But",
             "state": {
-              "purpose_button_reward_disapprove": "L'approbateur désapprouve la récompense perçue"
+              "purpose_button_reward_disapprove": "L'approbateur refuse la récompense perçue"
             }
           },
           "user_name": {
@@ -4995,16 +4998,16 @@
         }
       },
       "approver_points_adjust_button_positive": {
-        "name": "Incrémenter {delta} {points_label}"
+        "name": "Augmenter {delta} {points_label}"
       },
       "approver_points_adjust_button_negative": {
-        "name": "Décrémenter {delta} {points_label}"
+        "name": "Diminuer {delta} {points_label}"
       }
     }
   },
   "exceptions": {
     "assignee_not_found_by_name": {
-      "message": "Aucun cessionnaire trouvé avec le nom {name}"
+      "message": "Aucun utilisateur trouvé avec le nom {name}"
     },
     "approver_not_found_by_name": {
       "message": "Aucun approbateur trouvé avec le nom {name}"
@@ -5084,8 +5087,14 @@
     "dashboard_label_preferences_guide_not_provided": {
       "message": "Guide des préférences non fourni"
     },
+    "user_non_kiosk_unlinked_warning": {
+      "message": "⚠️ **Avertissement d'accès :** Le mode kiosque est désactivé et cet utilisateur n'est associé à aucun compte Home Assistant. Les boutons de récupération et d'utilisation des appareils partagés peuvent ne pas fonctionner pour cet utilisateur tant que vous n'aurez pas associé un compte Home Assistant ou activé le mode kiosque."
+    },
+    "dashboard_unlinked_users_warning": {
+      "message": "⚠️ Le mode kiosque est désactivé et ces utilisateurs sélectionnés n'ont pas d'utilisateurs Home Assistant liés :\n{user_list}\n\nLes boutons de réclamation et d'échange peuvent ne pas fonctionner comme prévu sur les appareils partagés tant que ces utilisateurs ne sont pas liés ou que le mode kiosque n'est pas activé."
+    },
     "not_authorized_action": {
-      "message": "Vous n'êtes pas autorisé à {action} pour ce cessionnaire."
+      "message": "Vous n'êtes pas autorisé à {action} pour cet utilisateur"
     },
     "not_authorized_action_global": {
       "message": "Vous n'êtes pas autorisé à {action}."
@@ -5142,7 +5151,7 @@
       "message": "Tâche déjà approuvée aujourd'hui. Veuillez réessayer après la période de réinitialisation des approbations."
     },
     "chore_pending_claim": {
-      "message": "Chore a une demande en cours, en attente d'approbation ou de rejet."
+      "message": "La tâche a une demande en cours, en attente d'approbation ou de rejet."
     },
     "chore_waiting": {
       "message": "Cette tâche ne peut pas encore être prise en charge. La période d'échéance n'est pas encore ouverte."
@@ -5160,7 +5169,7 @@
       "message": "{entity} statut est {status}, attendu {expected}"
     },
     "entity_mismatch": {
-      "message": "{provided} ne correspond pas à {expected}"
+      "message": "{provided} ne corresponds pas à {expected}"
     },
     "invalid_frequency": {
       "message": "La fréquence récurrente {frequency} n'est pas valide"

@@ -85,7 +85,7 @@
             },
             "data_description": {
               "name": "Nome único para este perfil de utilizador.",
-              "ha_user_id": "Opcional: Ligue este perfil a um utilizador do Home Assistant.",
+              "ha_user_id": "Opcional: ligue este perfil a um utilizador do Home Assistant. Se o modo quiosque estiver desativado, as ações de reclamação e resgate de dispositivos partilhados dependerão desta ligação.",
               "dashboard_language": "Idioma utilizado para o conteúdo do painel de controlo e notificações.",
               "mobile_notify_service": "Selecione o serviço de notificação ou deixe em branco para desativar as notificações."
             }
@@ -555,7 +555,7 @@
       },
       "add_user": {
         "title": "Adicionar utilizador",
-        "description": "Forneça os detalhes para o novo perfil de utilizador.\n\n ℹ️ [Guia de Configuração]({documentation_url})",
+        "description": "Forneça os detalhes para o novo perfil de utilizador.\n\n{user_access_warning}\n\n ℹ️ [Guia de Configuração]({documentation_url})",
         "sections": {
           "section_identity_profile": {
             "name": "Identidade e perfil",
@@ -568,7 +568,7 @@
             },
             "data_description": {
               "name": "Nome único para este perfil de utilizador.",
-              "ha_user_id": "Opcional: Ligue este perfil a um utilizador do Home Assistant.",
+              "ha_user_id": "Opcional: ligue este perfil a um utilizador do Home Assistant. Se o modo quiosque estiver desativado, as ações de reclamação e resgate de dispositivos partilhados dependerão desta ligação.",
               "dashboard_language": "Idioma utilizado para o conteúdo do painel de controlo e notificações.",
               "mobile_notify_service": "Selecione o serviço de notificação ou deixe em branco para desativar as notificações."
             }
@@ -986,7 +986,7 @@
       },
       "edit_user": {
         "title": "Editar utilizador",
-        "description": "Modifique os detalhes do perfil de utilizador selecionado.\n\n ℹ️ [Guia de Configuração]({documentation_url})",
+        "description": "Modifique os detalhes do perfil de utilizador selecionado.\n\n{user_access_warning}\n\n ℹ️ [Guia de Configuração]({documentation_url})",
         "sections": {
           "section_identity_profile": {
             "name": "Identidade e perfil",
@@ -999,7 +999,7 @@
             },
             "data_description": {
               "name": "Nome único para este perfil de utilizador.",
-              "ha_user_id": "Opcional: Ligue este perfil a um utilizador do Home Assistant.",
+              "ha_user_id": "Opcional: ligue este perfil a um utilizador do Home Assistant. Se o modo quiosque estiver desativado, as ações de reclamação e resgate de dispositivos partilhados dependerão desta ligação.",
               "dashboard_language": "Idioma utilizado para o conteúdo do painel de controlo e notificações.",
               "mobile_notify_service": "Selecione o serviço de notificação ou deixe em branco para desativar as notificações."
             }
@@ -1497,12 +1497,14 @@
       },
       "dashboard_missing_dependencies": {
         "title": "Analise as alterações no painel de controlo.",
-        "description": "Reveja o estado das dependências e as preferências dos modelos selecionados antes de aplicar as alterações no painel.\n\n ℹ️ [Guia de configuração do painel]({documentation_url})\n\n**Personalizações disponíveis**\n{dashboard_template_preferences}\n\n**Dependências obrigatórias em falta**\n{dashboard_missing_required_dependencies}\n\n**Dependências recomendadas em falta**\n{dashboard_missing_recommended_dependencies}",
+        "description": "Reveja o estado das dependências e as preferências dos modelos selecionados antes de aplicar as alterações no painel.\n\n ℹ️ [Guia de configuração do painel]({documentation_url})\n\n**Personalizações disponíveis**\n{dashboard_template_preferences}\n\n**Dependências obrigatórias em falta**\n{dashboard_missing_required_dependencies}\n\n**Dependências recomendadas em falta**\n{dashboard_missing_recommended_dependencies}\n\n**Aviso de controlo de acesso**\n{dashboard_access_warning}",
         "data": {
-          "dashboard_dependency_bypass": "🚫 Continue na mesma (requisitos não cumpridos)"
+          "dashboard_dependency_bypass": "🚫 Continue na mesma (requisitos não cumpridos)",
+          "dashboard_access_warning_ack": "⚠️ Continuar mesmo assim (os utilizadores selecionados não estão vinculados)"
         },
         "data_description": {
-          "dashboard_dependency_bypass": "Reconheça que as dependências necessárias estão em falta e continue mesmo assim. O painel pode não ser apresentado corretamente ou apresentar um comportamento incorreto até que as dependências necessárias sejam instaladas."
+          "dashboard_dependency_bypass": "Reconheça que as dependências necessárias estão em falta e continue mesmo assim. O painel pode não ser apresentado corretamente ou apresentar um comportamento incorreto até que as dependências necessárias sejam instaladas.",
+          "dashboard_access_warning_ack": "Tenha em consideração que alguns utilizadores selecionados não têm utilizadores do Home Assistant vinculados enquanto o modo quiosque estiver desativado. Os botões de resgate e solicitação podem não funcionar corretamente em dispositivos partilhados até que estes utilizadores sejam vinculados ou o modo quiosque seja ativado."
         }
       },
       "dashboard_create": {
@@ -1834,6 +1836,7 @@
       "dashboard_admin_per_assignee_template_required": "É necessário um modelo de administração por utilizador quando o layout de administração inclui a opção \"Por Utilizador\".",
       "dashboard_admin_per_assignee_needs_assignees": "O layout de administração por utilizador requer pelo menos um utilizador selecionado.",
       "dashboard_dependency_ack_required": "Ative a opção \"Continuar mesmo assim\" para prosseguir ou volte atrás e instale primeiro as dependências necessárias que estão em falta.",
+      "dashboard_access_warning_ack_required": "Confirme o aviso de controlo de acesso para continuar, ou volte atrás e ligue os utilizadores afetados ou ative o modo quiosque.",
       "dashboard_nonselectable_templates": "Um ou mais modelos selecionados não estão disponíveis para geração.",
       "dashboard_release_strict_pin_failed": "A versão do painel selecionada deve estar fixada exatamente, mas não estava disponível nenhuma referência de versão efetiva no momento da execução. Selecione novamente a versão no Passo 1 e tente novamente.",
       "dashboard_release_asset_prep_failed": "Não foi possível preparar as funcionalidades selecionadas do painel de controlo online. Escolha uma versão diferente ou utilize os modelos locais compatíveis/atuais mais recentes e tente novamente."
@@ -5083,6 +5086,12 @@
     },
     "dashboard_label_preferences_guide_not_provided": {
       "message": "Guia de preferências não fornecido"
+    },
+    "user_non_kiosk_unlinked_warning": {
+      "message": "⚠️ **Aviso de acesso:** O modo quiosque está desativado e este utilizador não está ligado a um utilizador do Home Assistant. Os botões de resgate e de reclamação de dispositivo partilhado podem não funcionar para este utilizador até que ligue um utilizador do Home Assistant ou ative o modo quiosque."
+    },
+    "dashboard_unlinked_users_warning": {
+      "message": "⚠️ O modo quiosque está desativado e estes utilizadores selecionados não têm utilizadores do Home Assistant vinculados:\n{user_list}\n\nOs botões de resgate e de reivindicação podem não funcionar como esperado em dispositivos partilhados até que esses utilizadores sejam vinculados ou o modo quiosque seja ativado."
     },
     "not_authorized_action": {
       "message": "Não está autorizado a {action} para este responsável."

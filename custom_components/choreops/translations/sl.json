@@ -85,7 +85,7 @@
             },
             "data_description": {
               "name": "Edinstveno ime za ta uporabniški profil.",
-              "ha_user_id": "Izbirno: Povežite ta profil z uporabnikom storitve Home Assistant.",
+              "ha_user_id": "Izbirno: Povežite ta profil z uporabnikom storitve Home Assistant. Če je način kioska onemogočen, so dejanja prevzema in unovčenja v skupni napravi odvisna od te povezave.",
               "dashboard_language": "Jezik, ki se uporablja za vsebino in obvestila nadzorne plošče.",
               "mobile_notify_service": "Izberite storitev obveščanja ali pustite prazno, da obvestila onemogočite."
             }
@@ -555,7 +555,7 @@
       },
       "add_user": {
         "title": "Dodaj uporabnika",
-        "description": "Navedite podrobnosti za novi uporabniški profil.\n\n ℹ️ [Vodnik za konfiguracijo]({documentation_url})",
+        "description": "Navedite podrobnosti za novi uporabniški profil.\n\n{user_access_warning}\n\n ℹ️ [Vodnik za konfiguracijo]({documentation_url})",
         "sections": {
           "section_identity_profile": {
             "name": "Identiteta in profil",
@@ -568,7 +568,7 @@
             },
             "data_description": {
               "name": "Edinstveno ime za ta uporabniški profil.",
-              "ha_user_id": "Izbirno: Povežite ta profil z uporabnikom storitve Home Assistant.",
+              "ha_user_id": "Izbirno: Povežite ta profil z uporabnikom storitve Home Assistant. Če je način kioska onemogočen, so dejanja prevzema in unovčenja v skupni napravi odvisna od te povezave.",
               "dashboard_language": "Jezik, ki se uporablja za vsebino in obvestila nadzorne plošče.",
               "mobile_notify_service": "Izberite storitev obveščanja ali pustite prazno, da obvestila onemogočite."
             }
@@ -986,7 +986,7 @@
       },
       "edit_user": {
         "title": "Uredi uporabnika",
-        "description": "Spremenite podrobnosti izbranega uporabniškega profila.\n\n ℹ️ [Vodnik za konfiguracijo]({documentation_url})",
+        "description": "Spremenite podrobnosti izbranega uporabniškega profila.\n\n{user_access_warning}\n\n ℹ️ [Vodnik za konfiguracijo]({documentation_url})",
         "sections": {
           "section_identity_profile": {
             "name": "Identiteta in profil",
@@ -999,7 +999,7 @@
             },
             "data_description": {
               "name": "Edinstveno ime za ta uporabniški profil.",
-              "ha_user_id": "Izbirno: Povežite ta profil z uporabnikom storitve Home Assistant.",
+              "ha_user_id": "Izbirno: Povežite ta profil z uporabnikom storitve Home Assistant. Če je način kioska onemogočen, so dejanja prevzema in unovčenja v skupni napravi odvisna od te povezave.",
               "dashboard_language": "Jezik, ki se uporablja za vsebino in obvestila nadzorne plošče.",
               "mobile_notify_service": "Izberite storitev obveščanja ali pustite prazno, da obvestila onemogočite."
             }
@@ -1497,12 +1497,14 @@
       },
       "dashboard_missing_dependencies": {
         "title": "Pregled sprememb nadzorne plošče",
-        "description": "Preden uporabite spremembe nadzorne plošče, preglejte stanje odvisnosti in nastavitve predlog za izbrane predloge.\n\n ℹ️ [Vodnik za konfiguracijo nadzorne plošče]({documentation_url})\n\n**Razpoložljive prilagoditve**\n{dashboard_template_preferences}\n\n**Manjkajoče zahtevane odvisnosti**\n{dashboard_missing_required_dependencies}\n\n**Manjkajoče priporočene odvisnosti**\n{dashboard_missing_recommended_dependencies}",
+        "description": "Preden uporabite spremembe nadzorne plošče, preglejte stanje odvisnosti in nastavitve predlog za izbrane predloge.\n\n ℹ️ [Vodnik za konfiguracijo nadzorne plošče]({documentation_url})\n\n**Razpoložljive prilagoditve**\n{dashboard_template_preferences}\n\n**Manjkajoče zahtevane odvisnosti**\n{dashboard_missing_required_dependencies}\n\n**Manjkajoče priporočene odvisnosti**\n{dashboard_missing_recommended_dependencies}\n\n**Opozorilo o nadzoru dostopa**\n{dashboard_access_warning}",
         "data": {
-          "dashboard_dependency_bypass": "🚫 Vseeno nadaljuj (zahteve manjkajo)"
+          "dashboard_dependency_bypass": "🚫 Vseeno nadaljuj (zahteve manjkajo)",
+          "dashboard_access_warning_ack": "⚠️ Vseeno nadaljuj (izbrani uporabniki niso povezani)"
         },
         "data_description": {
-          "dashboard_dependency_bypass": "Potrdite, da manjkajo zahtevane odvisnosti, in vseeno nadaljujte. Nadzorna plošča se morda ne bo prikazala ali pa se bo obnašala nepravilno, dokler ne bodo nameščene zahtevane odvisnosti."
+          "dashboard_dependency_bypass": "Potrdite, da manjkajo zahtevane odvisnosti, in vseeno nadaljujte. Nadzorna plošča se morda ne bo prikazala ali pa se bo obnašala nepravilno, dokler ne bodo nameščene zahtevane odvisnosti.",
+          "dashboard_access_warning_ack": "Upoštevajte, da nekateri izbrani uporabniki nimajo povezanih uporabnikov storitve Home Assistant, medtem ko je način kioska onemogočen. Gumba za prevzem in unovčenje morda ne bosta delovala pravilno na napravah v skupni rabi, dokler ti uporabniki niso povezani ali način kioska omogočen."
         }
       },
       "dashboard_create": {
@@ -1834,6 +1836,7 @@
       "dashboard_admin_per_assignee_template_required": "Predloga skrbnika na uporabnika je obvezna, če skrbniška postavitev vključuje na uporabnika.",
       "dashboard_admin_per_assignee_needs_assignees": "Za postavitev skrbnika na uporabnika je potreben vsaj en izbran uporabnik.",
       "dashboard_dependency_ack_required": "Za nadaljevanje omogočite »Nadaljuj vseeno« ali se vrnite in najprej namestite manjkajoče zahtevane odvisnosti.",
+      "dashboard_access_warning_ack_required": "Za nadaljevanje potrdite opozorilo o nadzoru dostopa ali se vrnite in povežite prizadete uporabnike oziroma omogočite način kioska.",
       "dashboard_nonselectable_templates": "Ena ali več izbranih predlog ni na voljo za generiranje.",
       "dashboard_release_strict_pin_failed": "Izbrana izdaja na nadzorni plošči mora biti natančno pripeta, vendar v času izvajanja ni bila na voljo nobena veljavna referenca za izdajo. V 1. koraku ponovno izberite izdajo in poskusite znova.",
       "dashboard_release_asset_prep_failed": "Izbranih spletnih elementov nadzorne plošče ni mogoče pripraviti. Izberite drugo izdajo ali uporabite najnovejše združljive/trenutne lokalne predloge in poskusite znova."
@@ -5083,6 +5086,12 @@
     },
     "dashboard_label_preferences_guide_not_provided": {
       "message": "Vodnik po nastavitvah ni na voljo"
+    },
+    "user_non_kiosk_unlinked_warning": {
+      "message": "⚠️ **Opozorilo o dostopu:** Način kioska je onemogočen in ta uporabnik ni povezan z uporabnikom storitve Home Assistant. Gumbi za prevzem in unovčenje na skupni napravi morda ne bodo delovali za tega uporabnika, dokler ne povežete uporabnika storitve Home Assistant ali omogočite načina kioska."
+    },
+    "dashboard_unlinked_users_warning": {
+      "message": "⚠️ Način kioska je onemogočen in ti izbrani uporabniki nimajo povezanih uporabnikov Domačega pomočnika:\n{user_list}\n\nGumba za prevzem in unovčenje morda ne bosta delovala pravilno na napravah v skupni rabi, dokler ti uporabniki niso povezani ali dokler ni omogočen način kioska."
     },
     "not_authorized_action": {
       "message": "Niste pooblaščeni za {action} za tega prejemnika."

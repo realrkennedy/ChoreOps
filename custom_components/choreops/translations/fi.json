@@ -85,7 +85,7 @@
             },
             "data_description": {
               "name": "Tämän käyttäjäprofiilin yksilöllinen nimi.",
-              "ha_user_id": "Valinnainen: Linkitä tämä profiili Home Assistant -käyttäjään.",
+              "ha_user_id": "Valinnainen: Linkitä tämä profiili Home Assistant -käyttäjään. Jos kioskitila on poistettu käytöstä, jaetun laitteen lunastustoiminnot edellyttävät tätä linkkiä.",
               "dashboard_language": "Kojelaudan sisällössä ja ilmoituksissa käytetty kieli.",
               "mobile_notify_service": "Valitse ilmoituspalvelu tai jätä tyhjäksi poistaaksesi ilmoitukset käytöstä."
             }
@@ -555,7 +555,7 @@
       },
       "add_user": {
         "title": "Lisää käyttäjä",
-        "description": "Anna uuden käyttäjäprofiilin tiedot.\n\n ℹ️ [Määritysopas]({documentation_url})",
+        "description": "Anna uuden käyttäjäprofiilin tiedot.\n\n{user_access_warning}\n\n ℹ️ [Määritysopas]({documentation_url})",
         "sections": {
           "section_identity_profile": {
             "name": "Identiteetti ja profiili",
@@ -568,7 +568,7 @@
             },
             "data_description": {
               "name": "Tämän käyttäjäprofiilin yksilöllinen nimi.",
-              "ha_user_id": "Valinnainen: Linkitä tämä profiili Home Assistant -käyttäjään.",
+              "ha_user_id": "Valinnainen: Linkitä tämä profiili Home Assistant -käyttäjään. Jos kioskitila on poistettu käytöstä, jaetun laitteen lunastustoiminnot edellyttävät tätä linkkiä.",
               "dashboard_language": "Kojelaudan sisällössä ja ilmoituksissa käytetty kieli.",
               "mobile_notify_service": "Valitse ilmoituspalvelu tai jätä tyhjäksi poistaaksesi ilmoitukset käytöstä."
             }
@@ -986,7 +986,7 @@
       },
       "edit_user": {
         "title": "Muokkaa käyttäjää",
-        "description": "Muokkaa valitun käyttäjäprofiilin tietoja.\n\n ℹ️ [Määritysopas]({documentation_url})",
+        "description": "Muokkaa valitun käyttäjäprofiilin tietoja.\n\n{user_access_warning}\n\n ℹ️ [Määritysopas]({documentation_url})",
         "sections": {
           "section_identity_profile": {
             "name": "Identiteetti ja profiili",
@@ -999,7 +999,7 @@
             },
             "data_description": {
               "name": "Tämän käyttäjäprofiilin yksilöllinen nimi.",
-              "ha_user_id": "Valinnainen: Linkitä tämä profiili Home Assistant -käyttäjään.",
+              "ha_user_id": "Valinnainen: Linkitä tämä profiili Home Assistant -käyttäjään. Jos kioskitila on poistettu käytöstä, jaetun laitteen lunastustoiminnot edellyttävät tätä linkkiä.",
               "dashboard_language": "Kojelaudan sisällössä ja ilmoituksissa käytetty kieli.",
               "mobile_notify_service": "Valitse ilmoituspalvelu tai jätä tyhjäksi poistaaksesi ilmoitukset käytöstä."
             }
@@ -1497,12 +1497,14 @@
       },
       "dashboard_missing_dependencies": {
         "title": "Tarkista kojelaudan muutokset",
-        "description": "Tarkista valittujen mallien riippuvuustila ja mallien asetukset ennen kuin otat koontinäytön muutokset käyttöön.\n\n ℹ️ [Kontrollinäytön määritysopas]({documentation_url})\n\n**Käytettävissä olevat mukautukset**\n{dashboard_template_preferences}\n\n**Puuttuvat pakolliset riippuvuudet**\n{dashboard_missing_required_dependencies}\n\n**Puuttuvat suositellut riippuvuudet**\n{dashboard_missing_recommended_dependencies}",
+        "description": "Tarkista valittujen mallien riippuvuustila ja mallien asetukset ennen kuin otat koontinäytön muutokset käyttöön.\n\n ℹ️ [Kontrollinäytön määritysopas]({documentation_url})\n\n**Käytettävissä olevat mukautukset**\n{dashboard_template_preferences}\n\n**Puuttuvat pakolliset riippuvuudet**\n{dashboard_missing_required_dependencies}\n\n**Puuttuvat suositellut riippuvuudet**\n{dashboard_missing_recommended_dependencies}\n\n**Käyttöoikeuksien hallinnan varoitus**\n{dashboard_access_warning}",
         "data": {
-          "dashboard_dependency_bypass": "🚫 Jatka joka tapauksessa (vaatimukset puuttuvat)"
+          "dashboard_dependency_bypass": "🚫 Jatka joka tapauksessa (vaatimukset puuttuvat)",
+          "dashboard_access_warning_ack": "⚠️ Jatka joka tapauksessa (valittuja käyttäjiä ei ole linkitetty)"
         },
         "data_description": {
-          "dashboard_dependency_bypass": "Vahvista, että pakolliset riippuvuudet puuttuvat, ja jatka joka tapauksessa. Kojelauta ei välttämättä renderöidy tai toimii väärin, ennen kuin pakolliset riippuvuudet on asennettu."
+          "dashboard_dependency_bypass": "Vahvista, että pakolliset riippuvuudet puuttuvat, ja jatka joka tapauksessa. Kojelauta ei välttämättä renderöidy tai toimii väärin, ennen kuin pakolliset riippuvuudet on asennettu.",
+          "dashboard_access_warning_ack": "Huomaa, että joillakin valituilla käyttäjillä ei ole linkitettyjä Home Assistant -käyttäjiä, kun kioskitila on poistettu käytöstä. Lunastuspainikkeet eivät välttämättä toimi odotetulla tavalla jaetuilla laitteilla, ennen kuin kyseiset käyttäjät on linkitetty tai kioskitila on käytössä."
         }
       },
       "dashboard_create": {
@@ -1834,6 +1836,7 @@
       "dashboard_admin_per_assignee_template_required": "Käyttäjäkohtainen hallintamalli vaaditaan, kun hallintamalli sisältää käyttäjäkohtaisen mallin.",
       "dashboard_admin_per_assignee_needs_assignees": "Käyttäjäkohtainen hallinta-asettelu edellyttää vähintään yhden valitun käyttäjän.",
       "dashboard_dependency_ack_required": "Jatka ottamalla käyttöön 'Jatka joka tapauksessa' tai palaa takaisin ja asenna ensin puuttuvat pakolliset riippuvuudet.",
+      "dashboard_access_warning_ack_required": "Jatka kuittaamalla käyttöoikeusvaroitus tai palaa takaisin ja linkitä kyseiset käyttäjät tai ota käyttöön kioskitila.",
       "dashboard_nonselectable_templates": "Yksi tai useampi valittu mallipohja ei ole käytettävissä luomista varten.",
       "dashboard_release_strict_pin_failed": "Valitun kojelaudan julkaisun on oltava kiinnitetty tarkasti, mutta suoritushetkellä ei ollut käytettävissä voimassa olevaa julkaisuviittausta. Valitse julkaisu uudelleen vaiheessa 1 ja yritä uudelleen.",
       "dashboard_release_asset_prep_failed": "Valittujen verkkohallintapaneelin resurssien valmistelu epäonnistui. Valitse toinen versio tai käytä uusimpia yhteensopivia/nykyisiä paikallisia malleja ja yritä uudelleen."
@@ -5083,6 +5086,12 @@
     },
     "dashboard_label_preferences_guide_not_provided": {
       "message": "Asetusopasta ei toimitettu"
+    },
+    "user_non_kiosk_unlinked_warning": {
+      "message": "⚠️ **Käyttöoikeusvaroitus:** Kioskitila on poistettu käytöstä, eikä tätä käyttäjää ole linkitetty Home Assistant -käyttäjään. Jaetun laitteen lunastuspainikkeet eivät välttämättä toimi tälle käyttäjälle, ennen kuin linkität Home Assistant -käyttäjän tai otat kioskitilan käyttöön."
+    },
+    "dashboard_unlinked_users_warning": {
+      "message": "⚠️ Kioskitila on poistettu käytöstä, eikä näillä valituilla käyttäjillä ole linkitettyjä Home Assistant -käyttäjiä:\n{user_list}\n\nLunastuspainikkeet eivät välttämättä toimi odotetulla tavalla jaetuilla laitteilla, ennen kuin kyseiset käyttäjät on linkitetty tai kioskitila on käytössä."
     },
     "not_authorized_action": {
       "message": "Sinulla ei ole oikeutta {action} tämän vastuuhenkilön puolesta."

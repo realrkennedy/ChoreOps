@@ -85,7 +85,7 @@
             },
             "data_description": {
               "name": "Nombre único para este perfil de usuario.",
-              "ha_user_id": "Opcional: Vincula este perfil a un usuario de Home Assistant.",
+              "ha_user_id": "Opcional: Vincula este perfil a un usuario de Home Assistant. Si el modo quiosco está desactivado, las acciones de reclamación y canje de dispositivos compartidos dependen de este vínculo.",
               "dashboard_language": "Idioma utilizado para el contenido del panel y las notificaciones.",
               "mobile_notify_service": "Seleccione el servicio de notificaciones o déjelo vacío para deshabilitar las notificaciones."
             }
@@ -555,7 +555,7 @@
       },
       "add_user": {
         "title": "Agregar usuario",
-        "description": "Proporcione los detalles del nuevo perfil de usuario.\n\n ℹ️ [Guía de configuración]({documentation_url})",
+        "description": "Proporcione los detalles para el nuevo perfil de usuario.\n\n{user_access_warning}\n\n ℹ️ [Guía de configuración]({documentation_url})",
         "sections": {
           "section_identity_profile": {
             "name": "Identidad y perfil",
@@ -568,7 +568,7 @@
             },
             "data_description": {
               "name": "Nombre único para este perfil de usuario.",
-              "ha_user_id": "Opcional: Vincula este perfil a un usuario de Home Assistant.",
+              "ha_user_id": "Opcional: Vincula este perfil a un usuario de Home Assistant. Si el modo quiosco está desactivado, las acciones de reclamación y canje de dispositivos compartidos dependen de este vínculo.",
               "dashboard_language": "Idioma utilizado para el contenido del panel y las notificaciones.",
               "mobile_notify_service": "Seleccione el servicio de notificaciones o déjelo vacío para deshabilitar las notificaciones."
             }
@@ -986,7 +986,7 @@
       },
       "edit_user": {
         "title": "Editar usuario",
-        "description": "Modificar los detalles del perfil de usuario seleccionado.\n\n ℹ️ [Guía de configuración]({documentation_url})",
+        "description": "Modifique los detalles del perfil de usuario seleccionado.\n\n{user_access_warning}\n\n ℹ️ [Guía de configuración]({documentation_url})",
         "sections": {
           "section_identity_profile": {
             "name": "Identidad y perfil",
@@ -999,7 +999,7 @@
             },
             "data_description": {
               "name": "Nombre único para este perfil de usuario.",
-              "ha_user_id": "Opcional: Vincula este perfil a un usuario de Home Assistant.",
+              "ha_user_id": "Opcional: Vincula este perfil a un usuario de Home Assistant. Si el modo quiosco está desactivado, las acciones de reclamación y canje de dispositivos compartidos dependen de este vínculo.",
               "dashboard_language": "Idioma utilizado para el contenido del panel y las notificaciones.",
               "mobile_notify_service": "Seleccione el servicio de notificaciones o déjelo vacío para deshabilitar las notificaciones."
             }
@@ -1497,12 +1497,14 @@
       },
       "dashboard_missing_dependencies": {
         "title": "Revisar los cambios en el panel",
-        "description": "Revise el estado de las dependencias y las preferencias de plantilla de las plantillas seleccionadas antes de aplicar los cambios en el panel.\n\n ℹ️ [Guía de configuración del panel]({documentation_url})\n\n**Personalizaciones disponibles**\n{dashboard_template_preferences}\n\n**Dependencias obligatorias faltantes**\n{dashboard_missing_required_dependencies}\n\n**Dependencias recomendadas faltantes**\n{dashboard_missing_recommended_dependencies}",
+        "description": "Revise el estado de las dependencias y las preferencias de plantilla para las plantillas seleccionadas antes de aplicar los cambios del panel.\n\n ℹ️ [Guía de configuración del panel]({documentation_url})\n\n**Personalizaciones disponibles**\n{dashboard_template_preferences}\n\n**Dependencias requeridas faltantes**\n{dashboard_missing_required_dependencies}\n\n**Dependencias recomendadas faltantes**\n{dashboard_missing_recommended_dependencies}\n\n**Advertencia de control de acceso**\n{dashboard_access_warning}",
         "data": {
-          "dashboard_dependency_bypass": "🚫 Continuar de todos modos (faltan requisitos)"
+          "dashboard_dependency_bypass": "🚫 Continuar de todos modos (faltan requisitos)",
+          "dashboard_access_warning_ack": "⚠️ Continúa de todos modos (los usuarios seleccionados no están vinculados)"
         },
         "data_description": {
-          "dashboard_dependency_bypass": "Reconozca que faltan las dependencias necesarias y continúe de todos modos. El panel podría no renderizarse o funcionar incorrectamente hasta que se instalen las dependencias necesarias."
+          "dashboard_dependency_bypass": "Reconozca que faltan las dependencias necesarias y continúe de todos modos. El panel podría no renderizarse o funcionar incorrectamente hasta que se instalen las dependencias necesarias.",
+          "dashboard_access_warning_ack": "Tenga en cuenta que algunos usuarios seleccionados no tienen usuarios de Home Assistant vinculados mientras el modo quiosco esté desactivado. Es posible que los botones de reclamación y canje no funcionen correctamente en dispositivos compartidos hasta que esos usuarios estén vinculados o se active el modo quiosco."
         }
       },
       "dashboard_create": {
@@ -1834,6 +1836,7 @@
       "dashboard_admin_per_assignee_template_required": "Se requiere una plantilla de administración por usuario cuando el diseño de administración incluye Por usuario.",
       "dashboard_admin_per_assignee_needs_assignees": "El diseño de administrador por usuario requiere al menos un usuario seleccionado.",
       "dashboard_dependency_ack_required": "Habilite \"Continuar de todas formas\" para continuar o regrese e instale primero las dependencias requeridas que faltan.",
+      "dashboard_access_warning_ack_required": "Confirme la advertencia de control de acceso para continuar, o bien, vuelva atrás y vincule a los usuarios afectados o habilite el modo quiosco.",
       "dashboard_nonselectable_templates": "Una o más plantillas seleccionadas no están disponibles para su generación.",
       "dashboard_release_strict_pin_failed": "La versión del panel seleccionada debe estar fijada con precisión, pero no había ninguna referencia de versión efectiva disponible en el momento de la ejecución. Vuelva a seleccionar la versión en el paso 1 e inténtelo de nuevo.",
       "dashboard_release_asset_prep_failed": "No se pueden preparar los recursos del panel en línea seleccionados. Elija una versión diferente o use las plantillas locales compatibles más recientes y vuelva a intentarlo."
@@ -5083,6 +5086,12 @@
     },
     "dashboard_label_preferences_guide_not_provided": {
       "message": "Guía de preferencias no proporcionada"
+    },
+    "user_non_kiosk_unlinked_warning": {
+      "message": "⚠️ **Advertencia de acceso:** El modo quiosco está desactivado y este usuario no está vinculado a un usuario de Home Assistant. Es posible que los botones de reclamación y canje de dispositivos compartidos no funcionen para este usuario hasta que lo vincule a un usuario de Home Assistant o active el modo quiosco."
+    },
+    "dashboard_unlinked_users_warning": {
+      "message": "⚠️ El modo quiosco está desactivado y estos usuarios seleccionados no tienen usuarios de Home Assistant vinculados:\n{user_list}\n\nEs posible que los botones de reclamar y canjear no funcionen como se espera en dispositivos compartidos hasta que esos usuarios estén vinculados o se habilite el modo quiosco."
     },
     "not_authorized_action": {
       "message": "No está autorizado a {action} para este cesionario."

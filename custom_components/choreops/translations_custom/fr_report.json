@@ -18,7 +18,7 @@
   "badges_earned_none": "🏅 Badges obtenus : aucun durant cette période",
   "bonus_points": "✨ Points bonus",
   "rewards_highlight": "🎁 Récompenses",
-  "daily_ledger": "Détails du grand livre",
+  "daily_ledger": "Détails livre de comptes",
   "best_day": "🏆 Meilleure journée : {date} (points nets {net})",
   "no_activity": "Aucune activité trouvée pour la plage sélectionnée.",
   "day_points_earned": "🌟 Points gagnés",
@@ -30,11 +30,11 @@
   "automation_summary": "## Résumé",
   "automation_daily": "## Tous les jours",
   "automation_no_activity": "- aucune activité",
-  "automation_assignees": "cessionnaires",
+  "automation_assignees": "Participants",
   "automation_range_start": "début de la plage",
   "automation_range_end": "fin de plage",
-  "automation_total_earned": "total_gagné",
-  "automation_total_spent": "total_dépensé",
-  "automation_net": "filet",
-  "automation_transactions": "transactions"
+  "automation_total_earned": "Total gagné",
+  "automation_total_spent": "Total dépensé",
+  "automation_net": "Net",
+  "automation_transactions": "Transactions"
 }

@@ -85,7 +85,7 @@
             },
             "data_description": {
               "name": "Unikt namn för denna användarprofil.",
-              "ha_user_id": "Valfritt: Länka den här profilen till en Home Assistant-användare.",
+              "ha_user_id": "Valfritt: Länka den här profilen till en Home Assistant-användare. Om kioskläget är inaktiverat är anspråk och inlösen av delade enheter beroende av den här länken.",
               "dashboard_language": "Språk som används för instrumentpanelsinnehåll och aviseringar.",
               "mobile_notify_service": "Välj aviseringstjänst eller lämna tomt för att inaktivera aviseringar."
             }
@@ -555,7 +555,7 @@
       },
       "add_user": {
         "title": "Lägg till användare",
-        "description": "Ange informationen för den nya användarprofilen.\n\n ℹ️ [Konfigurationsguide]({documentation_url})",
+        "description": "Ange informationen för den nya användarprofilen.\n\n{user_access_warning}\n\n ℹ️ [Konfigurationsguide]({documentation_url})",
         "sections": {
           "section_identity_profile": {
             "name": "Identitet och profil",
@@ -568,7 +568,7 @@
             },
             "data_description": {
               "name": "Unikt namn för denna användarprofil.",
-              "ha_user_id": "Valfritt: Länka den här profilen till en Home Assistant-användare.",
+              "ha_user_id": "Valfritt: Länka den här profilen till en Home Assistant-användare. Om kioskläget är inaktiverat är anspråk och inlösen av delade enheter beroende av den här länken.",
               "dashboard_language": "Språk som används för instrumentpanelsinnehåll och aviseringar.",
               "mobile_notify_service": "Välj aviseringstjänst eller lämna tomt för att inaktivera aviseringar."
             }
@@ -986,7 +986,7 @@
       },
       "edit_user": {
         "title": "Redigera användare",
-        "description": "Ändra detaljerna för den valda användarprofilen.\n\n ℹ️ [Konfigurationsguide]({documentation_url})",
+        "description": "Ändra detaljerna för den valda användarprofilen.\n\n{user_access_warning}\n\n ℹ️ [Konfigurationsguide]({documentation_url})",
         "sections": {
           "section_identity_profile": {
             "name": "Identitet och profil",
@@ -999,7 +999,7 @@
             },
             "data_description": {
               "name": "Unikt namn för denna användarprofil.",
-              "ha_user_id": "Valfritt: Länka den här profilen till en Home Assistant-användare.",
+              "ha_user_id": "Valfritt: Länka den här profilen till en Home Assistant-användare. Om kioskläget är inaktiverat är anspråk och inlösen av delade enheter beroende av den här länken.",
               "dashboard_language": "Språk som används för instrumentpanelsinnehåll och aviseringar.",
               "mobile_notify_service": "Välj aviseringstjänst eller lämna tomt för att inaktivera aviseringar."
             }
@@ -1497,12 +1497,14 @@
       },
       "dashboard_missing_dependencies": {
         "title": "Granska ändringar i instrumentpanelen",
-        "description": "Granska beroendestatus och mallinställningar för dina valda mallar innan du tillämpar ändringar i instrumentpanelen.\n\n ℹ️ [Konfigurationsguide för instrumentpanel]({documentation_url})\n\n**Tillgängliga anpassningar**\n{dashboard_template_preferences}\n\n**Obligatoriska beroenden saknas**\n{dashboard_missing_required_dependencies}\n\n**Rekommenderade beroenden saknas**\n{dashboard_missing_recommended_dependencies}",
+        "description": "Granska beroendestatus och mallinställningar för dina valda mallar innan du tillämpar ändringar i instrumentpanelen.\n\n ℹ️ [Konfigurationsguide för instrumentpanel]({documentation_url})\n\n**Tillgängliga anpassningar**\n{dashboard_template_preferences}\n\n**Obligatoriska beroenden saknas**\n{dashboard_missing_required_dependencies}\n\n**Rekommenderade beroenden saknas**\n{dashboard_missing_recommended_dependencies}\n\n**Varning för åtkomstkontroll**\n{dashboard_access_warning}",
         "data": {
-          "dashboard_dependency_bypass": "🚫 Fortsätt ändå (krav saknas)"
+          "dashboard_dependency_bypass": "🚫 Fortsätt ändå (krav saknas)",
+          "dashboard_access_warning_ack": "⚠️ Fortsätt ändå (valda användare är inte länkade)"
         },
         "data_description": {
-          "dashboard_dependency_bypass": "Bekräfta att nödvändiga beroenden saknas och fortsätt ändå. Instrumentpanelen kanske inte renderas eller beter sig felaktigt förrän nödvändiga beroenden har installerats."
+          "dashboard_dependency_bypass": "Bekräfta att nödvändiga beroenden saknas och fortsätt ändå. Instrumentpanelen kanske inte renderas eller beter sig felaktigt förrän nödvändiga beroenden har installerats.",
+          "dashboard_access_warning_ack": "Bekräfta att vissa utvalda användare inte har länkade Home Assistant-användare medan kioskläget är inaktiverat. Knappar för att göra anspråk och lösa in fungerar eventuellt inte som förväntat på delade enheter förrän dessa användare är länkade eller kioskläget är aktiverat."
         }
       },
       "dashboard_create": {
@@ -1834,6 +1836,7 @@
       "dashboard_admin_per_assignee_template_required": "En administratörsmall per användare krävs när administratörslayouten inkluderar per användare.",
       "dashboard_admin_per_assignee_needs_assignees": "Administratörslayout per användare kräver minst en vald användare.",
       "dashboard_dependency_ack_required": "Aktivera \"Fortsätt ändå\" för att fortsätta, eller gå tillbaka och installera först saknade nödvändiga beroenden.",
+      "dashboard_access_warning_ack_required": "Bekräfta åtkomstkontrollvarningen för att fortsätta, eller gå tillbaka och länka de berörda användarna eller aktivera kioskläge.",
       "dashboard_nonselectable_templates": "En eller flera valda mallar är inte tillgängliga för generering.",
       "dashboard_release_strict_pin_failed": "Den valda dashboard-versionen måste vara exakt fäst, men ingen effektiv versionsreferens fanns tillgänglig vid körningstillfället. Välj versionen igen i steg 1 och försök igen.",
       "dashboard_release_asset_prep_failed": "Det gick inte att förbereda valda online-instrumentpanelsresurser. Välj en annan version eller använd de senaste kompatibla/aktuella lokala mallarna och försök igen."
@@ -5083,6 +5086,12 @@
     },
     "dashboard_label_preferences_guide_not_provided": {
       "message": "Inställningsguide tillhandahålls inte"
+    },
+    "user_non_kiosk_unlinked_warning": {
+      "message": "⚠️ **Åtkomstvarning:** Kioskläget är inaktiverat och den här användaren är inte länkad till en Home Assistant-användare. Knappar för att göra anspråk på och lösa in delade enheter kanske inte fungerar för den här användaren förrän du länkar en Home Assistant-användare eller aktiverar kioskläget."
+    },
+    "dashboard_unlinked_users_warning": {
+      "message": "⚠️ Kioskläget är inaktiverat och dessa valda användare har inga länkade Home Assistant-användare:\n{user_list}\n\nKnappar för att göra anspråk och lösa in fungerar eventuellt inte som förväntat på delade enheter förrän dessa användare är länkade eller kioskläget är aktiverat."
     },
     "not_authorized_action": {
       "message": "Du har inte behörighet att {action} för denna tilldelade person."

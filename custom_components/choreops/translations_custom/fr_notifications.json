@@ -7,7 +7,7 @@
     "message": "{chore_name} approuvé! Vous avez gagné des points {points}"
   },
   "chore_disapproved_assignee": {
-    "title": "↩️ La corvée est revenue",
+    "title": "↩️ La tâche est revenue",
     "message": "{chore_name} nécessite plus de travail."
   },
   "chore_overdue_assignee": {
@@ -15,7 +15,7 @@
     "message": "{chore_name} est en retard ! Terminez-le maintenant pour gagner {points} points"
   },
   "chore_overdue_steal_available": {
-    "title": "Alerte corvée",
+    "title": "Alerte tâches",
     "message": "{chore_name} est en retard et disponible pour être volé ! Terminez-le en premier pour gagner {points} points"
   },
   "chore_missed_assignee": {
@@ -24,18 +24,18 @@
   },
   "chore_due_reminder_assignee": {
     "title": "⏰ Rappel des tâches ménagères",
-    "message": "{chore_name} est dû dans {minutes} minutes ! Vaut {points} points"
+    "message": "{chore_name} doit être terminée avant {minutes} minutes ! Vaut {points} points"
   },
   "chore_due_window_assignee": {
     "title": "🎯 Tâches ménagères à faire maintenant",
-    "message": "{chore_name} est maintenant à rendre ! Terminez-le dans un délai de {hours} heure(s) pour gagner {points} points"
+    "message": "{chore_name} est maintenant à faire ! Terminez-la dans un délai de {hours} heure(s) pour gagner {points} points"
   },
   "reward_approved_assignee": {
     "title": "🎉 Récompense approuvée !",
     "message": "{reward_name} approuvé !"
   },
   "reward_disapproved_assignee": {
-    "title": "💭 Demande de récompense retournée",
+    "title": "💭 Demande de récompense rejetée",
     "message": "{reward_name} n'a pas été approuvé cette fois-ci."
   },
   "badge_earned_assignee": {
@@ -51,7 +51,7 @@
     "message": "Vous avez terminé {challenge_name}! Continuez comme ça !"
   },
   "penalty_applied_assignee": {
-    "title": "⚠️ Sanction appliquée",
+    "title": "⚠️ Pénalité appliquée",
     "message": "{penalty_name}: {points} points déduits. Reprenons le fil !"
   },
   "bonus_applied_assignee": {
@@ -66,7 +66,7 @@
   "_comment_approver_desc": "NOTIFICATIONS DES APPROUVEURS : Informatives, à la troisième personne, exploitables. Format : « {assignee_name} : Action ». Sans préfixe « ChoreOps : ».",
   "_comment_approver_footer": "══════════════════════════════════════════════════════════════",
   "chore_claimed_approver": {
-    "title": "✋ {assignee_name}: Tâche prise",
+    "title": "✋ {assignee_name}: Tâche réclamée",
     "message": "{assignee_name} a revendiqué {chore_name}"
   },
   "chore_reminder_approver": {
@@ -134,8 +134,8 @@
   "actions": {
     "approve": "✅ Approuver",
     "claim": "✋ J'ai réussi !",
-    "complete": "✅ Complet",
-    "disapprove": "↩️ Désapprouver",
+    "complete": "✅ Terminé",
+    "disapprove": "↩️ Refuser",
     "remind_30": "⏰ Rappel dans 30 min",
     "skip": "⏭️ Passer"
   }
