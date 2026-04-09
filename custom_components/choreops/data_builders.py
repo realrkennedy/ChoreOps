@@ -1490,6 +1490,43 @@ def validate_chore_data(
         )
         return errors
 
+    # === 10b. CUSTOM frequencies require valid custom interval settings ===
+    if recurring_frequency in (
+        const.FREQUENCY_CUSTOM,
+        const.FREQUENCY_CUSTOM_FROM_COMPLETE,
+    ):
+        custom_interval = data.get(const.DATA_CHORE_CUSTOM_INTERVAL)
+        custom_interval_unit = data.get(const.DATA_CHORE_CUSTOM_INTERVAL_UNIT)
+
+        if custom_interval in (None, const.SENTINEL_EMPTY):
+            errors[const.CFOP_ERROR_CUSTOM_INTERVAL] = (
+                const.TRANS_KEY_CFOF_CUSTOM_INTERVAL_REQUIRED
+            )
+            return errors
+
+        if not isinstance(custom_interval, int) or custom_interval < 1:
+            errors[const.CFOP_ERROR_CUSTOM_INTERVAL] = (
+                const.TRANS_KEY_CFOF_CUSTOM_INTERVAL_INVALID
+            )
+            return errors
+
+        if custom_interval_unit in (None, const.SENTINEL_EMPTY):
+            errors[const.CFOP_ERROR_CUSTOM_INTERVAL_UNIT] = (
+                const.TRANS_KEY_CFOF_CUSTOM_INTERVAL_UNIT_REQUIRED
+            )
+            return errors
+
+        if custom_interval_unit not in {
+            const.TIME_UNIT_HOURS,
+            const.TIME_UNIT_DAYS,
+            const.TIME_UNIT_WEEKS,
+            const.TIME_UNIT_MONTHS,
+        }:
+            errors[const.CFOP_ERROR_CUSTOM_INTERVAL_UNIT] = (
+                const.TRANS_KEY_CFOF_CUSTOM_INTERVAL_UNIT_INVALID
+            )
+            return errors
+
     # === 11. Rotation requires ≥ 2 assigned assignees ===
     rotation_criteria = {
         const.COMPLETION_CRITERIA_ROTATION_SIMPLE,

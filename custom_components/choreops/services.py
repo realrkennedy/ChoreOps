@@ -251,6 +251,8 @@ def _build_service_chore_validation_data(
     if existing_chore is not None:
         for key in (
             const.DATA_CHORE_RECURRING_FREQUENCY,
+            const.DATA_CHORE_CUSTOM_INTERVAL,
+            const.DATA_CHORE_CUSTOM_INTERVAL_UNIT,
             const.DATA_CHORE_APPROVAL_RESET_TYPE,
             const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
             const.DATA_CHORE_COMPLETION_CRITERIA,
@@ -644,6 +646,17 @@ CREATE_CHORE_SCHEMA = vol.Schema(
             vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_FREQUENCY): vol.In(
                 _CHORE_FREQUENCY_VALUES
             ),
+            vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_CUSTOM_INTERVAL): vol.All(
+                vol.Coerce(int), vol.Range(min=1)
+            ),
+            vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_CUSTOM_INTERVAL_UNIT): vol.In(
+                [
+                    const.TIME_UNIT_HOURS,
+                    const.TIME_UNIT_DAYS,
+                    const.TIME_UNIT_WEEKS,
+                    const.TIME_UNIT_MONTHS,
+                ]
+            ),
             vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_APPLICABLE_DAYS): vol.All(
                 cv.ensure_list, [vol.In(_DAY_OF_WEEK_VALUES)]
             ),
@@ -700,6 +713,17 @@ UPDATE_CHORE_SCHEMA = vol.Schema(
             vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_FREQUENCY): vol.In(
                 _CHORE_FREQUENCY_VALUES
             ),
+            vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_CUSTOM_INTERVAL): vol.All(
+                vol.Coerce(int), vol.Range(min=1)
+            ),
+            vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_CUSTOM_INTERVAL_UNIT): vol.In(
+                [
+                    const.TIME_UNIT_HOURS,
+                    const.TIME_UNIT_DAYS,
+                    const.TIME_UNIT_WEEKS,
+                    const.TIME_UNIT_MONTHS,
+                ]
+            ),
             vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_APPLICABLE_DAYS): vol.All(
                 cv.ensure_list, [vol.In(_DAY_OF_WEEK_VALUES)]
             ),
@@ -751,6 +775,8 @@ _SERVICE_TO_CHORE_DATA_MAPPING: dict[str, str] = {
     # only receives IDs, even when legacy callers provide name lists.
     const.SERVICE_FIELD_CHORE_CRUD_ASSIGNED_USER_IDS: const.DATA_CHORE_ASSIGNED_USER_IDS,
     const.SERVICE_FIELD_CHORE_CRUD_FREQUENCY: const.DATA_CHORE_RECURRING_FREQUENCY,
+    const.SERVICE_FIELD_CHORE_CRUD_CUSTOM_INTERVAL: const.DATA_CHORE_CUSTOM_INTERVAL,
+    const.SERVICE_FIELD_CHORE_CRUD_CUSTOM_INTERVAL_UNIT: const.DATA_CHORE_CUSTOM_INTERVAL_UNIT,
     const.SERVICE_FIELD_CHORE_CRUD_APPLICABLE_DAYS: const.DATA_CHORE_APPLICABLE_DAYS,
     const.SERVICE_FIELD_CHORE_CRUD_COMPLETION_CRITERIA: const.DATA_CHORE_COMPLETION_CRITERIA,
     const.SERVICE_FIELD_CHORE_CRUD_APPROVAL_RESET: const.DATA_CHORE_APPROVAL_RESET_TYPE,

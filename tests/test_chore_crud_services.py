@@ -235,6 +235,52 @@ class TestCreateChoreSchemaValidation:
         assert response is not None
         assert "id" in response
 
+    @pytest.mark.asyncio
+    async def test_accepts_custom_frequency_fields(
+        self,
+        hass: HomeAssistant,
+        scenario_full: SetupResult,
+    ) -> None:
+        """Test create_chore accepts custom interval fields from services.yaml docs."""
+        with patch.object(scenario_full.coordinator, "_persist", new=MagicMock()):
+            response = await hass.services.async_call(
+                DOMAIN,
+                SERVICE_CREATE_CHORE,
+                {
+                    "name": "Custom Contract Chore",
+                    "assigned_user_names": ["Zoë", "Max!"],
+                    "frequency": "custom",
+                    "custom_interval": 6,
+                    "custom_interval_unit": "months",
+                    "due_date": "2099-01-01T09:00:00",
+                },
+                blocking=True,
+                return_response=True,
+            )
+
+        assert response is not None
+        assert "id" in response
+
+    @pytest.mark.asyncio
+    async def test_rejects_custom_frequency_without_custom_interval(
+        self,
+        hass: HomeAssistant,
+        scenario_full: SetupResult,
+    ) -> None:
+        """Test create_chore rejects custom frequency payloads missing interval data."""
+        with pytest.raises(HomeAssistantError):
+            await hass.services.async_call(
+                DOMAIN,
+                SERVICE_CREATE_CHORE,
+                {
+                    "name": "Broken Custom Chore",
+                    "assigned_user_names": ["Zoë"],
+                    "frequency": "custom",
+                    "due_date": "2099-01-01T09:00:00",
+                },
+                blocking=True,
+            )
+
 
 # ============================================================================
 # CREATE CHORE - E2E TESTS
@@ -509,6 +555,49 @@ class TestUpdateChoreSchemaValidation:
             updated_chore.get(const.DATA_CHORE_PER_ASSIGNEE_DUE_DATES, {})
             == existing_per_assignee_due_dates
         )
+
+    @pytest.mark.asyncio
+    async def test_update_custom_chore_preserves_existing_custom_interval(
+        self,
+        hass: HomeAssistant,
+        scenario_full: SetupResult,
+    ) -> None:
+        """Test updating a custom chore does not require resending existing custom settings."""
+        with patch.object(scenario_full.coordinator, "_persist", new=MagicMock()):
+            create_response = await hass.services.async_call(
+                DOMAIN,
+                SERVICE_CREATE_CHORE,
+                {
+                    "name": "Existing Custom Chore",
+                    "assigned_user_names": ["Zoë"],
+                    "frequency": "custom",
+                    "custom_interval": 4,
+                    "custom_interval_unit": "weeks",
+                    "due_date": "2099-01-01T09:00:00",
+                },
+                blocking=True,
+                return_response=True,
+            )
+
+            assert create_response is not None
+            chore_id = create_response["id"]
+
+            response = await hass.services.async_call(
+                DOMAIN,
+                SERVICE_UPDATE_CHORE,
+                {
+                    "id": chore_id,
+                    "points": 77,
+                },
+                blocking=True,
+                return_response=True,
+            )
+
+        assert response is not None
+        updated_chore = scenario_full.coordinator.chores_data[chore_id]
+        assert updated_chore[const.DATA_CHORE_DEFAULT_POINTS] == 77
+        assert updated_chore[const.DATA_CHORE_CUSTOM_INTERVAL] == 4
+        assert updated_chore[const.DATA_CHORE_CUSTOM_INTERVAL_UNIT] == "weeks"
 
 
 # ============================================================================

@@ -2808,6 +2808,8 @@ SERVICE_FIELD_CHORE_CRUD_LABELS: Final = "labels"
 SERVICE_FIELD_CHORE_CRUD_ASSIGNED_USER_NAMES: Final = "assigned_user_names"
 SERVICE_FIELD_CHORE_CRUD_ASSIGNED_USER_IDS: Final = "assigned_user_ids"
 SERVICE_FIELD_CHORE_CRUD_FREQUENCY: Final = "frequency"
+SERVICE_FIELD_CHORE_CRUD_CUSTOM_INTERVAL: Final = "custom_interval"
+SERVICE_FIELD_CHORE_CRUD_CUSTOM_INTERVAL_UNIT: Final = "custom_interval_unit"
 SERVICE_FIELD_CHORE_CRUD_APPLICABLE_DAYS: Final = "applicable_days"
 SERVICE_FIELD_CHORE_CRUD_COMPLETION_CRITERIA: Final = "completion_criteria"
 SERVICE_FIELD_CHORE_CRUD_APPROVAL_RESET: Final = "approval_reset_type"
@@ -3243,6 +3245,8 @@ CFOP_ERROR_RETENTION_MONTHLY: Final = "retention_monthly"
 CFOP_ERROR_RETENTION_YEARLY: Final = "retention_yearly"
 CFOP_ERROR_POINTS_ADJUST_VALUES: Final = "points_adjust_values"
 CFOP_ERROR_CHORE_POINTS: Final = "points"  # Invalid chore points value
+CFOP_ERROR_CUSTOM_INTERVAL: Final = "custom_interval"
+CFOP_ERROR_CUSTOM_INTERVAL_UNIT: Final = "custom_interval_unit"
 # Daily multi validation error keys
 CFOP_ERROR_DAILY_MULTI_RESET: Final = "recurring_frequency"  # Uses frequency field
 CFOP_ERROR_DAILY_MULTI_USER_IDS: Final = (
@@ -3404,6 +3408,10 @@ TRANS_KEY_CFOF_INVALID_POINTS: Final = "invalid_points"  # Chore points must be 
 TRANS_KEY_CFOF_INVALID_CHORE: Final = "invalid_chore"
 TRANS_KEY_CFOF_INVALID_CHORE_COUNT: Final = "invalid_chore_count"
 TRANS_KEY_CFOF_INVALID_CHORE_NAME: Final = "invalid_chore_name"
+TRANS_KEY_CFOF_CUSTOM_INTERVAL_REQUIRED: Final = "custom_interval_required"
+TRANS_KEY_CFOF_CUSTOM_INTERVAL_INVALID: Final = "custom_interval_invalid"
+TRANS_KEY_CFOF_CUSTOM_INTERVAL_UNIT_REQUIRED: Final = "custom_interval_unit_required"
+TRANS_KEY_CFOF_CUSTOM_INTERVAL_UNIT_INVALID: Final = "custom_interval_unit_invalid"
 TRANS_KEY_CFOF_INVALID_OVERDUE_RESET_COMBINATION: Final = (
     "invalid_overdue_reset_combination"
 )

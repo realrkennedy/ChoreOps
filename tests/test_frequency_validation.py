@@ -661,3 +661,55 @@ class TestRecurringFrequencyRequiresDueDate:
         )
 
         assert const.CFOP_ERROR_DUE_DATE not in errors
+
+
+class TestCustomFrequencyValidation:
+    """Test custom frequency validation rules."""
+
+    @pytest.mark.asyncio
+    async def test_custom_frequency_requires_custom_interval(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """CUSTOM frequency without interval is rejected."""
+        user_input = {
+            CFOF_CHORES_INPUT_NAME: "Custom Chore",
+            const.CFOF_CHORES_INPUT_ASSIGNED_USER_IDS: ["Zoë"],
+            const.CFOF_CHORES_INPUT_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_SHARED,
+            const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY: const.FREQUENCY_CUSTOM,
+            const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT: const.TIME_UNIT_DAYS,
+            const.CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE: const.APPROVAL_RESET_UPON_COMPLETION,
+            const.CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE: const.OVERDUE_HANDLING_AT_DUE_DATE,
+            const.CFOF_CHORES_INPUT_DUE_DATE: "2099-01-01T09:00:00+00:00",
+        }
+
+        assignees_dict = {"Zoë": "zoe-id"}
+        errors, _due_date_str = flow_helpers.validate_chores_inputs(
+            user_input, assignees_dict, {}
+        )
+
+        assert errors[const.CFOP_ERROR_CUSTOM_INTERVAL] == (
+            const.TRANS_KEY_CFOF_CUSTOM_INTERVAL_REQUIRED
+        )
+
+    def test_validate_chore_data_rejects_invalid_custom_interval_unit(self) -> None:
+        """Custom frequencies require a supported interval unit."""
+        errors = validate_chore_data(
+            {
+                const.DATA_CHORE_NAME: "Validator Custom",
+                const.DATA_CHORE_ASSIGNED_USER_IDS: ["assignee-1"],
+                const.DATA_CHORE_RECURRING_FREQUENCY: const.FREQUENCY_CUSTOM,
+                const.DATA_CHORE_CUSTOM_INTERVAL: 2,
+                const.DATA_CHORE_CUSTOM_INTERVAL_UNIT: "years",
+                const.DATA_CHORE_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_SHARED,
+                const.DATA_CHORE_APPROVAL_RESET_TYPE: const.DEFAULT_APPROVAL_RESET_TYPE,
+                const.DATA_CHORE_OVERDUE_HANDLING_TYPE: const.DEFAULT_OVERDUE_HANDLING_TYPE,
+                const.DATA_CHORE_DUE_DATE: "2099-01-01T09:00:00+00:00",
+            },
+            is_update=True,
+            current_chore_id="validator-chore",
+        )
+
+        assert errors == {
+            const.CFOP_ERROR_CUSTOM_INTERVAL_UNIT: const.TRANS_KEY_CFOF_CUSTOM_INTERVAL_UNIT_INVALID
+        }

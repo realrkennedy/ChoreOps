@@ -1784,6 +1784,17 @@ class ChoreOpsOptionsFlowHandler(config_entries.OptionsFlow):
             ),
         }
 
+        if suggested_values[const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY] in (
+            const.FREQUENCY_CUSTOM,
+            const.FREQUENCY_CUSTOM_FROM_COMPLETE,
+        ):
+            if suggested_values[const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL] is None:
+                suggested_values[const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL] = 1
+            if suggested_values[const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT] is None:
+                suggested_values[const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT] = (
+                    const.TIME_UNIT_DAYS
+                )
+
         # Build consolidated notifications list from individual boolean fields
         # This ensures the multi-select field shows the correct checkboxes
         # NOTE: Don't use fallback defaults here - use actual values from suggested_values

@@ -874,6 +874,11 @@ def build_chore_schema(
         ),
     }
 
+    custom_interval_default = default.get(const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL)
+    custom_interval_unit_default = default.get(
+        const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT
+    )
+
     schedule_fields: dict[Any, Any] = {
         vol.Required(
             const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY,
@@ -935,7 +940,9 @@ def build_chore_schema(
         ): selector.BooleanSelector(),
         vol.Optional(
             const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL,
-            default=default.get(const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL, 1),
+            default=(
+                custom_interval_default if custom_interval_default is not None else 1
+            ),
         ): vol.Any(
             None,
             selector.NumberSelector(
@@ -946,9 +953,10 @@ def build_chore_schema(
         ),
         vol.Optional(
             const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT,
-            default=default.get(
-                const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT,
-                const.TIME_UNIT_DAYS,
+            default=(
+                custom_interval_unit_default
+                if custom_interval_unit_default is not None
+                else const.TIME_UNIT_DAYS
             ),
         ): vol.Any(
             None,
@@ -1204,6 +1212,21 @@ def validate_chores_inputs(
             const.COMPLETION_CRITERIA_INDEPENDENT,
         ),
     }
+
+    if data_dict[const.DATA_CHORE_RECURRING_FREQUENCY] in (
+        const.FREQUENCY_CUSTOM,
+        const.FREQUENCY_CUSTOM_FROM_COMPLETE,
+    ):
+        data_dict[const.DATA_CHORE_CUSTOM_INTERVAL] = _resolve_form_or_existing(
+            const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL,
+            const.DATA_CHORE_CUSTOM_INTERVAL,
+            None,
+        )
+        data_dict[const.DATA_CHORE_CUSTOM_INTERVAL_UNIT] = _resolve_form_or_existing(
+            const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT,
+            const.DATA_CHORE_CUSTOM_INTERVAL_UNIT,
+            None,
+        )
 
     # Only include due_date if we have one (allows clearing)
     if due_date_str:

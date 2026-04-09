@@ -1075,6 +1075,27 @@ create_chore:
             - "month_end"
             - "quarter_end"
             - "year_end"
+    custom_interval:
+      name: "Custom Interval"
+      description: "Number of time units between repetitions when frequency is custom or custom_from_complete."
+      example: 6
+      required: false
+      selector:
+        number:
+          min: 1
+          mode: box
+    custom_interval_unit:
+      name: "Custom Interval Unit"
+      description: "Time unit used with custom_interval when frequency is custom or custom_from_complete."
+      example: "months"
+      required: false
+      selector:
+        select:
+          options:
+            - "hours"
+            - "days"
+            - "weeks"
+            - "months"
     applicable_days:
       name: "Applicable Days"
       description: "Days of the week when the chore is applicable."
@@ -1274,6 +1295,27 @@ update_chore:
             - "month_end"
             - "quarter_end"
             - "year_end"
+    custom_interval:
+      name: "Custom Interval"
+      description: "New number of time units between repetitions when frequency is custom or custom_from_complete."
+      example: 6
+      required: false
+      selector:
+        number:
+          min: 1
+          mode: box
+    custom_interval_unit:
+      name: "Custom Interval Unit"
+      description: "New time unit used with custom_interval when frequency is custom or custom_from_complete."
+      example: "months"
+      required: false
+      selector:
+        select:
+          options:
+            - "hours"
+            - "days"
+            - "weeks"
+            - "months"
     applicable_days:
       name: "Applicable Days"
       description: "New applicable days."
