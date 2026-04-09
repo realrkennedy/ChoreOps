@@ -71,30 +71,51 @@ def _register_dashboard_panel(
 ) -> None:
     """Register a dashboard panel across frontend API variants.
 
-    Home Assistant 2026.3 added the ``show_in_sidebar`` keyword to
-    ``async_register_built_in_panel``. Older versions still expose the older
-    ``sidebar_default_visible`` keyword instead. Detect the supported keyword at
-    runtime so dashboard generation remains compatible without explicit HA
-    version checks.
+    Home Assistant has used three sidebar visibility variants across supported
+    frontend API versions:
+
+    - Newer builds accept ``show_in_sidebar``
+    - Mid-era builds accept ``sidebar_default_visible``
+    - Older builds accept neither and infer sidebar visibility from title/icon
+
+    Detect the supported parameters at runtime so dashboard generation remains
+    compatible without explicit HA version checks.
     """
     register_kwargs = dict(panel_kwargs)
 
     try:
-        supports_show_in_sidebar = (
-            "show_in_sidebar"
-            in inspect.signature(async_register_built_in_panel).parameters
+        supported_parameters = set(
+            inspect.signature(async_register_built_in_panel).parameters
         )
     except (TypeError, ValueError):
-        supports_show_in_sidebar = True
+        supported_parameters = None
 
-    if not supports_show_in_sidebar and "show_in_sidebar" in register_kwargs:
-        register_kwargs["sidebar_default_visible"] = register_kwargs.pop(
-            "show_in_sidebar"
-        )
-        const.LOGGER.debug(
-            "Using legacy frontend panel sidebar visibility argument for %s",
-            register_kwargs.get("frontend_url_path"),
-        )
+    if supported_parameters is not None and "show_in_sidebar" in register_kwargs:
+        show_in_sidebar = bool(register_kwargs["show_in_sidebar"])
+
+        if "show_in_sidebar" not in supported_parameters:
+            register_kwargs.pop("show_in_sidebar")
+
+            if "sidebar_default_visible" in supported_parameters:
+                register_kwargs["sidebar_default_visible"] = show_in_sidebar
+                const.LOGGER.debug(
+                    "Using legacy frontend panel sidebar visibility argument for %s",
+                    register_kwargs.get("frontend_url_path"),
+                )
+            else:
+                if not show_in_sidebar:
+                    register_kwargs.pop("sidebar_title", None)
+                    register_kwargs.pop("sidebar_icon", None)
+                const.LOGGER.debug(
+                    "Using oldest frontend panel sidebar visibility fallback for %s",
+                    register_kwargs.get("frontend_url_path"),
+                )
+
+        register_kwargs = {
+            key: value
+            for key, value in register_kwargs.items()
+            if key in supported_parameters
+        }
 
     async_register_built_in_panel(hass, LOVELACE_DOMAIN, **register_kwargs)
 
