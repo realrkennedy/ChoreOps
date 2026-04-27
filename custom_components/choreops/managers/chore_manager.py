@@ -2284,6 +2284,9 @@ class ChoreManager(BaseManager):
                 assignee_state = self._derive_boundary_assignee_state(
                     assignee_id,
                     chore_id,
+                    chore_info=chore_info,
+                    due_dt=entry.get(const.CHORE_SCAN_ENTRY_DUE_DT),
+                    now_utc=now_utc,
                 )
 
                 # Use engine to determine action per-assignee state
@@ -2348,6 +2351,9 @@ class ChoreManager(BaseManager):
                 assignee_state = self._derive_boundary_assignee_state(
                     assignee_id,
                     chore_id,
+                    chore_info=chore_info,
+                    due_dt=assignee_entry.get(const.CHORE_SCAN_ENTRY_DUE_DT),
+                    now_utc=now_utc,
                 )
 
                 # Use engine to determine action
@@ -2406,7 +2412,15 @@ class ChoreManager(BaseManager):
 
         return reset_count, reset_pairs
 
-    def _derive_boundary_assignee_state(self, assignee_id: str, chore_id: str) -> str:
+    def _derive_boundary_assignee_state(
+        self,
+        assignee_id: str,
+        chore_id: str,
+        *,
+        chore_info: dict[str, Any] | None = None,
+        due_dt: datetime | None = None,
+        now_utc: datetime | None = None,
+    ) -> str:
         """Derive assignee state used by boundary reset processing."""
         assignee_chore_data = self._get_assignee_chore_data(assignee_id, chore_id)
         explicit_state = assignee_chore_data.get(
@@ -2426,6 +2440,8 @@ class ChoreManager(BaseManager):
         ):
             return const.CHORE_STATE_APPROVED
 
+        if self._is_unstored_boundary_overdue(chore_info, due_dt, now_utc):
+            return const.CHORE_STATE_OVERDUE
         if self.chore_is_overdue(assignee_id, chore_id):
             return const.CHORE_STATE_OVERDUE
         if self.chore_has_pending_claim(assignee_id, chore_id):
@@ -2433,6 +2449,27 @@ class ChoreManager(BaseManager):
         if self.chore_is_approved_in_period(assignee_id, chore_id):
             return const.CHORE_STATE_APPROVED
         return const.CHORE_STATE_PENDING
+
+    @staticmethod
+    def _is_unstored_boundary_overdue(
+        chore_info: dict[str, Any] | None,
+        due_dt: datetime | None,
+        now_utc: datetime | None,
+    ) -> bool:
+        """Return whether a boundary-reset policy should treat past due as overdue."""
+        if chore_info is None or due_dt is None or now_utc is None:
+            return False
+        if now_utc <= due_dt:
+            return False
+
+        overdue_handling = chore_info.get(
+            const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
+            const.DEFAULT_OVERDUE_HANDLING_TYPE,
+        )
+        return overdue_handling in (
+            const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET,
+            const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AND_MARK_MISSED,
+        )
 
     def _build_boundary_reset_plan(
         self,

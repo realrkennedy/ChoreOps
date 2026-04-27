@@ -506,6 +506,43 @@ class TestApprovalResetOverdueInteraction:
         assert not coordinator.chore_manager.chore_is_overdue(assignee_id, chore_id)
 
     @pytest.mark.asyncio
+    async def test_past_due_pending_marks_missed_at_midnight_boundary(
+        self,
+        hass: HomeAssistant,
+        setup_at_due_date_scenario: SetupResult,
+    ) -> None:
+        """Past-due pending chores are marked missed during the reset boundary."""
+        coordinator = setup_at_due_date_scenario.coordinator
+        assignee_id = setup_at_due_date_scenario.assignee_ids["ZoÃ«"]
+        chore_id = setup_at_due_date_scenario.chore_ids["AtDueDateOnce Reset Chore"]
+        fixed_now = datetime(2026, 2, 14, 0, 5, tzinfo=UTC)
+
+        coordinator.chores_data[chore_id][const.DATA_CHORE_OVERDUE_HANDLING_TYPE] = (
+            const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AND_MARK_MISSED
+        )
+        assignee_chore_data = coordinator.assignees_data[assignee_id][
+            const.DATA_USER_CHORE_DATA
+        ][chore_id]
+        assignee_chore_data[const.DATA_USER_CHORE_DATA_STATE] = (
+            const.CHORE_STATE_PENDING
+        )
+        assignee_chore_data[const.DATA_USER_CHORE_DATA_LAST_MISSED] = None
+        set_chore_due_date_to_past(
+            coordinator, chore_id, assignee_id=assignee_id, now_utc=fixed_now
+        )
+
+        with patch.object(
+            coordinator.notification_manager, "notify_assignee", new=AsyncMock()
+        ):
+            await coordinator.chore_manager._on_midnight_rollover(now_utc=fixed_now)
+
+        assert not coordinator.chore_manager.chore_is_overdue(assignee_id, chore_id)
+        assert assignee_chore_data[const.DATA_USER_CHORE_DATA_STATE] == (
+            const.CHORE_STATE_PENDING
+        )
+        assert assignee_chore_data[const.DATA_USER_CHORE_DATA_LAST_MISSED] is not None
+
+    @pytest.mark.asyncio
     async def test_future_due_date_no_overdue_or_reset(
         self,
         hass: HomeAssistant,
