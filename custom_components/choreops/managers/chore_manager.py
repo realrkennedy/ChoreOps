@@ -2440,14 +2440,14 @@ class ChoreManager(BaseManager):
         ):
             return const.CHORE_STATE_APPROVED
 
-        if self._is_unstored_boundary_overdue(chore_info, due_dt, now_utc):
-            return const.CHORE_STATE_OVERDUE
-        if self.chore_is_overdue(assignee_id, chore_id):
-            return const.CHORE_STATE_OVERDUE
         if self.chore_has_pending_claim(assignee_id, chore_id):
             return const.CHORE_STATE_CLAIMED
         if self.chore_is_approved_in_period(assignee_id, chore_id):
             return const.CHORE_STATE_APPROVED
+        if self._is_unstored_boundary_overdue(chore_info, due_dt, now_utc):
+            return const.CHORE_STATE_OVERDUE
+        if self.chore_is_overdue(assignee_id, chore_id):
+            return const.CHORE_STATE_OVERDUE
         return const.CHORE_STATE_PENDING
 
     @staticmethod
