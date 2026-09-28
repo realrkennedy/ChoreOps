@@ -400,6 +400,15 @@ class ChoreOpsDataCoordinator(DataUpdateCoordinator):
         - Test mode: request refresh for deterministic in-process tests.
         - Production: reload config entry to fully rebuild helper entity links.
         """
+        await self.async_sync_entities_after_service_mutation()
+
+    async def async_sync_entities_after_service_mutation(self) -> None:
+        """Rebuild the entity graph after service-driven catalog CRUD.
+
+        Catalog items such as bonuses and penalties create per-user button
+        entities. A config-entry reload is required in production until those
+        platforms provide targeted dynamic add/remove callbacks.
+        """
         if self._test_mode:
             await self.async_request_refresh()
             return
