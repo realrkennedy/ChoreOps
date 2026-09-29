@@ -1396,20 +1396,6 @@ def test_user_chores_template_renders_with_button_card_templates() -> None:
     assert "chore_row_v1" in rendered["button_card_templates"]
     assert "chore_row_kids_v1" in rendered["button_card_templates"]
 
-    pending: list[object] = [rendered]
-    activity_templates: list[str] = []
-    while pending:
-        value = pending.pop()
-        if isinstance(value, dict):
-            pending.extend(value.values())
-        elif isinstance(value, list):
-            pending.extend(value)
-        elif isinstance(value, str) and "recent_adjustments" in value:
-            activity_templates.append(value)
-
-    assert len(activity_templates) == 1
-    jinja2.Environment().parse(activity_templates[0])
-
 
 def test_user_chores_template_contains_ui_control_contract() -> None:
     """User chores template should reference the reviewed UI control contract."""
@@ -1533,17 +1519,3 @@ def test_user_gamification_premier_template_contains_ui_control_contract() -> No
     assert "template_shared.chore_engine/settings_panel_v1" in template_str
     assert "template_shared.chore_engine/group_render_v1" in template_str
     assert "pref_ui_control_key_root = 'gamification/chores'" in template_str
-
-
-def test_user_gamification_premier_template_contains_economy_feedback() -> None:
-    """Gamification Premier should render recent activity and period totals."""
-    template_str = _read_template("user-gamification-premier-v1.yaml")
-
-    assert "state_attr(dashboard_helper, 'recent_adjustments')" in template_str
-    assert "point_stat_points_by_source_today" in template_str
-    assert "point_stat_points_by_source_week" in template_str
-    assert "mdi:plus-circle-outline" in template_str
-    assert "mdi:minus-circle-outline" in template_str
-    assert "activity_ns.count < 4" in template_str
-    assert "activity_rows_html" in template_str
-    assert "if not effective_hide_overviews else ''" in template_str

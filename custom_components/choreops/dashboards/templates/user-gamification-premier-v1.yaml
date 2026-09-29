@@ -435,9 +435,6 @@ views:
                     {%- set achievement_list = state_attr(dashboard_helper, 'achievements') | default([], true) -%}
                     {%- set bonus_list = state_attr(dashboard_helper, 'bonuses') | default([], true) -%}
                     {%- set penalty_list = state_attr(dashboard_helper, 'penalties') | default([], true) -%}
-                    {%- set recent_adjustments = state_attr(dashboard_helper, 'recent_adjustments') | default([], true) -%}
-                    {%- set points_by_source_today = state_attr(points_sensor, 'point_stat_points_by_source_today') | default({}, true) if points_sensor else {} -%}
-                    {%- set points_by_source_week = state_attr(points_sensor, 'point_stat_points_by_source_week') | default({}, true) if points_sensor else {} -%}
                     {%- set highest_badge_attrs = states[highest_badge_entity].attributes | default({}, true) if highest_badge_entity else {} -%}
 
                       {%- set points_value = (states(points_sensor) | float(default=0)) if points_sensor else 0 -%}
@@ -653,38 +650,6 @@ views:
 
                     {%- set highest_badge_line = "<div style='margin-top:4px;font-size:13px;line-height:1.3;color:var(--secondary-text-color);'>" ~ ui.get('highest_rank', 'err-highest_rank') ~ ": <span style='color:var(--primary-text-color);font-weight:600;'>" ~ (highest_badge_display | replace('&', '&amp;') | replace('<', '&lt;') | replace('>', '&gt;')) ~ "</span></div>" if highest_badge_display != ui.get('none', 'err-none') else '' -%}
                     {%- set content_html = "<div style='display:flex;flex-direction:column;gap:0;width:100%;box-sizing:border-box;'><div style='display:flex;align-items:flex-start;gap:12px;padding-right:42px;box-sizing:border-box;'><div style='display:flex;align-items:center;gap:12px;min-width:0;flex:1;'><div style='width:52px;height:52px;border-radius:50%;background:color-mix(in srgb, var(--primary-color) 18%, var(--card-background-color));display:flex;align-items:center;justify-content:center;flex-shrink:0;'><ha-icon icon='" ~ highest_badge_icon ~ "' style='width:28px;height:28px;color:var(--primary-color);'></ha-icon></div><div style='min-width:0;'><div style='font-size:18px;font-weight:700;line-height:1.2;color:var(--primary-text-color);'>" ~ safe_name ~ "'s " ~ ui.get('showcase', 'err-showcase') ~ "</div>" ~ highest_badge_line ~ "</div></div></div><div style='display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:16px;'><div style='text-align:center;padding:10px 8px;border-radius:14px;background:color-mix(in srgb, var(--primary-color) 6%, var(--card-background-color));'><div style='font-size:11px;color:var(--secondary-text-color);line-height:1.2;'>" ~ ui.get('total_earned', 'err-total_earned') ~ "</div><div style='margin-top:4px;font-size:16px;font-weight:700;color:var(--primary-text-color);'>" ~ points_earned_all_time_display ~ "</div></div><div style='text-align:center;padding:10px 8px;border-radius:14px;background:color-mix(in srgb, var(--primary-color) 6%, var(--card-background-color));'><div style='font-size:11px;color:var(--secondary-text-color);line-height:1.2;'>" ~ ui.get('chores_completed', 'err-chores_completed') ~ "</div><div style='margin-top:4px;font-size:16px;font-weight:700;color:var(--primary-text-color);'>" ~ all_time_completed|string ~ "</div></div><div style='text-align:center;padding:10px 8px;border-radius:14px;background:color-mix(in srgb, var(--primary-color) 6%, var(--card-background-color));'><div style='font-size:11px;color:var(--secondary-text-color);line-height:1.2;'>" ~ ui.get('multiplier', 'err-multiplier') ~ "</div><div style='margin-top:4px;font-size:16px;font-weight:700;color:" ~ ('var(--warning-color)' if points_multiplier > 1 else 'var(--primary-text-color)') ~ ";'>x" ~ points_multiplier_text ~ "</div></div></div>" ~ earned_badges_section ~ ('' if effective_hide_overviews else rank_progress_section ~ quest_progress_section ~ achievement_progress_section ~ adjustment_section) ~ "</div>" -%}
-
-                    {%- set today_key = now().strftime('%Y-%m-%d') -%}
-                    {%- set activity_ns = namespace(rows_html='', count=0) -%}
-                    {%- for adjustment in recent_adjustments -%}
-                      {%- if adjustment is mapping and activity_ns.count < 4 -%}
-                        {%- set adjustment_timestamp = adjustment.get('timestamp', '') -%}
-                        {%- set adjustment_date = (as_timestamp(adjustment_timestamp, 0) | timestamp_custom('%Y-%m-%d', true)) if adjustment_timestamp not in ['', none] else '' -%}
-                        {%- if adjustment_date == today_key -%}
-                          {%- set adjustment_source = adjustment.get('source', '') | string -%}
-                          {%- set is_bonus = adjustment_source == 'bonuses' -%}
-                          {%- set adjustment_label = ui.get('bonus', 'err-bonus') if is_bonus else ui.get('penalty', 'err-penalty') -%}
-                          {%- set adjustment_icon = 'mdi:plus-circle-outline' if is_bonus else 'mdi:minus-circle-outline' -%}
-                          {%- set adjustment_color = 'var(--success-color)' if is_bonus else 'var(--error-color)' -%}
-                          {%- set adjustment_amount = adjustment.get('amount', 0) | float(default=0) -%}
-                          {%- set adjustment_amount_text = ((adjustment_amount | abs | round(2)) | string | regex_replace('\.?0+$', '')) -%}
-                          {%- set adjustment_name = (adjustment.get('item_name') or adjustment_label) | string | trim -%}
-                          {%- set adjustment_name_safe = adjustment_name | replace('&', '&amp;') | replace('<', '&lt;') | replace('>', '&gt;') -%}
-                          {%- set adjustment_time = as_timestamp(adjustment_timestamp, 0) | timestamp_custom('%-I:%M %p', true) -%}
-                          {%- set activity_ns.count = activity_ns.count + 1 -%}
-                          {%- set activity_ns.rows_html = activity_ns.rows_html ~ "<div style='display:flex;align-items:center;gap:8px;padding:5px 0;'><ha-icon icon='" ~ adjustment_icon ~ "' style='width:16px;height:16px;color:" ~ adjustment_color ~ ";'></ha-icon><div style='min-width:0;flex:1;'><div style='font-size:12px;font-weight:600;color:var(--primary-text-color);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" ~ adjustment_name_safe ~ "</div><div style='font-size:10px;color:var(--secondary-text-color);'>" ~ adjustment_label ~ " • " ~ adjustment_time ~ "</div></div><div style='font-size:11px;font-weight:800;color:" ~ adjustment_color ~ ";white-space:nowrap;'>" ~ ('+' if is_bonus else '-') ~ adjustment_amount_text ~ "</div></div>" -%}
-                        {%- endif -%}
-                      {%- endif -%}
-                    {%- endfor -%}
-                    {%- set bonus_today = points_by_source_today.get('bonuses', 0) | float(default=0) if points_by_source_today is mapping else 0 -%}
-                    {%- set penalty_today = points_by_source_today.get('penalties', 0) | float(default=0) if points_by_source_today is mapping else 0 -%}
-                    {%- set bonus_week = points_by_source_week.get('bonuses', 0) | float(default=0) if points_by_source_week is mapping else 0 -%}
-                    {%- set penalty_week = points_by_source_week.get('penalties', 0) | float(default=0) if points_by_source_week is mapping else 0 -%}
-                    {%- set today_summary = ui.get('bonus', 'err-bonus') ~ ' +' ~ ((bonus_today | abs | round(2)) | string | regex_replace('\.?0+$', '')) ~ '  •  ' ~ ui.get('penalty', 'err-penalty') ~ ' -' ~ ((penalty_today | abs | round(2)) | string | regex_replace('\.?0+$', '')) -%}
-                    {%- set week_summary = ui.get('bonus', 'err-bonus') ~ ' +' ~ ((bonus_week | abs | round(2)) | string | regex_replace('\.?0+$', '')) ~ '  •  ' ~ ui.get('penalty', 'err-penalty') ~ ' -' ~ ((penalty_week | abs | round(2)) | string | regex_replace('\.?0+$', '')) -%}
-                    {%- set activity_rows_html = activity_ns.rows_html if activity_ns.count > 0 else "<div style='padding:8px 0 4px;font-size:11px;color:var(--secondary-text-color);'>" ~ ui.get('none', 'err-none') ~ "</div>" -%}
-                    {%- set activity_section = "<div style='margin-top:12px;padding:10px;border-top:1px solid var(--divider-color);border-radius:12px;background:color-mix(in srgb, var(--primary-color) 4%, var(--card-background-color));'><div style='display:flex;justify-content:space-between;gap:8px;font-size:11px;font-weight:700;color:var(--secondary-text-color);'><span>" ~ ui.get('today_group_mode_today', 'err-today') ~ "</span><span>" ~ today_summary ~ "</span></div>" ~ activity_rows_html ~ "<div style='display:flex;justify-content:space-between;gap:8px;margin-top:5px;padding-top:6px;border-top:1px solid var(--divider-color);font-size:10px;font-weight:700;color:var(--secondary-text-color);'><span>" ~ ui.get('this_week', 'err-this-week') ~ "</span><span>" ~ week_summary ~ "</span></div></div>" if not effective_hide_overviews else '' -%}
-                    {%- set content_html = content_html ~ activity_section -%}
 
                     {%- if gamification_enabled -%}
                       {{
