@@ -1206,6 +1206,7 @@ DATA_LEDGER_REFERENCE_ID: Final = "reference_id"  # Related entity ID (optional)
 # Default ledger limit is defined by daily data retention, this is a hard
 # limit to prevent storage bloat or performance issues.
 DEFAULT_LEDGER_MAX_ENTRIES: Final = 1000
+DEFAULT_DASHBOARD_RECENT_ADJUSTMENTS: Final = 20
 
 # ——————————————————————————————————————————————
 # Assignee reward data structure constants
@@ -3678,6 +3679,7 @@ ATTR_DASHBOARD_CHORES: Final = "chores"
 ATTR_DASHBOARD_REWARDS: Final = "rewards"
 ATTR_DASHBOARD_BONUSES: Final = "bonuses"
 ATTR_DASHBOARD_PENALTIES: Final = "penalties"
+ATTR_DASHBOARD_RECENT_ADJUSTMENTS: Final = "recent_adjustments"
 ATTR_DASHBOARD_ACHIEVEMENTS: Final = "achievements"
 ATTR_DASHBOARD_CHALLENGES: Final = "challenges"
 ATTR_DASHBOARD_BADGES: Final = "badges"
