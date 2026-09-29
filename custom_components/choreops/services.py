@@ -445,9 +445,7 @@ def _allow_unchanged_past_due_date_for_partial_update(
             default_tzinfo=const.DEFAULT_TIME_ZONE,
             return_type=const.HELPER_RETURN_DATETIME_UTC,
         )
-        return (
-            isinstance(parsed_due_date, datetime) and parsed_due_date < now_utc
-        )
+        return isinstance(parsed_due_date, datetime) and parsed_due_date < now_utc
 
     validation_due_date = (now_utc + timedelta(days=1)).isoformat()
     if _service_uses_chore_level_due_date(validation_data):
@@ -468,6 +466,7 @@ def _allow_unchanged_past_due_date_for_partial_update(
         validation_data[const.DATA_CHORE_PER_ASSIGNEE_DUE_DATES] = (
             per_assignee_due_dates
         )
+
 
 # --- Service Schemas ---
 
