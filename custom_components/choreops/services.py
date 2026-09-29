@@ -6,7 +6,7 @@ Includes UI editor support with selectors for dropdowns and text inputs.
 """
 
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.config_entries import ConfigEntryState
@@ -403,6 +403,58 @@ def _build_service_chore_validation_data(
 
     validation_data.pop(const.DATA_CHORE_DUE_DATE, None)
     return validation_data
+
+
+_CHORE_SCHEDULE_UPDATE_FIELDS: frozenset[str] = frozenset(
+    {
+        const.SERVICE_FIELD_CHORE_CRUD_ASSIGNMENT_ACTION,
+        const.SERVICE_FIELD_CHORE_CRUD_ASSIGNED_USER_NAMES,
+        const.SERVICE_FIELD_CHORE_CRUD_ASSIGNED_USER_IDS,
+        const.SERVICE_FIELD_CHORE_CRUD_FREQUENCY,
+        const.SERVICE_FIELD_CHORE_CRUD_CUSTOM_INTERVAL,
+        const.SERVICE_FIELD_CHORE_CRUD_CUSTOM_INTERVAL_UNIT,
+        const.SERVICE_FIELD_CHORE_CRUD_APPLICABLE_DAYS,
+        const.SERVICE_FIELD_CHORE_CRUD_APPROVAL_RESET,
+        const.SERVICE_FIELD_CHORE_CRUD_PENDING_CLAIMS,
+        const.SERVICE_FIELD_CHORE_CRUD_OVERDUE_HANDLING,
+        const.SERVICE_FIELD_CHORE_CRUD_DUE_DATE,
+    }
+)
+
+
+def _allow_unchanged_past_due_date_for_partial_update(
+    validation_data: dict[str, Any],
+    service_data: dict[str, Any],
+    existing_chore: "ChoreData | dict[str, Any]",
+) -> None:
+    """Permit non-scheduling edits while preserving an existing past due date.
+
+    The shared validator correctly rejects a past date when callers create a
+    chore or change its schedule. An update that only changes metadata such
+    as labels, points, or description must not become impossible merely
+    because the chore is currently due. Substitute a future date only in the
+    validation copy; the existing stored date and runtime state are unchanged.
+    """
+    if _CHORE_SCHEDULE_UPDATE_FIELDS.intersection(service_data):
+        return
+    if not _service_uses_chore_level_due_date(validation_data):
+        return
+
+    existing_due_date = existing_chore.get(const.DATA_CHORE_DUE_DATE)
+    if not existing_due_date:
+        return
+    parsed_due_date = dt_parse(
+        existing_due_date,
+        default_tzinfo=const.DEFAULT_TIME_ZONE,
+        return_type=const.HELPER_RETURN_DATETIME_UTC,
+    )
+    now_utc = dt_util.utcnow()
+    if not isinstance(parsed_due_date, datetime) or parsed_due_date >= now_utc:
+        return
+
+    validation_data[const.DATA_CHORE_DUE_DATE] = (
+        now_utc + timedelta(days=1)
+    ).isoformat()
 
 
 # --- Service Schemas ---
@@ -1878,6 +1930,12 @@ def async_setup_services(hass: HomeAssistant):
             cast("dict[str, Any]", existing_chore),
             due_date_iso,
             chore_id,
+        )
+
+        _allow_unchanged_past_due_date_for_partial_update(
+            validation_data,
+            service_data,
+            existing_chore,
         )
 
         # Validate using shared validation (single source of truth)
