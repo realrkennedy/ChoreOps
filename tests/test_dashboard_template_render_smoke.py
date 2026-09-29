@@ -1531,3 +1531,5 @@ def test_user_gamification_premier_template_contains_economy_feedback() -> None:
     assert "mdi:plus-circle-outline" in template_str
     assert "mdi:minus-circle-outline" in template_str
     assert "activity_ns.count < 4" in template_str
+    assert "activity_rows_html" in template_str
+    assert "if not effective_hide_overviews else ''" in template_str
