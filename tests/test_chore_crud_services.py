@@ -19,7 +19,7 @@ See tests/AGENT_TEST_CREATION_INSTRUCTIONS.md for patterns used.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -759,6 +759,58 @@ class TestUpdateChoreSchemaValidation:
 
 class TestUpdateChoreEndToEnd:
     """Test update_chore end-to-end functionality via dashboard helper."""
+
+    @pytest.mark.asyncio
+    async def test_metadata_update_preserves_existing_past_shared_due_date(
+        self,
+        hass: HomeAssistant,
+        scenario_full: SetupResult,
+    ) -> None:
+        """A labels-only edit remains possible while a shared chore is due."""
+        chore_id = scenario_full.chore_ids["Garage Cleanup"]
+        coordinator = scenario_full.coordinator
+        chore = coordinator.chores_data[chore_id]
+        past_due_date = (datetime.now(UTC) - timedelta(days=1)).isoformat()
+        chore[const.DATA_CHORE_DUE_DATE] = past_due_date
+
+        with patch.object(coordinator, "_persist", new=MagicMock()):
+            response = await hass.services.async_call(
+                DOMAIN,
+                SERVICE_UPDATE_CHORE,
+                {"id": chore_id, "labels": ["Weekly"]},
+                blocking=True,
+                return_response=True,
+            )
+
+        assert response == {"id": chore_id}
+        assert chore[const.DATA_CHORE_LABELS] == ["Weekly"]
+        assert chore[const.DATA_CHORE_DUE_DATE] == past_due_date
+
+    @pytest.mark.asyncio
+    async def test_schedule_update_still_rejects_existing_past_shared_due_date(
+        self,
+        hass: HomeAssistant,
+        scenario_full: SetupResult,
+    ) -> None:
+        """Explicit schedule edits still require a valid future due date."""
+        chore_id = scenario_full.chore_ids["Garage Cleanup"]
+        chore = scenario_full.coordinator.chores_data[chore_id]
+        chore[const.DATA_CHORE_DUE_DATE] = (
+            datetime.now(UTC) - timedelta(days=1)
+        ).isoformat()
+
+        with pytest.raises(HomeAssistantError):
+            await hass.services.async_call(
+                DOMAIN,
+                SERVICE_UPDATE_CHORE,
+                {
+                    "id": chore_id,
+                    "labels": ["Weekly"],
+                    "frequency": const.FREQUENCY_WEEKLY,
+                },
+                blocking=True,
+                return_response=True,
+            )
 
     @pytest.mark.asyncio
     async def test_assignment_change_uses_runtime_entity_sync(
