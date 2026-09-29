@@ -133,7 +133,7 @@ disapprove_chore:
 
 pause_user_chores:
   name: "Pause User's Chores"
-  description: "Pause or resume chore processing for a user. While paused, no overdue or missed stats accumulate and rotation advances past this user."
+  description: "Pause or resume chore processing for a user. While paused, no overdue or missed stats accumulate and rotation advances past this user. When resuming, Unpause Action decides whether dates missed while paused are shifted forward."
   fields:
     config_entry_id:
       name: "Config Entry ID (Optional)"
@@ -158,17 +158,32 @@ pause_user_chores:
         text:
     paused:
       name: "Paused"
-      description: "True to pause chores, False to resume."
+      description: "True to pause chores, False to resume. See Unpause Action for what happens to dates missed while paused."
       required: false
       default: true
       selector:
         boolean:
     paused_until:
       name: "Paused Until"
-      description: "Optional return date. If set, chores auto-resume at midnight after this date."
+      description: "Optional return date and time. If set, chores auto-resume at that date and time (checked every few minutes; a nightly pass is a safety net). Only valid while pausing (paused: true) - omit it when resuming."
       required: false
       selector:
         datetime:
+    unpause_action:
+      name: "Unpause Action"
+      description: "On resume: decides what happens to due dates that passed while the user was paused - keep them as they are (they may show as overdue), or shift them forward so chores continue from the next occurrence. When pausing: remembers this choice and applies it at the next manual or automatic resume. Pass 'unpause' on a resume call to ignore a remembered choice; omit this field when re-pausing to clear it."
+      required: false
+      selector:
+        select:
+          options:
+            - label: "No change (keep dates as they are)"
+              value: "unpause"
+            - label: "Shift missed dates - independent chores"
+              value: "unpause_shift_independent"
+            - label: "Shift missed dates - independent and primary/standby chores"
+              value: "unpause_shift_all_primary"
+            - label: "Shift missed dates - all chores (including shared)"
+              value: "unpause_shift_all"
 
 redeem_reward:
   name: "Redeem Reward"
@@ -1753,6 +1768,27 @@ create_chore:
       required: false
       selector:
         text:
+    notification_channel:
+      name: "Notification Channel"
+      description: "Optional. Android only. Groups this chore's notifications under a named Android channel, so its sound, importance and Do Not Disturb behavior can be set separately from other chores. Leave empty to use the app default. iOS ignores this."
+      example: "Medicine"
+      required: false
+      selector:
+        text:
+    notification_importance:
+      name: "Notification Importance"
+      description: "Optional. Android only. How prominently this chore's notifications alert (min, low, default, high, max), or none to leave it unset. Requires notification_channel. Note: sets the channel's INITIAL state the first time a device sees that channel name. The integration cannot change it afterwards; the person still can, in Android settings. iOS ignores this."
+      example: "high"
+      required: false
+      selector:
+        select:
+          options:
+            - "none"
+            - "min"
+            - "low"
+            - "default"
+            - "high"
+            - "max"
     notify_on_claim:
       name: "Notify on Claim"
       description: "Send a notification when this chore is claimed. Omit to use the default (enabled)."
@@ -2032,6 +2068,27 @@ update_chore:
       required: false
       selector:
         text:
+    notification_channel:
+      name: "Notification Channel"
+      description: "New notification channel. Android only. Groups this chore's notifications under a named Android channel, so its sound, importance and Do Not Disturb behavior can be set separately from other chores. Leave empty to use the app default. iOS ignores this."
+      example: "Medicine"
+      required: false
+      selector:
+        text:
+    notification_importance:
+      name: "Notification Importance"
+      description: "New notification importance. Android only. How prominently this chore's notifications alert (min, low, default, high, max), or none to leave it unset. Requires notification_channel. Note: sets the channel's INITIAL state the first time a device sees that channel name. The integration cannot change it afterwards; the person still can, in Android settings. iOS ignores this."
+      example: "high"
+      required: false
+      selector:
+        select:
+          options:
+            - "none"
+            - "min"
+            - "low"
+            - "default"
+            - "high"
+            - "max"
     notify_on_claim:
       name: "Notify on Claim"
       description: "Set whether to notify when this chore is claimed. Omit to leave the current setting unchanged."

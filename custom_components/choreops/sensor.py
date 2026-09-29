@@ -1238,6 +1238,12 @@ class AssigneeChoreStatusSensor(ChoreOpsCoordinatorEntity, SensorEntity):
                 const.DATA_CHORE_DUE_WINDOW_OFFSET,
                 const.DEFAULT_DUE_WINDOW_OFFSET,
             ),
+            const.ATTR_CHORE_NOTIFICATION_CHANNEL: chore_info.get(
+                const.DATA_CHORE_NOTIFICATION_CHANNEL, ""
+            ),
+            const.ATTR_CHORE_NOTIFICATION_IMPORTANCE: chore_info.get(
+                const.DATA_CHORE_NOTIFICATION_IMPORTANCE, ""
+            ),
             const.ATTR_AUTO_APPROVE: chore_info.get(
                 const.DATA_CHORE_AUTO_APPROVE,
                 const.DEFAULT_CHORE_AUTO_APPROVE,
@@ -4764,11 +4770,12 @@ class AssigneeDashboardHelperSensor(ChoreOpsCoordinatorEntity, SensorEntity):
         can_claim, can_approve, timestamps, etc.) should be fetched from the
         chore status sensor via state_attr(chore.eid, 'attribute_name').
 
-        Minimal fields (6 total):
+        Minimal fields (7 total):
         - eid: entity_id (for fetching additional attributes from chore sensor)
         - name: chore name (for display)
         - state: pending/claimed/completed/overdue (for status coloring)
-        - labels: list of {id, name} label objects (for display and filtering)
+        - labels: list of friendly label names (legacy dashboard compatibility)
+        - label_entries: list of {id, name} label objects (structured consumers)
         - primary_group: today/this_week/other (for grouping)
         - is_today_am: boolean or None (for AM/PM sorting)
 
@@ -4797,6 +4804,7 @@ class AssigneeDashboardHelperSensor(ChoreOpsCoordinatorEntity, SensorEntity):
         # Get chore labels (always a list, even if empty)
         stored_labels = chore_info.get(const.DATA_CHORE_LABELS, [])
         label_entries = self._build_label_entries(hass, stored_labels)
+        friendly_labels = [label["name"] for label in label_entries]
 
         # Convert due date to local datetime for grouping calculations
         due_date_local_dt = None
@@ -4839,7 +4847,8 @@ class AssigneeDashboardHelperSensor(ChoreOpsCoordinatorEntity, SensorEntity):
             const.ATTR_EID: chore_eid,
             const.ATTR_NAME: chore_name,
             const.ATTR_STATE: state,
-            const.ATTR_CHORE_LABELS: label_entries,
+            const.ATTR_CHORE_LABELS: friendly_labels,
+            const.ATTR_CHORE_LABEL_ENTRIES: label_entries,
             const.ATTR_CHORE_PRIMARY_GROUP: primary_group,
             const.ATTR_CHORE_IS_TODAY_AM: is_today_am,
         }
@@ -5464,6 +5473,9 @@ class AssigneeDashboardHelperSensor(ChoreOpsCoordinatorEntity, SensorEntity):
             ),
             "chores_paused_until": assignee_info.get(
                 const.DATA_USER_CHORES_PAUSED_UNTIL
+            ),
+            "chores_paused_unpause_action": assignee_info.get(
+                const.DATA_USER_CHORES_PAUSED_UNPAUSE_ACTION
             ),
             const.ATTR_SHARD_RUNTIME: shard_runtime,
         }

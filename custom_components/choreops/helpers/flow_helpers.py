@@ -297,6 +297,8 @@ USER_IDENTITY_FIELDS = (
     const.CFOF_USERS_INPUT_DASHBOARD_LANGUAGE,
     const.CFOF_USERS_INPUT_MOBILE_NOTIFY_SERVICE,
     const.CFOF_USERS_INPUT_NOTIF_CLICK_URL,
+    const.CFOF_USERS_INPUT_NOTIFICATION_PRIORITY,
+    const.CFOF_USERS_INPUT_NOTIFICATION_TTL,
 )
 
 USER_SYSTEM_USAGE_FIELDS = (
@@ -317,10 +319,21 @@ def _build_user_section_suggested_values_impl(
     flat_values: dict[str, Any],
 ) -> dict[str, Any]:
     """Build sectioned suggested values from flat persisted user values."""
+    identity_values = {
+        key: flat_values[key] for key in USER_IDENTITY_FIELDS if key in flat_values
+    }
+    # Only rewrite the bad value: a profile stored before priority had a closed
+    # set can hold "", and the dropdown rejects "" on submit. An absent key is
+    # left absent - the schema default already supplies `normal`.
+    if (
+        const.CFOF_USERS_INPUT_NOTIFICATION_PRIORITY in identity_values
+        and not identity_values[const.CFOF_USERS_INPUT_NOTIFICATION_PRIORITY]
+    ):
+        identity_values[const.CFOF_USERS_INPUT_NOTIFICATION_PRIORITY] = (
+            const.NOTIFY_PRIORITY_NORMAL
+        )
     return {
-        USER_SECTION_IDENTITY_PROFILE: {
-            key: flat_values[key] for key in USER_IDENTITY_FIELDS if key in flat_values
-        },
+        USER_SECTION_IDENTITY_PROFILE: identity_values,
         USER_SECTION_SYSTEM_USAGE: {
             key: flat_values[key]
             for key in USER_SYSTEM_USAGE_FIELDS
@@ -419,6 +432,28 @@ async def _build_user_schema_impl(
         ): selector.TextSelector(
             selector.TextSelectorConfig(
                 type=selector.TextSelectorType.URL,
+            )
+        ),
+        vol.Optional(
+            const.CFOF_USERS_INPUT_NOTIFICATION_PRIORITY,
+            default=const.NOTIFY_PRIORITY_NORMAL,
+        ): selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=list(const.NOTIFY_PRIORITY_OPTIONS),
+                mode=selector.SelectSelectorMode.DROPDOWN,
+                translation_key=const.TRANS_KEY_FLOW_HELPERS_NOTIFICATION_PRIORITY,
+            )
+        ),
+        # NOTE: TextSelector(NUMBER), not NumberSelector, deliberately: this
+        # setting needs an UNSET state meaning "use the platform default", and a
+        # NumberSelector always yields a number, so it would force everyone to
+        # pick a lifetime rather than leave the choice to the platform.
+        vol.Optional(
+            const.CFOF_USERS_INPUT_NOTIFICATION_TTL,
+            default="",
+        ): selector.TextSelector(
+            selector.TextSelectorConfig(
+                type=selector.TextSelectorType.NUMBER,
             )
         ),
     }
@@ -605,6 +640,18 @@ def _validate_users_inputs_impl(
             const.CFOF_USERS_INPUT_NOTIF_APPROVE_CLICK_URL,
             "",
         )
+    if const.CFOF_USERS_INPUT_NOTIFICATION_PRIORITY in user_input:
+        # `or` so a legacy "" cannot be written back through here - "" is not a
+        # member of the dropdown and would be rejected on the next save.
+        data_dict[const.DATA_USER_NOTIFICATION_PRIORITY] = (
+            user_input.get(const.CFOF_USERS_INPUT_NOTIFICATION_PRIORITY)
+            or const.NOTIFY_PRIORITY_NORMAL
+        )
+    if const.CFOF_USERS_INPUT_NOTIFICATION_TTL in user_input:
+        data_dict[const.DATA_USER_NOTIFICATION_TTL] = user_input.get(
+            const.CFOF_USERS_INPUT_NOTIFICATION_TTL,
+            "",
+        )
 
     # Call shared validation (single source of truth)
     is_update = current_user_id is not None
@@ -759,6 +806,8 @@ CHORE_ADVANCED_CONFIGURATION_FIELDS = (
     const.CFOF_CHORES_INPUT_AUTO_APPROVE,
     const.CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE,
     const.CFOF_CHORES_INPUT_DUE_REMINDER_OFFSET,
+    const.CFOF_CHORES_INPUT_NOTIFICATION_CHANNEL,
+    const.CFOF_CHORES_INPUT_NOTIFICATION_IMPORTANCE,
     const.CFOF_CHORES_INPUT_NOTIFICATIONS,
     const.CFOF_CHORES_INPUT_SHOW_ON_CALENDAR,
     const.CFOF_CHORES_INPUT_LABELS,
@@ -1110,6 +1159,26 @@ def build_chore_schema(
             ),
         ): selector.TextSelector(
             selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
+        ),
+        _optional_field(
+            const.CFOF_CHORES_INPUT_NOTIFICATION_CHANNEL,
+            default.get(const.CFOF_CHORES_INPUT_NOTIFICATION_CHANNEL, ""),
+        ): selector.TextSelector(
+            selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
+        ),
+        # `or`, not `.get(..., "")`: a record written before this field had an
+        # unset option stores "", and "" is not something the dropdown can show,
+        # so the untouched default would fail validation on submit.
+        _optional_field(
+            const.CFOF_CHORES_INPUT_NOTIFICATION_IMPORTANCE,
+            default.get(const.CFOF_CHORES_INPUT_NOTIFICATION_IMPORTANCE)
+            or const.NOTIFY_IMPORTANCE_NONE,
+        ): selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=list(const.NOTIFY_IMPORTANCE_FORM_OPTIONS),
+                mode=selector.SelectSelectorMode.DROPDOWN,
+                translation_key=const.TRANS_KEY_FLOW_HELPERS_NOTIFICATION_IMPORTANCE,
+            )
         ),
         _optional_field(
             const.CFOF_CHORES_INPUT_NOTIFICATIONS,
@@ -1638,6 +1707,16 @@ def transform_chore_cfof_to_data(
             const.CFOF_CHORES_INPUT_DUE_REMINDER_OFFSET,
             const.DATA_CHORE_DUE_REMINDER_OFFSET,
             const.DEFAULT_DUE_REMINDER_OFFSET,
+        ),
+        const.DATA_CHORE_NOTIFICATION_CHANNEL: _resolve_form_or_existing(
+            const.CFOF_CHORES_INPUT_NOTIFICATION_CHANNEL,
+            const.DATA_CHORE_NOTIFICATION_CHANNEL,
+            "",
+        ),
+        const.DATA_CHORE_NOTIFICATION_IMPORTANCE: _resolve_form_or_existing(
+            const.CFOF_CHORES_INPUT_NOTIFICATION_IMPORTANCE,
+            const.DATA_CHORE_NOTIFICATION_IMPORTANCE,
+            "",
         ),
         # Due window notification fields from consolidated selector
         const.DATA_CHORE_NOTIFY_ON_DUE_WINDOW: (

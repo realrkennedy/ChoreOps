@@ -353,7 +353,8 @@ SCHEMA_VERSION_BETA5: Final = 45  # Legacy schema45 checkpoint.
 SCHEMA_VERSION_1_0_0: Final = 100  # First GA schema checkpoint.
 SCHEMA_VERSION_1_5_0: Final = 150  # Release 1.5.0 schema checkpoint.
 SCHEMA_VERSION_1_5_3: Final = 153  # Release 1.5.3: badge streak_history added.
-SCHEMA_VERSION_CURRENT: Final = SCHEMA_VERSION_1_5_3
+SCHEMA_VERSION_1_6_0: Final = 160  # Release 1.6.0: pause resume-intent added.
+SCHEMA_VERSION_CURRENT: Final = SCHEMA_VERSION_1_6_0
 
 # Float precision for stored numeric values (points, chore stats, etc.)
 # Prevents Python float arithmetic drift (e.g., 27.499999999999996 → 27.5)
@@ -629,6 +630,8 @@ CFOF_USERS_INPUT_HA_USER_ID: Final = "ha_user_id"
 CFOF_USERS_INPUT_MOBILE_NOTIFY_SERVICE: Final = "mobile_notify_service"
 CFOF_USERS_INPUT_NOTIF_CLICK_URL: Final = "notif_click_url"
 CFOF_USERS_INPUT_NOTIF_APPROVE_CLICK_URL: Final = "notif_approve_click_url"
+CFOF_USERS_INPUT_NOTIFICATION_PRIORITY: Final = "notification_priority"
+CFOF_USERS_INPUT_NOTIFICATION_TTL: Final = "notification_ttl"
 
 # DATA RECOVERY
 CFOF_DATA_RECOVERY_INPUT_SELECTION: Final = "backup_selection"
@@ -647,6 +650,7 @@ CFOF_USERS_INPUT_CAN_APPROVE: Final = "can_approve"
 CFOF_USERS_INPUT_CAN_MANAGE: Final = "can_manage"
 CFOF_USERS_INPUT_CHORES_PAUSED: Final = "chores_paused"
 CFOF_USERS_INPUT_CHORES_PAUSED_UNTIL: Final = "chores_paused_until"
+CFOF_USERS_INPUT_CHORES_PAUSED_UNPAUSE_ACTION: Final = "chores_paused_unpause_action"
 
 # CHORES
 CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE: Final = "approval_reset_type"
@@ -672,6 +676,8 @@ CFOF_CHORES_INPUT_NOTIFY_ON_DUE_WINDOW: Final = "notify_on_due_window"
 CFOF_CHORES_INPUT_NOTIFY_DUE_REMINDER: Final = "notify_due_reminder"
 CFOF_CHORES_INPUT_DUE_WINDOW_OFFSET: Final = "chore_due_window_offset"
 CFOF_CHORES_INPUT_DUE_REMINDER_OFFSET: Final = "chore_due_reminder_offset"
+CFOF_CHORES_INPUT_NOTIFICATION_CHANNEL: Final = "chore_notification_channel"
+CFOF_CHORES_INPUT_NOTIFICATION_IMPORTANCE: Final = "chore_notification_importance"
 CFOF_CHORES_INPUT_CLAIM_LOCK_UNTIL_WINDOW: Final = "chore_claim_lock_until_window"
 CFOF_CHORES_INPUT_RECURRING_FREQUENCY: Final = "recurring_frequency"
 CFOF_CHORES_INPUT_DAILY_MULTI_TIMES: Final = "daily_multi_times"
@@ -1254,6 +1260,8 @@ DATA_USER_USE_PERSISTENT_NOTIFICATIONS: Final = "use_persistent_notifications"
 DATA_USER_DASHBOARD_LANGUAGE: Final = "dashboard_language"
 DATA_USER_NOTIF_CLICK_URL: Final = "notif_click_url"
 DATA_USER_NOTIF_APPROVE_CLICK_URL: Final = "notif_approve_click_url"
+DATA_USER_NOTIFICATION_PRIORITY: Final = "notification_priority"
+DATA_USER_NOTIFICATION_TTL: Final = "notification_ttl"
 
 # USERS (capability model)
 DATA_USER_ID: Final = "user_id"
@@ -1267,6 +1275,7 @@ DATA_USER_CAN_MANAGE: Final = "can_manage"
 DATA_USER_CAN_BE_ASSIGNED: Final = "can_be_assigned"
 DATA_USER_CHORES_PAUSED: Final = "chores_paused"
 DATA_USER_CHORES_PAUSED_UNTIL: Final = "chores_paused_until"
+DATA_USER_CHORES_PAUSED_UNPAUSE_ACTION: Final = "chores_paused_unpause_action"
 DATA_USER_ENABLE_CHORE_WORKFLOW: Final = "enable_chore_workflow"
 DATA_USER_ENABLE_GAMIFICATION: Final = "enable_gamification"
 
@@ -1484,6 +1493,8 @@ DATA_CHORE_DEFAULT_POINTS: Final = "default_points"
 DATA_CHORE_DESCRIPTION: Final = "description"
 DATA_CHORE_DUE_DATE: Final = "due_date"
 DATA_CHORE_ICON: Final = "icon"
+DATA_CHORE_NOTIFICATION_CHANNEL: Final = "notification_channel"
+DATA_CHORE_NOTIFICATION_IMPORTANCE: Final = "notification_importance"
 DATA_CHORE_ID: Final = "chore_id"
 DATA_CHORE_INTERNAL_ID: Final = "internal_id"
 DATA_CHORE_LABELS: Final = "chore_labels"
@@ -1661,6 +1672,12 @@ DEFAULT_APPROVAL_RESET_PENDING_CLAIM_ACTION: Final = (
 CHORE_APPROVAL_ORIGIN_MANUAL: Final = "manual"
 CHORE_APPROVAL_ORIGIN_AUTO_APPROVE: Final = "auto_approve"
 CHORE_APPROVAL_ORIGIN_AUTO_RESET: Final = "auto_reset"
+
+# Reward approval origin values (event payload metadata)
+REWARD_APPROVAL_ORIGIN_MANUAL: Final = "manual"
+REWARD_APPROVAL_ORIGIN_NOTIFICATION: Final = "notification"
+REWARD_APPROVAL_ORIGIN_BUTTON: Final = "button"
+REWARD_APPROVAL_ORIGIN_BADGE: Final = "badge"
 
 # Chore overdue notification routing (event payload metadata)
 CHORE_OVERDUE_EVENT_MESSAGE_TYPE: Final = "overdue_message_type"
@@ -2742,6 +2759,8 @@ PURPOSE_BUTTON_BONUS_APPLY: Final = "Approver applies bonus (adds points)"
 # PURPOSE values for select attributes (select.py)
 ATTR_DUE_DATE: Final = "due_date"
 ATTR_CHORE_DUE_WINDOW_OFFSET: Final = "chore_due_window_offset"
+ATTR_CHORE_NOTIFICATION_CHANNEL: Final = "chore_notification_channel"
+ATTR_CHORE_NOTIFICATION_IMPORTANCE: Final = "chore_notification_importance"
 ATTR_CHORE_CLAIM_LOCK_UNTIL_WINDOW: Final = "chore_claim_lock_until_window"
 ATTR_DUE_WINDOW_START: Final = "due_window_start"
 ATTR_END_DATE: Final = "end_date"
@@ -2832,6 +2851,7 @@ ATTR_CHORE_DUE_DATE: Final = "due_date"
 ATTR_HELPER_CONTRACT_VERSION: Final = "helper_contract_version"
 ATTR_CHORE_IS_TODAY_AM: Final = "is_today_am"
 ATTR_CHORE_LABELS: Final = "labels"
+ATTR_CHORE_LABEL_ENTRIES: Final = "label_entries"
 ATTR_CHORE_PRIMARY_GROUP: Final = "primary_group"
 ATTR_DASHBOARD_CONFIG: Final = "dashboard_config"
 ATTR_SHARD_COUNT: Final = "shard_count"
@@ -3184,6 +3204,8 @@ SERVICE_FIELD_CHORE_CRUD_CLAIM_LOCK_UNTIL_WINDOW: Final = CHORE_CLAIM_LOCK_UNTIL
 SERVICE_FIELD_CHORE_CRUD_AUTO_APPROVE: Final = "auto_approve"
 SERVICE_FIELD_CHORE_CRUD_DUE_DATE: Final = "due_date"
 SERVICE_FIELD_CHORE_CRUD_DUE_WINDOW_OFFSET: Final = "due_window_offset"
+SERVICE_FIELD_CHORE_CRUD_NOTIFICATION_CHANNEL: Final = "notification_channel"
+SERVICE_FIELD_CHORE_CRUD_NOTIFICATION_IMPORTANCE: Final = "notification_importance"
 SERVICE_FIELD_CHORE_CRUD_DUE_REMINDER_OFFSET: Final = "due_reminder_offset"
 # Notification fields alias the stored keys so service and storage cannot drift.
 SERVICE_FIELD_CHORE_CRUD_NOTIFY_ON_CLAIM: Final = DATA_CHORE_NOTIFY_ON_CLAIM
@@ -3493,6 +3515,9 @@ TRANS_KEY_ERROR_SHARED_CHORE_ASSIGNEE: Final = (
 )
 TRANS_KEY_ERROR_INVALID_DATE_FORMAT: Final = (
     "invalid_date_format"  # Invalid date format
+)
+TRANS_KEY_ERROR_UNTIL_ON_RESUME: Final = (
+    "until_on_resume"  # paused_until can only be set while pausing
 )
 TRANS_KEY_ERROR_DATE_IN_PAST: Final = "date_in_past"  # Due date cannot be in the past
 TRANS_KEY_ERROR_FUTURE_DUE_DATE_REQUIRED: Final = (
@@ -3996,6 +4021,8 @@ TRANS_KEY_FLOW_HELPERS_APPROVAL_RESET_PENDING_CLAIM_ACTION: Final = (
 TRANS_KEY_FLOW_HELPERS_APPROVAL_RESET_TYPE: Final = "approval_reset_type"
 TRANS_KEY_FLOW_HELPERS_ASSIGNED_USER_IDS: Final = "assigned_user_ids"
 TRANS_KEY_FLOW_HELPERS_CHORE_NOTIFICATIONS: Final = "chore_notifications"
+TRANS_KEY_FLOW_HELPERS_NOTIFICATION_PRIORITY: Final = "notification_priority"
+TRANS_KEY_FLOW_HELPERS_NOTIFICATION_IMPORTANCE: Final = "notification_importance"
 TRANS_KEY_FLOW_HELPERS_COMPLETION_CRITERIA: Final = "completion_criteria"
 TRANS_KEY_FLOW_HELPERS_STANDBY_CLAIM_MODE: Final = "standby_claim_mode"
 TRANS_KEY_FLOW_HELPERS_ASSOCIATED_USER_IDS: Final = "associated_user_ids"
@@ -4135,6 +4162,53 @@ NOTIFY_NOTIFICATION_ID = "notification_id"
 NOTIFY_APPROVER_NAME = "approver_name"
 NOTIFY_PERSISTENT_NOTIFICATION = "persistent_notification"
 NOTIFY_TITLE = "title"
+
+# Delivery hints passed through to the mobile app in the payload's `data` block.
+# `priority` decides whether Android may defer the push until the device leaves
+# Doze; `ttl` is how long FCM keeps retrying, NOT a speed control. The companion
+# docs pair `ttl: 0` with `priority: high` for critical alerts, but that is a
+# recipe rather than a dependency: they are separate knobs, and a ttl of 0
+# discards anything undeliverable immediately.
+NOTIFY_PRIORITY = "priority"
+NOTIFY_TTL = "ttl"
+# FCM accepts 0..2,419,200 seconds (28 days) and rejects anything else with
+# InvalidTtl - the message is then NOT SENT. Out of range is therefore as fatal
+# as a crash and just as silent, so the parse bounds the value rather than only
+# guarding against exceptions: "1e308" raises nothing at all, clears a
+# `parsed < 0` check, and would ship a 309-digit integer.
+NOTIFY_TTL_MAX_SECONDS: Final = 2_419_200
+# Android groups notifications by channel, and a channel is what the OS exposes
+# to the user for per-category sound, importance and Do Not Disturb. Set per
+# CHORE rather than per user, so one person can silence routine chores without
+# silencing something they must not miss.
+NOTIFY_CHANNEL = "channel"
+# Importance sets a channel's INITIAL state, applied the first time a device
+# sees that channel name. The integration cannot change it afterwards - the
+# person can, in Android's notification settings, so this is a default rather
+# than a lock. Omitting it means every channel is born at "default", which
+# makes noise but does not pop on screen, and somebody has to fix that by hand
+# on each device. Sending it is how a must-not-miss category arrives correct.
+NOTIFY_IMPORTANCE = "importance"
+NOTIFY_IMPORTANCE_DEFAULT: Final = "default"
+NOTIFY_IMPORTANCE_OPTIONS: Final = ("min", "low", "default", "high", "max")
+# "Not set" is a member of the STORED set, not just a form option. update_chore()
+# merges its payload without running build_chore(), so a form-only sentinel would
+# round-trip back into the form as something the dropdown cannot display - which is
+# how an untouched importance came to fail validation on every edit. Mirrors
+# FREQUENCY_NONE, where "off" is a first-class member rather than an empty string.
+NOTIFY_IMPORTANCE_NONE: Final = "none"
+# What the form and the services accept: the unset choice plus the real levels.
+# NOTIFY_IMPORTANCE_OPTIONS stays the five SENDABLE levels - the payload guard
+# reads it, and "none" must never reach FCM.
+NOTIFY_IMPORTANCE_FORM_OPTIONS: Final = (
+    NOTIFY_IMPORTANCE_NONE,
+    *NOTIFY_IMPORTANCE_OPTIONS,
+)
+# Final so these narrow to Literal["normal"] / Literal["high"] rather than str,
+# which is what lets the builders assign them to the typed fields without a cast.
+NOTIFY_PRIORITY_NORMAL: Final = "normal"
+NOTIFY_PRIORITY_HIGH: Final = "high"
+NOTIFY_PRIORITY_OPTIONS: Final = (NOTIFY_PRIORITY_NORMAL, NOTIFY_PRIORITY_HIGH)
 
 # Notification tag system
 # Tags enable smart notification replacement: same tag = replace in-place, no stacking
