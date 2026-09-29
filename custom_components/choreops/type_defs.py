@@ -235,6 +235,16 @@ class ChoreData(TypedDict):
     due_reminder_offset: NotRequired[
         str | None
     ]  # Duration string for reminder notification
+    notification_channel: NotRequired[str]  # Android notification channel name
+    # Closed set, validated at runtime against NOTIFY_IMPORTANCE_OPTIONS. Typing
+    # it as the literal union lets mypy enforce it statically instead.
+    # "none" ("Not set" in the form) is a real member: it is what a chore that has
+    # never set one stores, and the payload helper reads it as "send no importance
+    # key". It lives in storage rather than only in the form because update_chore()
+    # merges without narrowing - see NOTIFY_IMPORTANCE_NONE in const.py.
+    notification_importance: NotRequired[
+        Literal["none", "min", "low", "default", "high", "max"]
+    ]
 
     # Runtime tracking (set during chore lifecycle)
     last_completed: NotRequired[str | None]  # ISO datetime
@@ -637,6 +647,20 @@ class AssigneeData(TypedDict):
     dashboard_language: NotRequired[str]
     notif_click_url: NotRequired[str]
     notif_approve_click_url: NotRequired[str]
+    # Closed set, validated at runtime against NOTIFY_PRIORITY_OPTIONS - see the
+    # note on notification_importance above.
+    #
+    # "normal" doubles as unset: the payload helper only ever emits `high`, so a
+    # profile that never chose still produces byte-identical payloads. The builder
+    # narrows to it rather than to "" because "" is not a member of the form's
+    # dropdown, so a pre-filled "" is rejected the moment the profile is saved.
+    notification_priority: NotRequired[Literal["normal", "high"]]
+    # Deliberately str, not int | None: this is the form-native value, and the
+    # options flow stores "" for unset. Moving it to int | None would mean
+    # choosing how "unset" is represented and touching the builder, the
+    # validator and the flow - a design change rather than a cleanup. The parse
+    # in _apply_recipient_notification_options is where it becomes a number.
+    notification_ttl: NotRequired[str]
     ui_preferences: NotRequired[dict[str, Any]]
 
     # Badge tracking
@@ -681,10 +705,13 @@ class UserData(AssigneeData):
     Pause chore fields:
         chores_paused: bool - True if chore processing is paused for this user
         chores_paused_until: str | None - UTC ISO datetime when pause auto-clears
+        chores_paused_unpause_action: str | None - Unpause action remembered from
+            the pause call, applied on resume; None when not set
     """
 
     chores_paused: NotRequired[bool]
     chores_paused_until: NotRequired[str | None]
+    chores_paused_unpause_action: NotRequired[str | None]
 
 
 AssigneeDataAlias = UserData
@@ -1268,8 +1295,9 @@ class RewardApprovedEvent(TypedDict, total=False):
     user_id: str  # Required
     reward_id: str  # Required
     reward_name: str  # Required
-    points_spent: float  # Required
-    approver_name: str  # Required
+    cost: float  # Required: points deducted (0 for free grants)
+    approver_name: NotRequired[str]  # Not currently emitted; kept for consumers
+    approval_origin: str  # Optional origin hint (manual, notification, button, badge)
 
 
 class RewardDisapprovedEvent(TypedDict, total=False):

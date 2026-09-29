@@ -1238,6 +1238,12 @@ class AssigneeChoreStatusSensor(ChoreOpsCoordinatorEntity, SensorEntity):
                 const.DATA_CHORE_DUE_WINDOW_OFFSET,
                 const.DEFAULT_DUE_WINDOW_OFFSET,
             ),
+            const.ATTR_CHORE_NOTIFICATION_CHANNEL: chore_info.get(
+                const.DATA_CHORE_NOTIFICATION_CHANNEL, ""
+            ),
+            const.ATTR_CHORE_NOTIFICATION_IMPORTANCE: chore_info.get(
+                const.DATA_CHORE_NOTIFICATION_IMPORTANCE, ""
+            ),
             const.ATTR_AUTO_APPROVE: chore_info.get(
                 const.DATA_CHORE_AUTO_APPROVE,
                 const.DEFAULT_CHORE_AUTO_APPROVE,
@@ -5464,6 +5470,9 @@ class AssigneeDashboardHelperSensor(ChoreOpsCoordinatorEntity, SensorEntity):
             ),
             "chores_paused_until": assignee_info.get(
                 const.DATA_USER_CHORES_PAUSED_UNTIL
+            ),
+            "chores_paused_unpause_action": assignee_info.get(
+                const.DATA_USER_CHORES_PAUSED_UNPAUSE_ACTION
             ),
             const.ATTR_SHARD_RUNTIME: shard_runtime,
         }

@@ -82,14 +82,18 @@
               "ha_user_id": "Hemassistent-användare",
               "dashboard_language": "Språk",
               "mobile_notify_service": "Aviseringar",
-              "notif_click_url": "URL för aviseringstryck"
+              "notif_click_url": "URL för aviseringstryck",
+              "notification_priority": "Delivery priority",
+              "notification_ttl": "Notification lifetime (seconds)"
             },
             "data_description": {
               "name": "Unikt namn för denna användarprofil.",
               "ha_user_id": "Valfritt: Länka den här profilen till en Home Assistant-användare. Om kioskläget är inaktiverat är anspråk och inlösen av delade enheter beroende av den här länken.",
               "dashboard_language": "Språk som används för instrumentpanelsinnehåll och aviseringar.",
               "mobile_notify_service": "Välj aviseringstjänst eller lämna tomt för att inaktivera aviseringar.",
-              "notif_click_url": "Valfri URL som ska öppnas när avisering trycks på. Lämna tomt för standardbeteende."
+              "notif_click_url": "Valfri URL som ska öppnas när avisering trycks på. Lämna tomt för standardbeteende.",
+              "notification_priority": "Android only. High asks the mobile app to deliver immediately even while the device is asleep; Normal may be delayed until it wakes. iOS ignores this.",
+              "notification_ttl": "Optional. Android only. How long delivery keeps being retried before the notification is dropped as stale. Leave empty for the platform default of 28 days; 0 discards anything that cannot be delivered right away. A good value is shorter than how often the chore recurs, so a retry can never arrive looking like the next occurrence - for a daily chore, around 20 hours. iOS ignores this."
             }
           },
           "section_system_usage": {
@@ -123,7 +127,7 @@
               "associated_user_ids": "Användare som denna godkännare/administratör övervakar för godkännandeåtgärder.",
               "notif_approve_click_url": "Valfri URL för godkännandemeddelanden. Åsidosätter den allmänna URL:en för aviseringar vid godkännande av sysslor eller belöningar.",
               "chores_paused": "Pausar sysslobearbetningen. Ingen statistik för försenade eller missade uppgifter ackumuleras.",
-              "chores_paused_until": "Valfritt återlämningsdatum. Om det är inställt återupptas sysslor automatiskt vid midnatt efter detta datum."
+              "chores_paused_until": "Optional return date and time. If set, chores auto-resume at that date and time (checked every few minutes; a nightly pass is a safety net)."
             }
           }
         }
@@ -194,6 +198,8 @@
               "auto_approve": "✅ Godkänna anspråk automatiskt?",
               "overdue_handling_type": "⏰ Försenad: Hantering",
               "chore_due_reminder_offset": "🔔 Förfallopåminnelse: Förskjutning före förfallodatum",
+              "chore_notification_channel": "🔔 Notification Channel",
+              "chore_notification_importance": "🔔 Notification Importance",
               "chore_notifications": "🔔 Aviseringshändelser (valfritt)",
               "show_on_calendar": "📅 Visa i kalendern?",
               "chore_labels": "📋 Etiketter (valfritt)"
@@ -204,6 +210,8 @@
               "auto_approve": "När det är aktiverat godkänns anspråk omedelbart utan granskning av godkännaren.",
               "overdue_handling_type": "Åtgärd efter förfallodatum: Dölj förfallet status, förbli förfallet tills det görs anspråk på det eller återställ till väntande vid nästa godkännandecykel.",
               "chore_due_reminder_offset": "När påminnelsen om förfallodatum ska skickas. Format: '1d 6h 30m' eller bara '30' för minuter. Standard: 30m (30 minuter före förfallodatum). Ange '0' för att inaktivera.",
+              "chore_notification_channel": "Optional. Android only. Groups this chore's notifications under a named Android channel, so its sound, importance and Do Not Disturb behavior can be set separately on the device. Leave empty to use the app default. iOS ignores this.",
+              "chore_notification_importance": "Optional. Android only. How prominently this chore's notifications alert: 'high' pops on screen and makes a sound, 'default' makes a sound only, 'low'/'min' stay silent. Choose 'Not set' to let the app decide; it is not the same as 'default'. Requires a Notification Channel. Note: this sets the channel's INITIAL state, the first time a device sees that channel name. The integration cannot change it afterwards, though the person can at any time in Android's notification settings. Sending it means every device starts correct without anyone adjusting it by hand. iOS ignores this.",
               "chore_notifications": "När aviseringar ska skickas: Vid anspråk, vid godkännande, vid avslag eller någon kombination.",
               "show_on_calendar": "Visa den här uppgiften i kalendervyn.",
               "chore_labels": "Taggar för att organisera sysslor (t.ex. 'kök', 'utomhus'). Lämna tomt om det inte behövs."
@@ -230,6 +238,8 @@
           "due_date": "📅 Schema: Förfallodatum (valfritt)",
           "chore_due_window_offset": "⏱️ Förfallofönster: Förskjutning före förfallodatum",
           "chore_due_reminder_offset": "🔔 Förfallopåminnelse: Förskjutning före förfallodatum",
+          "chore_notification_channel": "🔔 Notification Channel",
+          "chore_notification_importance": "🔔 Notification Importance",
           "show_on_calendar": "📅 Visa i kalendern?",
           "chore_notifications": "🔔 Aviseringshändelser (valfritt)",
           "standby_claim_mode": "🔑 Standby-anspråksläge"
@@ -254,6 +264,8 @@
           "due_date": "Valfri deadline. Kan kombineras med återkommande scheman.",
           "chore_due_window_offset": "När sysslan visas som \"Förfaller\" 1 dag före deadline. Format: '1d 6h 30m' eller bara '30' för minuter. Ange '0' för att inaktivera. Exempel: '1d' betyder att sysslan visas som \"Förfaller\" 1 dag före deadline.",
           "chore_due_reminder_offset": "När påminnelsen om förfallodatum ska skickas. Format: '1d 6h 30m' eller bara '30' för minuter. Standard: 30m (30 minuter före förfallodatum). Ange '0' för att inaktivera.",
+          "chore_notification_channel": "Optional. Android only. Groups this chore's notifications under a named Android channel, so its sound, importance and Do Not Disturb behavior can be set separately on the device. Leave empty to use the app default. iOS ignores this.",
+          "chore_notification_importance": "Optional. Android only. How prominently this chore's notifications alert: 'high' pops on screen and makes a sound, 'default' makes a sound only, 'low'/'min' stay silent. Choose 'Not set' to let the app decide; it is not the same as 'default'. Requires a Notification Channel. Note: this sets the channel's INITIAL state, the first time a device sees that channel name. The integration cannot change it afterwards, though the person can at any time in Android's notification settings. Sending it means every device starts correct without anyone adjusting it by hand. iOS ignores this.",
           "show_on_calendar": "Visa den här uppgiften i kalendervyn.",
           "chore_notifications": "När aviseringar ska skickas: Vid anspråk, vid godkännande, vid avslag eller någon kombination.",
           "standby_claim_mode": "Styr när reservpersoner kan göra anspråk på den här uppgiften (när som helst, on_forfallodatum, manual_only). Gäller endast för Primära och Standby-slutförandekriterier."
@@ -585,14 +597,18 @@
               "ha_user_id": "Hemassistent-användare",
               "dashboard_language": "Språk",
               "mobile_notify_service": "Aviseringar",
-              "notif_click_url": "URL för aviseringstryck"
+              "notif_click_url": "URL för aviseringstryck",
+              "notification_priority": "Delivery priority",
+              "notification_ttl": "Notification lifetime (seconds)"
             },
             "data_description": {
               "name": "Unikt namn för denna användarprofil.",
               "ha_user_id": "Valfritt: Länka den här profilen till en Home Assistant-användare. Om kioskläget är inaktiverat är anspråk och inlösen av delade enheter beroende av den här länken.",
               "dashboard_language": "Språk som används för instrumentpanelsinnehåll och aviseringar.",
               "mobile_notify_service": "Välj aviseringstjänst eller lämna tomt för att inaktivera aviseringar.",
-              "notif_click_url": "Valfri URL som ska öppnas när avisering trycks på. Lämna tomt för standardbeteende."
+              "notif_click_url": "Valfri URL som ska öppnas när avisering trycks på. Lämna tomt för standardbeteende.",
+              "notification_priority": "Android only. High asks the mobile app to deliver immediately even while the device is asleep; Normal may be delayed until it wakes. iOS ignores this.",
+              "notification_ttl": "Optional. Android only. How long delivery keeps being retried before the notification is dropped as stale. Leave empty for the platform default of 28 days; 0 discards anything that cannot be delivered right away. A good value is shorter than how often the chore recurs, so a retry can never arrive looking like the next occurrence - for a daily chore, around 20 hours. iOS ignores this."
             }
           },
           "section_system_usage": {
@@ -626,7 +642,7 @@
               "associated_user_ids": "Användare som denna godkännare/administratör övervakar för godkännandeåtgärder.",
               "notif_approve_click_url": "Valfri URL för godkännandemeddelanden. Åsidosätter den allmänna URL:en för aviseringar vid godkännande av sysslor eller belöningar.",
               "chores_paused": "Pausar sysslobearbetningen. Ingen statistik för försenade eller missade uppgifter ackumuleras.",
-              "chores_paused_until": "Valfritt återlämningsdatum. Om det är inställt återupptas sysslor automatiskt vid midnatt efter detta datum."
+              "chores_paused_until": "Optional return date and time. If set, chores auto-resume at that date and time (checked every few minutes; a nightly pass is a safety net)."
             }
           }
         }
@@ -690,6 +706,8 @@
               "auto_approve": "✅ Godkänna anspråk automatiskt?",
               "overdue_handling_type": "⏰ Försenad: Hantering",
               "chore_due_reminder_offset": "🔔 Förfallopåminnelse: Förskjutning före förfallodatum",
+              "chore_notification_channel": "🔔 Notification Channel",
+              "chore_notification_importance": "🔔 Notification Importance",
               "chore_notifications": "🔔 Aviseringshändelser (valfritt)",
               "show_on_calendar": "📅 Visa i kalendern?",
               "chore_labels": "📋 Etiketter (valfritt)"
@@ -700,6 +718,8 @@
               "auto_approve": "När det är aktiverat godkänns anspråk omedelbart utan granskning av godkännaren.",
               "overdue_handling_type": "Styr vad som händer när förfallodatumet passeras och vad som händer med försenade uppgifter vid gränsen för återställning av godkännande.",
               "chore_due_reminder_offset": "När påminnelsen om förfallodatum ska skickas. Format: '1d 6h 30m' eller bara '30' för minuter. Standard: 30m (30 minuter före förfallodatum). Ange '0' för att inaktivera.",
+              "chore_notification_channel": "Optional. Android only. Groups this chore's notifications under a named Android channel, so its sound, importance and Do Not Disturb behavior can be set separately on the device. Leave empty to use the app default. iOS ignores this.",
+              "chore_notification_importance": "Optional. Android only. How prominently this chore's notifications alert: 'high' pops on screen and makes a sound, 'default' makes a sound only, 'low'/'min' stay silent. Choose 'Not set' to let the app decide; it is not the same as 'default'. Requires a Notification Channel. Note: this sets the channel's INITIAL state, the first time a device sees that channel name. The integration cannot change it afterwards, though the person can at any time in Android's notification settings. Sending it means every device starts correct without anyone adjusting it by hand. iOS ignores this.",
               "chore_notifications": "När aviseringar ska skickas: Vid anspråk, vid godkännande, vid avslag eller någon kombination.",
               "show_on_calendar": "Visa den här uppgiften i kalendervyn.",
               "chore_labels": "Taggar för att organisera sysslor (t.ex. 'kök', 'utomhus'). Lämna tomt om det inte behövs."
@@ -727,6 +747,8 @@
           "clear_due_date": "🗑️ Rensa förfallodatum",
           "chore_due_window_offset": "⏱️ Förfallofönster: Förskjutning före förfallodatum",
           "chore_due_reminder_offset": "🔔 Förfallopåminnelse: Förskjutning före förfallodatum",
+          "chore_notification_channel": "🔔 Notification Channel",
+          "chore_notification_importance": "🔔 Notification Importance",
           "show_on_calendar": "📅 Visa i kalendern?",
           "chore_notifications": "🔔 Aviseringshändelser (valfritt)",
           "standby_claim_mode": "🔑 Standby-anspråksläge"
@@ -752,6 +774,8 @@
           "clear_due_date": "Markera den här rutan för att ta bort förfallodatumet från den här sysslan.",
           "chore_due_window_offset": "När sysslan visas som \"Förfaller\" 1 dag före deadline. Format: '1d 6h 30m' eller bara '30' för minuter. Ange '0' för att inaktivera. Exempel: '1d' betyder att sysslan visas som \"Förfaller\" 1 dag före deadline.",
           "chore_due_reminder_offset": "När påminnelsen om förfallodatum ska skickas. Format: '1d 6h 30m' eller bara '30' för minuter. Standard: 30m (30 minuter före förfallodatum). Ange '0' för att inaktivera.",
+          "chore_notification_channel": "Optional. Android only. Groups this chore's notifications under a named Android channel, so its sound, importance and Do Not Disturb behavior can be set separately on the device. Leave empty to use the app default. iOS ignores this.",
+          "chore_notification_importance": "Optional. Android only. How prominently this chore's notifications alert: 'high' pops on screen and makes a sound, 'default' makes a sound only, 'low'/'min' stay silent. Choose 'Not set' to let the app decide; it is not the same as 'default'. Requires a Notification Channel. Note: this sets the channel's INITIAL state, the first time a device sees that channel name. The integration cannot change it afterwards, though the person can at any time in Android's notification settings. Sending it means every device starts correct without anyone adjusting it by hand. iOS ignores this.",
           "show_on_calendar": "Visa den här uppgiften i kalendervyn.",
           "chore_notifications": "När aviseringar ska skickas: Vid anspråk, vid godkännande, vid avslag eller någon kombination.",
           "standby_claim_mode": "Styr när reservpersoner kan göra anspråk på den här uppgiften (när som helst, on_forfallodatum, manual_only). Gäller endast för Primära och Standby-slutförandekriterier."
@@ -1037,14 +1061,18 @@
               "ha_user_id": "Hemassistent-användare",
               "dashboard_language": "Språk",
               "mobile_notify_service": "Aviseringar",
-              "notif_click_url": "URL för aviseringstryck"
+              "notif_click_url": "URL för aviseringstryck",
+              "notification_priority": "Delivery priority",
+              "notification_ttl": "Notification lifetime (seconds)"
             },
             "data_description": {
               "name": "Unikt namn för denna användarprofil.",
               "ha_user_id": "Valfritt: Länka den här profilen till en Home Assistant-användare. Om kioskläget är inaktiverat är anspråk och inlösen av delade enheter beroende av den här länken.",
               "dashboard_language": "Språk som används för instrumentpanelsinnehåll och aviseringar.",
               "mobile_notify_service": "Välj aviseringstjänst eller lämna tomt för att inaktivera aviseringar.",
-              "notif_click_url": "Valfri URL som ska öppnas när avisering trycks på. Lämna tomt för standardbeteende."
+              "notif_click_url": "Valfri URL som ska öppnas när avisering trycks på. Lämna tomt för standardbeteende.",
+              "notification_priority": "Android only. High asks the mobile app to deliver immediately even while the device is asleep; Normal may be delayed until it wakes. iOS ignores this.",
+              "notification_ttl": "Optional. Android only. How long delivery keeps being retried before the notification is dropped as stale. Leave empty for the platform default of 28 days; 0 discards anything that cannot be delivered right away. A good value is shorter than how often the chore recurs, so a retry can never arrive looking like the next occurrence - for a daily chore, around 20 hours. iOS ignores this."
             }
           },
           "section_system_usage": {
@@ -1078,7 +1106,7 @@
               "associated_user_ids": "Användare som denna godkännare/administratör övervakar för godkännandeåtgärder.",
               "notif_approve_click_url": "Valfri URL för godkännandemeddelanden. Åsidosätter den allmänna URL:en för aviseringar vid godkännande av sysslor eller belöningar.",
               "chores_paused": "Pausar sysslobearbetningen. Ingen statistik för försenade eller missade uppgifter ackumuleras.",
-              "chores_paused_until": "Valfritt återlämningsdatum. Om det är inställt återupptas sysslor automatiskt vid midnatt efter detta datum."
+              "chores_paused_until": "Optional return date and time. If set, chores auto-resume at that date and time (checked every few minutes; a nightly pass is a safety net)."
             }
           }
         }
@@ -1142,6 +1170,8 @@
               "auto_approve": "✅ Godkänna anspråk automatiskt?",
               "overdue_handling_type": "⏰ Försenad: Hantering",
               "chore_due_reminder_offset": "🔔 Förfallopåminnelse: Förskjutning före förfallodatum",
+              "chore_notification_channel": "🔔 Notification Channel",
+              "chore_notification_importance": "🔔 Notification Importance",
               "chore_notifications": "🔔 Aviseringshändelser (valfritt)",
               "show_on_calendar": "📅 Visa i kalendern?",
               "chore_labels": "📋 Etiketter (valfritt)"
@@ -1152,6 +1182,8 @@
               "auto_approve": "När det är aktiverat godkänns anspråk omedelbart utan granskning av godkännaren.",
               "overdue_handling_type": "Styr vad som händer när förfallodatumet passeras och vad som händer med försenade uppgifter vid gränsen för återställning av godkännande.",
               "chore_due_reminder_offset": "När påminnelsen om förfallodatum ska skickas. Format: '1d 6h 30m' eller bara '30' för minuter. Standard: 30m (30 minuter före förfallodatum). Ange '0' för att inaktivera.",
+              "chore_notification_channel": "Optional. Android only. Groups this chore's notifications under a named Android channel, so its sound, importance and Do Not Disturb behavior can be set separately on the device. Leave empty to use the app default. iOS ignores this.",
+              "chore_notification_importance": "Optional. Android only. How prominently this chore's notifications alert: 'high' pops on screen and makes a sound, 'default' makes a sound only, 'low'/'min' stay silent. Choose 'Not set' to let the app decide; it is not the same as 'default'. Requires a Notification Channel. Note: this sets the channel's INITIAL state, the first time a device sees that channel name. The integration cannot change it afterwards, though the person can at any time in Android's notification settings. Sending it means every device starts correct without anyone adjusting it by hand. iOS ignores this.",
               "chore_notifications": "När aviseringar ska skickas: Vid anspråk, vid godkännande, vid avslag eller någon kombination.",
               "show_on_calendar": "Visa den här uppgiften i kalendervyn.",
               "chore_labels": "Taggar för att organisera sysslor (t.ex. 'kök', 'utomhus'). Lämna tomt om det inte behövs."
@@ -1180,6 +1212,8 @@
           "clear_due_date": "🗑️ Rensa förfallodatum",
           "chore_due_window_offset": "⏱️ Förfallofönster: Förskjutning före förfallodatum",
           "chore_due_reminder_offset": "🔔 Förfallopåminnelse: Förskjutning före förfallodatum",
+          "chore_notification_channel": "🔔 Notification Channel",
+          "chore_notification_importance": "🔔 Notification Importance",
           "show_on_calendar": "📅 Visa i kalendern?",
           "chore_notifications": "🔔 Aviseringshändelser (valfritt)",
           "standby_claim_mode": "🔑 Standby-anspråksläge"
@@ -1205,6 +1239,8 @@
           "clear_due_date": "Markera den här rutan för att ta bort förfallodatumet från den här sysslan.",
           "chore_due_window_offset": "När sysslan visas som \"Förfaller\" 1 dag före deadline. Format: '1d 6h 30m' eller bara '30' för minuter. Ange '0' för att inaktivera. Exempel: '1d' betyder att sysslan visas som \"Förfaller\" 1 dag före deadline.",
           "chore_due_reminder_offset": "När påminnelsen om förfallodatum ska skickas. Format: '1d 6h 30m' eller bara '30' för minuter. Standard: 30m (30 minuter före förfallodatum). Ange '0' för att inaktivera.",
+          "chore_notification_channel": "Optional. Android only. Groups this chore's notifications under a named Android channel, so its sound, importance and Do Not Disturb behavior can be set separately on the device. Leave empty to use the app default. iOS ignores this.",
+          "chore_notification_importance": "Optional. Android only. How prominently this chore's notifications alert: 'high' pops on screen and makes a sound, 'default' makes a sound only, 'low'/'min' stay silent. Choose 'Not set' to let the app decide; it is not the same as 'default'. Requires a Notification Channel. Note: this sets the channel's INITIAL state, the first time a device sees that channel name. The integration cannot change it afterwards, though the person can at any time in Android's notification settings. Sending it means every device starts correct without anyone adjusting it by hand. iOS ignores this.",
           "show_on_calendar": "Visa den här uppgiften i kalendervyn.",
           "chore_notifications": "När aviseringar ska skickas: Vid anspråk, vid godkännande, vid avslag eller någon kombination.",
           "standby_claim_mode": "Styr när reservpersoner kan göra anspråk på den här uppgiften (när som helst, on_forfallodatum, manual_only). Gäller endast för Primära och Standby-slutförandekriterier."
@@ -2082,6 +2118,12 @@
         "custom_1_month": "Anpassad: 1-månadsperiod"
       }
     },
+    "notification_priority": {
+      "options": {
+        "normal": "Normal (may be delayed while the device is asleep)",
+        "high": "High (deliver immediately, even while the device is asleep)"
+      }
+    },
     "completion_criteria": {
       "options": {
         "shared_all": "Delat alla (alla tilldelade måste slutföra tillsammans)",
@@ -2208,6 +2250,16 @@
         "migrate_from_kidschores": "🔄 Migrera från KidsChores (icke-förstörande kopia)",
         "paste_json": "📋 Klistra in JSON från datafil eller diagnostik"
       }
+    },
+    "notification_importance": {
+      "options": {
+        "none": "Not set (app decides)",
+        "min": "Minimum (no sound, collapsed)",
+        "low": "Low (no sound)",
+        "default": "Default (makes a sound)",
+        "high": "High (pops on screen and makes a sound)",
+        "max": "Maximum (pops on screen, most urgent)"
+      }
     }
   },
   "services": {
@@ -2306,7 +2358,7 @@
     },
     "pause_user_chores": {
       "name": "Pausa användarens sysslor",
-      "description": "Pausa eller återuppta sysslobearbetning för en användare. Vid återupptagning styr unpause_action om förfallna sysslor schemaläggs om för att förhindra omedelbara försenade övergångar.",
+      "description": "Pause or resume chore processing for a user. While paused, no overdue or missed stats accumulate and rotation advances past this user. When resuming, Unpause Action decides whether dates missed while paused are shifted forward.",
       "fields": {
         "config_entry_id": {
           "name": "Konfigurationspost-ID (valfritt)",
@@ -2325,17 +2377,17 @@
         },
         "paused": {
           "name": "Pausad",
-          "description": "Sant för att pausa sysslor, Falskt för att återuppta.",
+          "description": "True to pause chores, False to resume. See Unpause Action for what happens to dates missed while paused.",
           "example": "sann"
         },
         "paused_until": {
           "name": "Pausad tills",
-          "description": "Valfritt återlämningsdatum. Om det är inställt återupptas sysslor automatiskt vid midnatt efter detta datum.",
+          "description": "Optional return date and time. If set, chores auto-resume at that date and time (checked every few minutes; a nightly pass is a safety net). Only valid while pausing (paused: true) - omit it when resuming.",
           "example": "2026-06-10T00:00:00+00:00"
         },
         "unpause_action": {
           "name": "Återuppta åtgärden",
-          "description": "Gäller endast när paused=false. Styr om förfallna sysslor schemaläggs om under återuppta paus. Standard: återuppta paus (ingen omplanering).",
+          "description": "On resume: decides what happens to due dates that passed while the user was paused - keep them as they are (they may show as overdue), or shift them forward so chores continue from the next occurrence. When pausing: remembers this choice and applies it at the next manual or automatic resume. Pass 'unpause' on a resume call to ignore a remembered choice; omit this field when re-pausing to clear it.",
           "example": "unpause_shift_oberoende"
         }
       }
@@ -2762,6 +2814,14 @@
           "description": "Tid före förfallodatum för att skicka påminnelsemeddelande. Format: '30m', '1h', '1d 6h 30m', etc. Använd '0' för att inaktivera påminnelser.",
           "example": "30m"
         },
+        "notification_channel": {
+          "name": "Notification Channel",
+          "description": "Optional. Android only. Groups this chore's notifications under a named Android channel, so its sound, importance and Do Not Disturb behavior can be set separately from other chores. Leave empty to use the app default. iOS ignores this."
+        },
+        "notification_importance": {
+          "name": "Notification Importance",
+          "description": "Optional. Android only. How prominently this chore's notifications alert (min, low, default, high, max). Requires notification_channel. Note: sets the channel's INITIAL state the first time a device sees that channel name. The integration cannot change it afterwards; the person still can, in Android settings. iOS ignores this."
+        },
         "standby_claim_mode": {
           "name": "Standby-anspråksläge",
           "description": "Styr när reservpersoner kan göra anspråk på den här uppgiften (när som helst, on_forfallodatum, manual_only). Gäller endast för Primära och Standby-slutförandekriterier."
@@ -2911,6 +2971,14 @@
           "name": "Förskjutning av förfallna påminnelser",
           "description": "Ny förskjutning för förfallodatum för påminnelse. Tid före förfallodatum för att skicka påminnelsemeddelande. Format: '30m', '1h', '1d 6h 30m', etc. Använd '0' för att inaktivera.",
           "example": "30m"
+        },
+        "notification_channel": {
+          "name": "Notification Channel",
+          "description": "New notification channel. Android only. Groups this chore's notifications under a named Android channel, so its sound, importance and Do Not Disturb behavior can be set separately from other chores. Leave empty to use the app default. iOS ignores this."
+        },
+        "notification_importance": {
+          "name": "Notification Importance",
+          "description": "Optional. Android only. How prominently this chore's notifications alert (min, low, default, high, max). Requires notification_channel. Note: sets the channel's INITIAL state the first time a device sees that channel name. The integration cannot change it afterwards; the person still can, in Android settings. iOS ignores this."
         },
         "assignment_action": {
           "name": "Tilldelningsåtgärd",
@@ -5638,6 +5706,9 @@
     },
     "invalid_date_format": {
       "message": "Ogiltigt datumformat. Ange en giltig datumsträng (t.ex. ÅÅÅÅ-MM-DD eller ISO 8601 datum/tid)."
+    },
+    "until_on_resume": {
+      "message": "Paused Until can only be set while pausing (paused: true). Omit it when resuming."
     },
     "date_in_past": {
       "message": "Förfallodatumet får inte vara i det förflutna. Ange ett framtida datum."

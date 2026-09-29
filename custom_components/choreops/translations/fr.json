@@ -82,14 +82,18 @@
               "ha_user_id": "Utilisateur de Home Assistant",
               "dashboard_language": "Langue",
               "mobile_notify_service": "Notifications",
-              "notif_click_url": "URL de l'appui sur la notification"
+              "notif_click_url": "URL de l'appui sur la notification",
+              "notification_priority": "Delivery priority",
+              "notification_ttl": "Notification lifetime (seconds)"
             },
             "data_description": {
               "name": "Nom unique pour ce profil utilisateur.",
               "ha_user_id": "Facultatif : associez ce profil à un utilisateur Home Assistant. Si le mode kiosque est désactivé, les actions de revendication et d’utilisation d’appareils partagés dépendent de cette association.",
               "dashboard_language": "Langue utilisée pour le contenu du tableau de bord et les notifications.",
               "mobile_notify_service": "Sélectionnez un service de notification ou laissez vide pour désactiver les notifications.",
-              "notif_click_url": "URL facultative à ouvrir lorsque l'utilisateur appuie sur la notification. Laisser vide pour le comportement par défaut."
+              "notif_click_url": "URL facultative à ouvrir lorsque l'utilisateur appuie sur la notification. Laisser vide pour le comportement par défaut.",
+              "notification_priority": "Android only. High asks the mobile app to deliver immediately even while the device is asleep; Normal may be delayed until it wakes. iOS ignores this.",
+              "notification_ttl": "Optional. Android only. How long delivery keeps being retried before the notification is dropped as stale. Leave empty for the platform default of 28 days; 0 discards anything that cannot be delivered right away. A good value is shorter than how often the chore recurs, so a retry can never arrive looking like the next occurrence - for a daily chore, around 20 hours. iOS ignores this."
             }
           },
           "section_system_usage": {
@@ -123,7 +127,7 @@
               "associated_user_ids": "Utilisateurs supervisés par cet approbateur/administrateur pour les actions d'approbation.",
               "notif_approve_click_url": "URL facultative pour les notifications d'approbation. Remplace l'URL de notification générale lors de l'approbation de tâches ou de récompenses.",
               "chores_paused": "Suspend le traitement des tâches. Aucune statistique de retard ou d'oubli ne s'accumule.",
-              "chores_paused_until": "Date de retour facultative. Si cette date est définie, les tâches reprennent automatiquement à minuit après cette date."
+              "chores_paused_until": "Optional return date and time. If set, chores auto-resume at that date and time (checked every few minutes; a nightly pass is a safety net)."
             }
           }
         }
@@ -194,6 +198,8 @@
               "auto_approve": "✅ Approbation automatique des demandes ?",
               "overdue_handling_type": "⏰ En retard : Traitement",
               "chore_due_reminder_offset": "🔔 Rappel d'échéance : Effectuez votre compensation avant la date d'échéance",
+              "chore_notification_channel": "🔔 Notification Channel",
+              "chore_notification_importance": "🔔 Notification Importance",
               "chore_notifications": "🔔 Notifications d'événements (facultatif)",
               "show_on_calendar": "📅 Afficher dans le calendrier ?",
               "chore_labels": "📋 Étiquettes (facultatif)"
@@ -204,6 +210,8 @@
               "auto_approve": "Lorsqu'elle est activée, cette option permet d'approuver instantanément les demandes sans examen par un approbateur.",
               "overdue_handling_type": "Actions à entreprendre après la date d'échéance : Masquer le statut de retard, maintenir le statut de retard jusqu'à ce que la demande soit réclamée, ou réinitialiser le statut à « en attente » lors du prochain cycle d'approbation.",
               "chore_due_reminder_offset": "Quand envoyer la notification de rappel d'échéance ? Format : « 1j 6h 30m » ou simplement « 30 » pour les minutes. Par défaut : 30 min (30 minutes avant l'échéance). Saisissez « 0 » pour désactiver.",
+              "chore_notification_channel": "Optional. Android only. Groups this chore's notifications under a named Android channel, so its sound, importance and Do Not Disturb behavior can be set separately on the device. Leave empty to use the app default. iOS ignores this.",
+              "chore_notification_importance": "Optional. Android only. How prominently this chore's notifications alert: 'high' pops on screen and makes a sound, 'default' makes a sound only, 'low'/'min' stay silent. Choose 'Not set' to let the app decide; it is not the same as 'default'. Requires a Notification Channel. Note: this sets the channel's INITIAL state, the first time a device sees that channel name. The integration cannot change it afterwards, though the person can at any time in Android's notification settings. Sending it means every device starts correct without anyone adjusting it by hand. iOS ignores this.",
               "chore_notifications": "Quand envoyer les notifications : lors de la réclamation, lors de l’approbation, lors du rejet ou toute combinaison de ces éléments.",
               "show_on_calendar": "Afficher cette tâche dans le calendrier.",
               "chore_labels": "Étiquettes pour organiser les tâches ménagères (ex. : « cuisine », « extérieur »). Laisser vide si non nécessaire."
@@ -230,6 +238,8 @@
           "due_date": "📅 Programmation : Date d’échéance (facultatif)",
           "chore_due_window_offset": "⏱️ Délai d'échéance : Décalage avant la date d'échéance",
           "chore_due_reminder_offset": "🔔 Rappel d'échéance : Effectuez votre compensation avant la date d'échéance",
+          "chore_notification_channel": "🔔 Notification Channel",
+          "chore_notification_importance": "🔔 Notification Importance",
           "show_on_calendar": "📅 Afficher dans le calendrier ?",
           "chore_notifications": "🔔 Notifications d'événements (facultatif)",
           "standby_claim_mode": "🔑 Mode de réclamation en attente"
@@ -254,6 +264,8 @@
           "due_date": "Date limite facultative. Peut être combinée avec des planifications récurrentes.",
           "chore_due_window_offset": "Lorsque l'état de la tâche passe de « En attente » à « À faire ». Format : « 1j 6h 30m » ou simplement « 30 » pour les minutes. Saisissez « 0 » pour désactiver. Exemple : « 1j » signifie que la tâche apparaît comme « À faire » un jour avant l'échéance.",
           "chore_due_reminder_offset": "Quand envoyer la notification de rappel d'échéance ? Format : « 1j 6h 30m » ou simplement « 30 » pour les minutes. Par défaut : 30 min (30 minutes avant l'échéance). Saisissez « 0 » pour désactiver.",
+          "chore_notification_channel": "Optional. Android only. Groups this chore's notifications under a named Android channel, so its sound, importance and Do Not Disturb behavior can be set separately on the device. Leave empty to use the app default. iOS ignores this.",
+          "chore_notification_importance": "Optional. Android only. How prominently this chore's notifications alert: 'high' pops on screen and makes a sound, 'default' makes a sound only, 'low'/'min' stay silent. Choose 'Not set' to let the app decide; it is not the same as 'default'. Requires a Notification Channel. Note: this sets the channel's INITIAL state, the first time a device sees that channel name. The integration cannot change it afterwards, though the person can at any time in Android's notification settings. Sending it means every device starts correct without anyone adjusting it by hand. iOS ignores this.",
           "show_on_calendar": "Afficher cette tâche dans le calendrier.",
           "chore_notifications": "Quand envoyer les notifications : lors de la réclamation, lors de l’approbation, lors du rejet ou toute combinaison de ces éléments.",
           "standby_claim_mode": "Contrôle les conditions dans lesquelles les processus de secours peuvent prendre en charge cette tâche (à tout moment, en cas de retard, manuellement uniquement). S'applique uniquement aux critères d'achèvement des processus principaux et de secours."
@@ -585,14 +597,18 @@
               "ha_user_id": "Utilisateur de Home Assistant",
               "dashboard_language": "Langue",
               "mobile_notify_service": "Notifications",
-              "notif_click_url": "URL de l'appui sur la notification"
+              "notif_click_url": "URL de l'appui sur la notification",
+              "notification_priority": "Delivery priority",
+              "notification_ttl": "Notification lifetime (seconds)"
             },
             "data_description": {
               "name": "Nom unique pour ce profil utilisateur.",
               "ha_user_id": "Facultatif : associez ce profil à un utilisateur Home Assistant. Si le mode kiosque est désactivé, les actions de revendication et d’utilisation d’appareils partagés dépendent de cette association.",
               "dashboard_language": "Langue utilisée pour le contenu du tableau de bord et les notifications.",
               "mobile_notify_service": "Sélectionnez un service de notification ou laissez vide pour désactiver les notifications.",
-              "notif_click_url": "URL facultative à ouvrir lorsque l'utilisateur appuie sur la notification. Laisser vide pour le comportement par défaut."
+              "notif_click_url": "URL facultative à ouvrir lorsque l'utilisateur appuie sur la notification. Laisser vide pour le comportement par défaut.",
+              "notification_priority": "Android only. High asks the mobile app to deliver immediately even while the device is asleep; Normal may be delayed until it wakes. iOS ignores this.",
+              "notification_ttl": "Optional. Android only. How long delivery keeps being retried before the notification is dropped as stale. Leave empty for the platform default of 28 days; 0 discards anything that cannot be delivered right away. A good value is shorter than how often the chore recurs, so a retry can never arrive looking like the next occurrence - for a daily chore, around 20 hours. iOS ignores this."
             }
           },
           "section_system_usage": {
@@ -626,7 +642,7 @@
               "associated_user_ids": "Utilisateurs supervisés par cet approbateur/administrateur pour les actions d'approbation.",
               "notif_approve_click_url": "URL facultative pour les notifications d'approbation. Remplace l'URL de notification générale lors de l'approbation de tâches ou de récompenses.",
               "chores_paused": "Suspend le traitement des tâches. Aucune statistique de retard ou d'oubli ne s'accumule.",
-              "chores_paused_until": "Date de retour facultative. Si cette date est définie, les tâches reprennent automatiquement à minuit après cette date."
+              "chores_paused_until": "Optional return date and time. If set, chores auto-resume at that date and time (checked every few minutes; a nightly pass is a safety net)."
             }
           }
         }
@@ -690,6 +706,8 @@
               "auto_approve": "✅ Approbation automatique des demandes ?",
               "overdue_handling_type": "⏰ En retard : Traitement",
               "chore_due_reminder_offset": "🔔 Rappel d'échéance : Effectuez votre compensation avant la date d'échéance",
+              "chore_notification_channel": "🔔 Notification Channel",
+              "chore_notification_importance": "🔔 Notification Importance",
               "chore_notifications": "🔔 Notifications d'événements (facultatif)",
               "show_on_calendar": "📅 Afficher dans le calendrier ?",
               "chore_labels": "📋 Étiquettes (facultatif)"
@@ -700,6 +718,8 @@
               "auto_approve": "Lorsqu'elle est activée, cette option permet d'approuver instantanément les demandes sans examen par un approbateur.",
               "overdue_handling_type": "Contrôle ce qui se passe lorsque la date d'échéance est dépassée et ce qu'il advient des tâches en retard à la limite de réinitialisation de l'approbation.",
               "chore_due_reminder_offset": "Quand envoyer la notification de rappel d'échéance ? Format : « 1j 6h 30m » ou simplement « 30 » pour les minutes. Par défaut : 30 min (30 minutes avant l'échéance). Saisissez « 0 » pour désactiver.",
+              "chore_notification_channel": "Optional. Android only. Groups this chore's notifications under a named Android channel, so its sound, importance and Do Not Disturb behavior can be set separately on the device. Leave empty to use the app default. iOS ignores this.",
+              "chore_notification_importance": "Optional. Android only. How prominently this chore's notifications alert: 'high' pops on screen and makes a sound, 'default' makes a sound only, 'low'/'min' stay silent. Choose 'Not set' to let the app decide; it is not the same as 'default'. Requires a Notification Channel. Note: this sets the channel's INITIAL state, the first time a device sees that channel name. The integration cannot change it afterwards, though the person can at any time in Android's notification settings. Sending it means every device starts correct without anyone adjusting it by hand. iOS ignores this.",
               "chore_notifications": "Quand envoyer les notifications : lors de la réclamation, lors de l’approbation, lors du rejet ou toute combinaison de ces éléments.",
               "show_on_calendar": "Afficher cette tâche dans le calendrier.",
               "chore_labels": "Étiquettes pour organiser les tâches ménagères (ex. : « cuisine », « extérieur »). Laisser vide si non nécessaire."
@@ -727,6 +747,8 @@
           "clear_due_date": "Effacement de la date d'échéance",
           "chore_due_window_offset": "⏱️ Délai d'échéance : Décalage avant la date d'échéance",
           "chore_due_reminder_offset": "🔔 Rappel d'échéance : Effectuez votre compensation avant la date d'échéance",
+          "chore_notification_channel": "🔔 Notification Channel",
+          "chore_notification_importance": "🔔 Notification Importance",
           "show_on_calendar": "📅 Afficher dans le calendrier ?",
           "chore_notifications": "🔔 Notifications d'événements (facultatif)",
           "standby_claim_mode": "🔑 Mode de réclamation en attente"
@@ -752,6 +774,8 @@
           "clear_due_date": "Cochez cette case pour supprimer la date d'échéance de cette tâche.",
           "chore_due_window_offset": "Lorsque l'état de la tâche passe de « En attente » à « À faire ». Format : « 1j 6h 30m » ou simplement « 30 » pour les minutes. Saisissez « 0 » pour désactiver. Exemple : « 1j » signifie que la tâche apparaît comme « À faire » un jour avant l'échéance.",
           "chore_due_reminder_offset": "Quand envoyer la notification de rappel d'échéance ? Format : « 1j 6h 30m » ou simplement « 30 » pour les minutes. Par défaut : 30 min (30 minutes avant l'échéance). Saisissez « 0 » pour désactiver.",
+          "chore_notification_channel": "Optional. Android only. Groups this chore's notifications under a named Android channel, so its sound, importance and Do Not Disturb behavior can be set separately on the device. Leave empty to use the app default. iOS ignores this.",
+          "chore_notification_importance": "Optional. Android only. How prominently this chore's notifications alert: 'high' pops on screen and makes a sound, 'default' makes a sound only, 'low'/'min' stay silent. Choose 'Not set' to let the app decide; it is not the same as 'default'. Requires a Notification Channel. Note: this sets the channel's INITIAL state, the first time a device sees that channel name. The integration cannot change it afterwards, though the person can at any time in Android's notification settings. Sending it means every device starts correct without anyone adjusting it by hand. iOS ignores this.",
           "show_on_calendar": "Afficher cette tâche dans le calendrier.",
           "chore_notifications": "Quand envoyer les notifications : lors de la réclamation, de l’approbation, du rejet ou toute combinaison de ces situations.",
           "standby_claim_mode": "Contrôle les conditions dans lesquelles les processus de secours peuvent prendre en charge cette tâche (à tout moment, en cas de retard, manuellement uniquement). S'applique uniquement aux critères d'achèvement des processus principaux et de secours."
@@ -1037,14 +1061,18 @@
               "ha_user_id": "Utilisateur de Home Assistant",
               "dashboard_language": "Langue",
               "mobile_notify_service": "Notifications",
-              "notif_click_url": "URL de l'appui sur la notification"
+              "notif_click_url": "URL de l'appui sur la notification",
+              "notification_priority": "Delivery priority",
+              "notification_ttl": "Notification lifetime (seconds)"
             },
             "data_description": {
               "name": "Nom unique pour ce profil utilisateur.",
               "ha_user_id": "Facultatif : associez ce profil à un utilisateur Home Assistant. Si le mode kiosque est désactivé, les actions de revendication et d’utilisation d’appareils partagés dépendent de cette association.",
               "dashboard_language": "Langue utilisée pour le contenu du tableau de bord et les notifications.",
               "mobile_notify_service": "Sélectionnez un service de notification ou laissez vide pour désactiver les notifications.",
-              "notif_click_url": "URL facultative à ouvrir lorsque l'utilisateur appuie sur la notification. Laisser vide pour le comportement par défaut."
+              "notif_click_url": "URL facultative à ouvrir lorsque l'utilisateur appuie sur la notification. Laisser vide pour le comportement par défaut.",
+              "notification_priority": "Android only. High asks the mobile app to deliver immediately even while the device is asleep; Normal may be delayed until it wakes. iOS ignores this.",
+              "notification_ttl": "Optional. Android only. How long delivery keeps being retried before the notification is dropped as stale. Leave empty for the platform default of 28 days; 0 discards anything that cannot be delivered right away. A good value is shorter than how often the chore recurs, so a retry can never arrive looking like the next occurrence - for a daily chore, around 20 hours. iOS ignores this."
             }
           },
           "section_system_usage": {
@@ -1078,7 +1106,7 @@
               "associated_user_ids": "Utilisateurs supervisés par cet approbateur/administrateur pour les actions d'approbation.",
               "notif_approve_click_url": "URL facultative pour les notifications d'approbation. Remplace l'URL de notification générale lors de l'approbation de tâches ou de récompenses.",
               "chores_paused": "Suspend le traitement des tâches. Aucune statistique de retard ou d'oubli ne s'accumule.",
-              "chores_paused_until": "Date de retour facultative. Si cette date est définie, les tâches reprennent automatiquement à minuit après cette date."
+              "chores_paused_until": "Optional return date and time. If set, chores auto-resume at that date and time (checked every few minutes; a nightly pass is a safety net)."
             }
           }
         }
@@ -1142,6 +1170,8 @@
               "auto_approve": "✅ Approbation automatique des demandes ?",
               "overdue_handling_type": "⏰ En retard : Traitement",
               "chore_due_reminder_offset": "🔔 Rappel d'échéance : Effectuez votre compensation avant la date d'échéance",
+              "chore_notification_channel": "🔔 Notification Channel",
+              "chore_notification_importance": "🔔 Notification Importance",
               "chore_notifications": "🔔 Notifications d'événements (facultatif)",
               "show_on_calendar": "📅 Afficher dans le calendrier ?",
               "chore_labels": "📋 Étiquettes (facultatif)"
@@ -1152,6 +1182,8 @@
               "auto_approve": "Lorsqu'elle est activée, cette option permet d'approuver instantanément les demandes sans examen par un approbateur.",
               "overdue_handling_type": "Contrôle ce qui se passe lorsque la date d'échéance est dépassée et ce qu'il advient des tâches en retard à la limite de réinitialisation de l'approbation.",
               "chore_due_reminder_offset": "Quand envoyer la notification de rappel d'échéance ? Format : « 1j 6h 30m » ou simplement « 30 » pour les minutes. Par défaut : 30 min (30 minutes avant l'échéance). Saisissez « 0 » pour désactiver.",
+              "chore_notification_channel": "Optional. Android only. Groups this chore's notifications under a named Android channel, so its sound, importance and Do Not Disturb behavior can be set separately on the device. Leave empty to use the app default. iOS ignores this.",
+              "chore_notification_importance": "Optional. Android only. How prominently this chore's notifications alert: 'high' pops on screen and makes a sound, 'default' makes a sound only, 'low'/'min' stay silent. Choose 'Not set' to let the app decide; it is not the same as 'default'. Requires a Notification Channel. Note: this sets the channel's INITIAL state, the first time a device sees that channel name. The integration cannot change it afterwards, though the person can at any time in Android's notification settings. Sending it means every device starts correct without anyone adjusting it by hand. iOS ignores this.",
               "chore_notifications": "Quand envoyer les notifications : lors de la réclamation, lors de l’approbation, lors du rejet ou toute combinaison de ces éléments.",
               "show_on_calendar": "Afficher cette tâche dans le calendrier.",
               "chore_labels": "Étiquettes pour organiser les tâches ménagères (ex. : « cuisine », « extérieur »). Laisser vide si non nécessaire."
@@ -1180,6 +1212,8 @@
           "clear_due_date": "🗑️Effacement à l'échéance",
           "chore_due_window_offset": "⏱️ Délai d'échéance : Décalage avant la date d'échéance",
           "chore_due_reminder_offset": "🔔 Rappel d'échéance : Effectuez votre compensation avant la date d'échéance",
+          "chore_notification_channel": "🔔 Notification Channel",
+          "chore_notification_importance": "🔔 Notification Importance",
           "show_on_calendar": "📅 Afficher dans le calendrier ?",
           "chore_notifications": "🔔 Notifications d'événements (facultatif)",
           "standby_claim_mode": "🔑 Mode de réclamation en attente"
@@ -1205,6 +1239,8 @@
           "clear_due_date": "Cochez cette case pour supprimer la date d'échéance de cette tâche.",
           "chore_due_window_offset": "Lorsque l'état de la tâche passe de « En attente » à « À faire ». Format : « 1j 6h 30m » ou simplement « 30 » pour les minutes. Saisissez « 0 » pour désactiver. Exemple : « 1j » signifie que la tâche apparaît comme « À faire » un jour avant l'échéance.",
           "chore_due_reminder_offset": "Quand envoyer la notification de rappel d'échéance ? Format : « 1j 6h 30m » ou simplement « 30 » pour les minutes. Par défaut : 30 min (30 minutes avant l'échéance). Saisissez « 0 » pour désactiver.",
+          "chore_notification_channel": "Optional. Android only. Groups this chore's notifications under a named Android channel, so its sound, importance and Do Not Disturb behavior can be set separately on the device. Leave empty to use the app default. iOS ignores this.",
+          "chore_notification_importance": "Optional. Android only. How prominently this chore's notifications alert: 'high' pops on screen and makes a sound, 'default' makes a sound only, 'low'/'min' stay silent. Choose 'Not set' to let the app decide; it is not the same as 'default'. Requires a Notification Channel. Note: this sets the channel's INITIAL state, the first time a device sees that channel name. The integration cannot change it afterwards, though the person can at any time in Android's notification settings. Sending it means every device starts correct without anyone adjusting it by hand. iOS ignores this.",
           "show_on_calendar": "Afficher cette tâche dans le calendrier.",
           "chore_notifications": "Quand envoyer les notifications : lors de la réclamation, de l’approbation, du rejet ou toute combinaison de ces situations.",
           "standby_claim_mode": "Contrôle les conditions dans lesquelles les processus de secours peuvent prendre en charge cette tâche (à tout moment, en cas de retard, manuellement uniquement). S'applique uniquement aux critères d'achèvement des processus principaux et de secours."
@@ -2082,6 +2118,12 @@
         "custom_1_month": "Personnalisé : Période d'un mois"
       }
     },
+    "notification_priority": {
+      "options": {
+        "normal": "Normal (may be delayed while the device is asleep)",
+        "high": "High (deliver immediately, even while the device is asleep)"
+      }
+    },
     "completion_criteria": {
       "options": {
         "shared_all": "Partagé par tous (Tous les destinataires doivent remplir ensemble)",
@@ -2208,6 +2250,16 @@
         "migrate_from_kidschores": "🔄 Migrer depuis KidsChores (copie non destructive)",
         "paste_json": "📋 Collez le JSON provenant d'un fichier de données ou de diagnostics"
       }
+    },
+    "notification_importance": {
+      "options": {
+        "none": "Not set (app decides)",
+        "min": "Minimum (no sound, collapsed)",
+        "low": "Low (no sound)",
+        "default": "Default (makes a sound)",
+        "high": "High (pops on screen and makes a sound)",
+        "max": "Maximum (pops on screen, most urgent)"
+      }
     }
   },
   "services": {
@@ -2306,7 +2358,7 @@
     },
     "pause_user_chores": {
       "name": "Mettre en pause les tâches de l'utilisateur",
-      "description": "Suspendre ou reprendre le traitement des tâches pour un utilisateur. Lors de la reprise, l'option `unpause_action` détermine si les tâches en retard sont reprogrammées afin d'éviter les transitions immédiates vers les tâches en retard.",
+      "description": "Pause or resume chore processing for a user. While paused, no overdue or missed stats accumulate and rotation advances past this user. When resuming, Unpause Action decides whether dates missed while paused are shifted forward.",
       "fields": {
         "config_entry_id": {
           "name": "ID de l'entrée de configuration (facultatif)",
@@ -2325,17 +2377,17 @@
         },
         "paused": {
           "name": "En pause",
-          "description": "Vrai pour interrompre les tâches, faux pour les reprendre.",
+          "description": "True to pause chores, False to resume. See Unpause Action for what happens to dates missed while paused.",
           "example": "vrai"
         },
         "paused_until": {
           "name": "En pause jusqu'à",
-          "description": "Date de retour facultative. Si cette date est définie, les tâches reprennent automatiquement à minuit après cette date.",
+          "description": "Optional return date and time. If set, chores auto-resume at that date and time (checked every few minutes; a nightly pass is a safety net). Only valid while pausing (paused: true) - omit it when resuming.",
           "example": "2026-06-10T00:00:00+00:00"
         },
         "unpause_action": {
           "name": "Reprendre l'action",
-          "description": "S'applique uniquement lorsque paused=false. Détermine si les tâches en retard sont reprogrammées lors de la reprise. Par défaut : reprise (pas de reprogrammation).",
+          "description": "On resume: decides what happens to due dates that passed while the user was paused - keep them as they are (they may show as overdue), or shift them forward so chores continue from the next occurrence. When pausing: remembers this choice and applies it at the next manual or automatic resume. Pass 'unpause' on a resume call to ignore a remembered choice; omit this field when re-pausing to clear it.",
           "example": "dépause_shift_indépendant"
         }
       }
@@ -2762,6 +2814,14 @@
           "description": "Durée avant l'échéance pour l'envoi d'un rappel. Format : « 30 min », « 1 h », « 1 j 6 h 30 min », etc. Utilisez « 0 » pour désactiver les rappels.",
           "example": "30 m"
         },
+        "notification_channel": {
+          "name": "Notification Channel",
+          "description": "Optional. Android only. Groups this chore's notifications under a named Android channel, so its sound, importance and Do Not Disturb behavior can be set separately from other chores. Leave empty to use the app default. iOS ignores this."
+        },
+        "notification_importance": {
+          "name": "Notification Importance",
+          "description": "Optional. Android only. How prominently this chore's notifications alert (min, low, default, high, max). Requires notification_channel. Note: sets the channel's INITIAL state the first time a device sees that channel name. The integration cannot change it afterwards; the person still can, in Android settings. iOS ignores this."
+        },
         "standby_claim_mode": {
           "name": "Mode de réclamation en attente",
           "description": "Contrôle les conditions dans lesquelles les processus de secours peuvent prendre en charge cette tâche (à tout moment, en cas de retard, manuellement uniquement). S'applique uniquement aux critères d'achèvement des processus principaux et de secours."
@@ -2911,6 +2971,14 @@
           "name": "Compensation du rappel d'échéance",
           "description": "Nouveau délai avant l'envoi du rappel. Durée avant la date d'échéance pour l'envoi de la notification de rappel. Format : « 30 min », « 1 h », « 1 j 6 h 30 min », etc. Utilisez « 0 » pour désactiver.",
           "example": "30 m"
+        },
+        "notification_channel": {
+          "name": "Notification Channel",
+          "description": "New notification channel. Android only. Groups this chore's notifications under a named Android channel, so its sound, importance and Do Not Disturb behavior can be set separately from other chores. Leave empty to use the app default. iOS ignores this."
+        },
+        "notification_importance": {
+          "name": "Notification Importance",
+          "description": "Optional. Android only. How prominently this chore's notifications alert (min, low, default, high, max). Requires notification_channel. Note: sets the channel's INITIAL state the first time a device sees that channel name. The integration cannot change it afterwards; the person still can, in Android settings. iOS ignores this."
         },
         "assignment_action": {
           "name": "Action d'affectation",
@@ -5638,6 +5706,9 @@
     },
     "invalid_date_format": {
       "message": "Format de date invalide. Veuillez fournir une chaîne de date valide (par exemple, AAAA-MM-JJ ou date/heure au format ISO 8601)."
+    },
+    "until_on_resume": {
+      "message": "Paused Until can only be set while pausing (paused: true). Omit it when resuming."
     },
     "date_in_past": {
       "message": "La date d'échéance ne peut pas être passée. Veuillez indiquer une date future."

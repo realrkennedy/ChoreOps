@@ -46,12 +46,12 @@ See Also:
 from __future__ import annotations
 
 import datetime
-from typing import Any, cast
+from typing import Any, Literal, cast
 import uuid
 
 from . import const
 from .type_defs import AssigneeData, BadgeData, ChoreData, RewardData, UserData
-from .utils.dt_utils import dt_now_utc, dt_parse
+from .utils.dt_utils import dt_now_utc, dt_parse, dt_to_utc_iso
 from .utils.math_utils import parse_points_value
 
 # ==============================================================================
@@ -121,6 +121,65 @@ def _resolve_user_input_field(
     if existing is not None:
         return existing.get(data_key, default)
     return default
+
+
+def _narrow_notification_priority(value: Any) -> Literal["normal", "high"]:
+    """Coerce a stored notification priority to the closed set.
+
+    The field is a closed enum, so the builder should not write back whatever it
+    happened to read. A stored value can come from a hand-edited backup or an
+    option renamed in a past version; anything unrecognised falls back to the
+    unset member rather than being persisted verbatim.
+
+    ``"normal"`` is that unset member: the payload helper only ever emits ``high``,
+    so it is byte-identical to never having chosen. It is stored rather than a bare
+    ``""`` because the form's dropdown has no empty option - a pre-filled ``""``
+    is rejected the moment the profile is saved. Falling back is the safe direction
+    for this field: a new option added later lands on "leave delivery alone" rather
+    than on anything louder.
+    """
+    if value == const.NOTIFY_PRIORITY_HIGH:
+        return const.NOTIFY_PRIORITY_HIGH
+    return const.NOTIFY_PRIORITY_NORMAL
+
+
+def _narrow_notification_importance(
+    value: Any,
+) -> Literal["none", "min", "low", "default", "high", "max"]:
+    """Coerce a stored notification importance to the closed set.
+
+    The chore builder returns through ``cast("ChoreData", ...)``, so mypy cannot
+    check this field against its ``Literal`` on its own. Narrowing here means an
+    unrecognised stored value - a hand-edited backup, an option renamed in a past
+    version - becomes unset rather than being written back verbatim.
+
+    ``"none"`` is the unset member: it is what a chore that has never set an
+    importance stores, and the payload helper reads it as "send no importance key".
+    ``""`` from a record written before the form had an unset option narrows to it
+    too, so old and new records agree on one representation.
+
+    ⚠️ This does NOT make the manager's runtime check redundant. ``build_chore``
+    runs on create and update, so a chore already sitting in ``.storage`` is
+    loaded without passing through here - which is exactly the hand-edited-backup
+    case - until something next saves it.
+    """
+    # 🔑 EXPLICIT COMPARISONS, NOT A MEMBERSHIP TEST WITH A FALLTHROUGH.
+    # An earlier version gated on `value in NOTIFY_IMPORTANCE_OPTIONS` and ended
+    # `return "max"`, so adding a sixth option to that tuple would have silently
+    # mapped it to the LOUDEST setting, with mypy green because "max" is a valid
+    # member. Spelling each one out means a new option falls to "none" instead.
+    if value == "min":
+        return "min"
+    if value == "low":
+        return "low"
+    if value == const.NOTIFY_IMPORTANCE_DEFAULT:
+        return "default"
+    if value == "high":
+        return "high"
+    if value == "max":
+        return "max"
+    # Also covers "" from records written before the form had an unset option.
+    return const.NOTIFY_IMPORTANCE_NONE
 
 
 def _normalize_user_select_value(value: Any) -> str:
@@ -896,6 +955,27 @@ def build_user_assignment_profile(
                 "",
             )
         ),
+        # Narrowed to the closed set rather than str()'d, so an unrecognised
+        # stored value (hand-edited backup, renamed option) becomes "unset"
+        # instead of being written back verbatim and typed as something it is not.
+        const.DATA_USER_NOTIFICATION_PRIORITY: _narrow_notification_priority(
+            _resolve_user_input_field(
+                user_input,
+                existing_data,
+                const.CFOF_USERS_INPUT_NOTIFICATION_PRIORITY,
+                const.DATA_USER_NOTIFICATION_PRIORITY,
+                "",
+            )
+        ),
+        const.DATA_USER_NOTIFICATION_TTL: str(
+            _resolve_user_input_field(
+                user_input,
+                existing_data,
+                const.CFOF_USERS_INPUT_NOTIFICATION_TTL,
+                const.DATA_USER_NOTIFICATION_TTL,
+                "",
+            )
+        ),
         const.DATA_USER_UI_PREFERENCES: _normalize_dict_field(
             _resolve_user_input_field(
                 user_input,
@@ -1235,6 +1315,27 @@ def build_user_profile(
                 "",
             )
         ),
+        # Narrowed to the closed set rather than str()'d, so an unrecognised
+        # stored value (hand-edited backup, renamed option) becomes "unset"
+        # instead of being written back verbatim and typed as something it is not.
+        const.DATA_USER_NOTIFICATION_PRIORITY: _narrow_notification_priority(
+            _resolve_user_input_field(
+                user_input,
+                existing_data,
+                const.CFOF_USERS_INPUT_NOTIFICATION_PRIORITY,
+                const.DATA_USER_NOTIFICATION_PRIORITY,
+                "",
+            )
+        ),
+        const.DATA_USER_NOTIFICATION_TTL: str(
+            _resolve_user_input_field(
+                user_input,
+                existing_data,
+                const.CFOF_USERS_INPUT_NOTIFICATION_TTL,
+                const.DATA_USER_NOTIFICATION_TTL,
+                "",
+            )
+        ),
         const.DATA_USER_UI_PREFERENCES: _normalize_dict_field(
             _resolve_user_input_field(
                 user_input,
@@ -1298,14 +1399,32 @@ def build_user_profile(
                 False,
             )
         ),
-        const.DATA_USER_CHORES_PAUSED_UNTIL: _resolve_user_input_field(
+        const.DATA_USER_CHORES_PAUSED_UNTIL: dt_to_utc_iso(
+            _resolve_user_input_field(
+                user_input,
+                existing_data,
+                const.CFOF_USERS_INPUT_CHORES_PAUSED_UNTIL,
+                const.DATA_USER_CHORES_PAUSED_UNTIL,
+                None,
+            )
+        ),
+        # Listed so the closed-dict rebuild keeps the key on every user-record
+        # write (update replaces wholesale); the form has no field until D4.
+        const.DATA_USER_CHORES_PAUSED_UNPAUSE_ACTION: _resolve_user_input_field(
             user_input,
             existing_data,
-            const.CFOF_USERS_INPUT_CHORES_PAUSED_UNTIL,
-            const.DATA_USER_CHORES_PAUSED_UNTIL,
+            const.CFOF_USERS_INPUT_CHORES_PAUSED_UNPAUSE_ACTION,
+            const.DATA_USER_CHORES_PAUSED_UNPAUSE_ACTION,
             None,
         ),
     }
+
+    # D3 form rows: a resolved unpause consumes the pause contract whatever
+    # the payload carried - an until submitted while unpaused is never stored.
+    if not user_profile_data[const.DATA_USER_CHORES_PAUSED]:
+        user_profile_data[const.DATA_USER_CHORES_PAUSED_UNTIL] = None
+        user_profile_data[const.DATA_USER_CHORES_PAUSED_UNPAUSE_ACTION] = None
+
     return cast("UserData", user_profile_data)
 
 
@@ -1329,6 +1448,7 @@ _USER_MANAGER_PROFILE_PRESERVE_FIELDS: frozenset[str] = frozenset(
         const.DATA_USER_UI_PREFERENCES,
         const.DATA_USER_CHORES_PAUSED,
         const.DATA_USER_CHORES_PAUSED_UNTIL,
+        const.DATA_USER_CHORES_PAUSED_UNPAUSE_ACTION,
     }
 )
 
@@ -1813,6 +1933,12 @@ def build_chore(
             ),
             const.DATA_CHORE_DUE_REMINDER_OFFSET: get_field(
                 const.DATA_CHORE_DUE_REMINDER_OFFSET, const.DEFAULT_DUE_REMINDER_OFFSET
+            ),
+            const.DATA_CHORE_NOTIFICATION_CHANNEL: str(
+                get_field(const.DATA_CHORE_NOTIFICATION_CHANNEL, "") or ""
+            ),
+            const.DATA_CHORE_NOTIFICATION_IMPORTANCE: _narrow_notification_importance(
+                get_field(const.DATA_CHORE_NOTIFICATION_IMPORTANCE, "") or ""
             ),
             # Runtime tracking (preserve existing values on update)
             const.DATA_CHORE_LAST_COMPLETED: get_field(
