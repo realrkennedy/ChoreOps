@@ -1252,6 +1252,278 @@ delete_reward:
         text:
 
 # ============================================================================
+# BONUS AND PENALTY CATALOG CRUD SERVICES
+# ============================================================================
+
+create_bonus:
+  name: "Create Bonus"
+  description: "Create a reusable bonus catalog item. Returns the stable internal ID required for future updates or deletion."
+  fields:
+    config_entry_id:
+      name: "Config Entry ID (Optional)"
+      description: "Target a specific ChoreOps setup when more than one exists."
+      required: false
+      selector:
+        text:
+    config_entry_title:
+      name: "Config Entry Name (Optional)"
+      description: "Target a uniquely named ChoreOps setup. Prefer Config Entry ID if names repeat."
+      required: false
+      selector:
+        text:
+    name:
+      name: "Bonus Name"
+      description: "The display name of the bonus."
+      example: "Family Teamwork"
+      required: true
+      selector:
+        text:
+    points:
+      name: "Points"
+      description: "Points awarded when this bonus is applied."
+      example: 25
+      required: true
+      selector:
+        number:
+          min: 0
+          mode: box
+    description:
+      name: "Description"
+      description: "Optional explanation of the bonus."
+      required: false
+      selector:
+        text:
+          multiline: true
+    icon:
+      name: "Icon"
+      description: "Optional Material Design icon."
+      example: "mdi:star-plus"
+      required: false
+      selector:
+        icon:
+    labels:
+      name: "Labels"
+      description: "Optional labels used to categorize the bonus."
+      required: false
+      selector:
+        text:
+          multiple: true
+
+update_bonus:
+  name: "Update Bonus"
+  description: "Update a reusable bonus catalog item by its stable internal ID. Only supplied properties are changed."
+  fields:
+    config_entry_id:
+      name: "Config Entry ID (Optional)"
+      description: "Target a specific ChoreOps setup when more than one exists."
+      required: false
+      selector:
+        text:
+    config_entry_title:
+      name: "Config Entry Name (Optional)"
+      description: "Target a uniquely named ChoreOps setup. Prefer Config Entry ID if names repeat."
+      required: false
+      selector:
+        text:
+    id:
+      name: "Bonus ID"
+      description: "Stable internal ID returned when the bonus was created."
+      required: true
+      selector:
+        text:
+    name:
+      name: "New Bonus Name"
+      description: "Optional replacement display name."
+      required: false
+      selector:
+        text:
+    points:
+      name: "New Points"
+      description: "Optional replacement point value."
+      required: false
+      selector:
+        number:
+          min: 0
+          mode: box
+    description:
+      name: "New Description"
+      description: "Optional replacement description."
+      required: false
+      selector:
+        text:
+          multiline: true
+    icon:
+      name: "New Icon"
+      description: "Optional replacement Material Design icon."
+      required: false
+      selector:
+        icon:
+    labels:
+      name: "New Labels"
+      description: "Optional replacement label list."
+      required: false
+      selector:
+        text:
+          multiple: true
+
+delete_bonus:
+  name: "Delete Bonus"
+  description: "Delete a reusable bonus catalog item by its stable internal ID."
+  fields:
+    config_entry_id:
+      name: "Config Entry ID (Optional)"
+      description: "Target a specific ChoreOps setup when more than one exists."
+      required: false
+      selector:
+        text:
+    config_entry_title:
+      name: "Config Entry Name (Optional)"
+      description: "Target a uniquely named ChoreOps setup. Prefer Config Entry ID if names repeat."
+      required: false
+      selector:
+        text:
+    id:
+      name: "Bonus ID"
+      description: "Stable internal ID of the bonus to delete."
+      required: true
+      selector:
+        text:
+
+create_penalty:
+  name: "Create Penalty"
+  description: "Create a reusable penalty catalog item. Enter a positive point magnitude; ChoreOps stores it as a deduction. Returns its stable internal ID."
+  fields:
+    config_entry_id:
+      name: "Config Entry ID (Optional)"
+      description: "Target a specific ChoreOps setup when more than one exists."
+      required: false
+      selector:
+        text:
+    config_entry_title:
+      name: "Config Entry Name (Optional)"
+      description: "Target a uniquely named ChoreOps setup. Prefer Config Entry ID if names repeat."
+      required: false
+      selector:
+        text:
+    name:
+      name: "Penalty Name"
+      description: "The display name of the penalty."
+      example: "Missed Responsibility"
+      required: true
+      selector:
+        text:
+    points:
+      name: "Point Deduction"
+      description: "Positive magnitude of points deducted when this penalty is applied."
+      example: 10
+      required: true
+      selector:
+        number:
+          min: 0
+          mode: box
+    description:
+      name: "Description"
+      description: "Optional explanation of the penalty."
+      required: false
+      selector:
+        text:
+          multiline: true
+    icon:
+      name: "Icon"
+      description: "Optional Material Design icon."
+      example: "mdi:alert"
+      required: false
+      selector:
+        icon:
+    labels:
+      name: "Labels"
+      description: "Optional labels used to categorize the penalty."
+      required: false
+      selector:
+        text:
+          multiple: true
+
+update_penalty:
+  name: "Update Penalty"
+  description: "Update a reusable penalty catalog item by its stable internal ID. Only supplied properties are changed."
+  fields:
+    config_entry_id:
+      name: "Config Entry ID (Optional)"
+      description: "Target a specific ChoreOps setup when more than one exists."
+      required: false
+      selector:
+        text:
+    config_entry_title:
+      name: "Config Entry Name (Optional)"
+      description: "Target a uniquely named ChoreOps setup. Prefer Config Entry ID if names repeat."
+      required: false
+      selector:
+        text:
+    id:
+      name: "Penalty ID"
+      description: "Stable internal ID returned when the penalty was created."
+      required: true
+      selector:
+        text:
+    name:
+      name: "New Penalty Name"
+      description: "Optional replacement display name."
+      required: false
+      selector:
+        text:
+    points:
+      name: "New Point Deduction"
+      description: "Optional positive replacement deduction magnitude."
+      required: false
+      selector:
+        number:
+          min: 0
+          mode: box
+    description:
+      name: "New Description"
+      description: "Optional replacement description."
+      required: false
+      selector:
+        text:
+          multiline: true
+    icon:
+      name: "New Icon"
+      description: "Optional replacement Material Design icon."
+      required: false
+      selector:
+        icon:
+    labels:
+      name: "New Labels"
+      description: "Optional replacement label list."
+      required: false
+      selector:
+        text:
+          multiple: true
+
+delete_penalty:
+  name: "Delete Penalty"
+  description: "Delete a reusable penalty catalog item by its stable internal ID."
+  fields:
+    config_entry_id:
+      name: "Config Entry ID (Optional)"
+      description: "Target a specific ChoreOps setup when more than one exists."
+      required: false
+      selector:
+        text:
+    config_entry_title:
+      name: "Config Entry Name (Optional)"
+      description: "Target a uniquely named ChoreOps setup. Prefer Config Entry ID if names repeat."
+      required: false
+      selector:
+        text:
+    id:
+      name: "Penalty ID"
+      description: "Stable internal ID of the penalty to delete."
+      required: true
+      selector:
+        text:
+
+# ============================================================================
 # CHORE CRUD SERVICES
 # ============================================================================
 

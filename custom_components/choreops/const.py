@@ -1206,6 +1206,7 @@ DATA_LEDGER_REFERENCE_ID: Final = "reference_id"  # Related entity ID (optional)
 # Default ledger limit is defined by daily data retention, this is a hard
 # limit to prevent storage bloat or performance issues.
 DEFAULT_LEDGER_MAX_ENTRIES: Final = 1000
+DEFAULT_DASHBOARD_RECENT_ADJUSTMENTS: Final = 20
 
 # ——————————————————————————————————————————————
 # Assignee reward data structure constants
@@ -3028,8 +3029,12 @@ SERVICE_ADD_CHORE: Final = (
     "create_chore"  # Alias for SERVICE_CREATE_CHORE (test compatibility)
 )
 SERVICE_CREATE_CHORE: Final = "create_chore"
+SERVICE_CREATE_BONUS: Final = "create_bonus"
+SERVICE_CREATE_PENALTY: Final = "create_penalty"
 SERVICE_CREATE_REWARD: Final = "create_reward"
+SERVICE_DELETE_BONUS: Final = "delete_bonus"
 SERVICE_DELETE_CHORE: Final = "delete_chore"
+SERVICE_DELETE_PENALTY: Final = "delete_penalty"
 SERVICE_DELETE_REWARD: Final = "delete_reward"
 SERVICE_DISAPPROVE_CHORE: Final = "disapprove_chore"
 SERVICE_PAUSE_USER_CHORES: Final = "pause_user_chores"
@@ -3052,6 +3057,8 @@ SERVICE_SET_ROTATION_TURN: Final = "set_rotation_turn"
 SERVICE_RESET_ROTATION: Final = "reset_rotation"
 SERVICE_OPEN_ROTATION_CYCLE: Final = "open_rotation_cycle"
 SERVICE_UPDATE_CHORE: Final = "update_chore"
+SERVICE_UPDATE_BONUS: Final = "update_bonus"
+SERVICE_UPDATE_PENALTY: Final = "update_penalty"
 SERVICE_UPDATE_REWARD: Final = "update_reward"
 SERVICE_GENERATE_ACTIVITY_REPORT: Final = "generate_activity_report"
 SERVICE_MANAGE_UI_CONTROL: Final = "manage_ui_control"
@@ -3228,11 +3235,27 @@ SERVICE_FIELD_REWARD_CRUD_LABELS: Final = "labels"
 SERVICE_FIELD_REWARD_CRUD_ASSIGNED_USER_NAMES: Final = "assigned_user_names"
 SERVICE_FIELD_REWARD_CRUD_ASSIGNED_USER_IDS: Final = "assigned_user_ids"
 
-# Penalty service fields
+# Penalty service fields (workflow)
 SERVICE_FIELD_PENALTY_NAME: Final = "penalty_name"
 
-# Bonus service fields
+# Penalty service fields (CRUD)
+SERVICE_FIELD_PENALTY_CRUD_ID: Final = "id"
+SERVICE_FIELD_PENALTY_CRUD_NAME: Final = "name"
+SERVICE_FIELD_PENALTY_CRUD_POINTS: Final = "points"
+SERVICE_FIELD_PENALTY_CRUD_DESCRIPTION: Final = "description"
+SERVICE_FIELD_PENALTY_CRUD_ICON: Final = "icon"
+SERVICE_FIELD_PENALTY_CRUD_LABELS: Final = "labels"
+
+# Bonus service fields (workflow)
 SERVICE_FIELD_BONUS_NAME: Final = "bonus_name"
+
+# Bonus service fields (CRUD)
+SERVICE_FIELD_BONUS_CRUD_ID: Final = "id"
+SERVICE_FIELD_BONUS_CRUD_NAME: Final = "name"
+SERVICE_FIELD_BONUS_CRUD_POINTS: Final = "points"
+SERVICE_FIELD_BONUS_CRUD_DESCRIPTION: Final = "description"
+SERVICE_FIELD_BONUS_CRUD_ICON: Final = "icon"
+SERVICE_FIELD_BONUS_CRUD_LABELS: Final = "labels"
 
 # Badge service fields
 SERVICE_FIELD_BADGE_NAME: Final = "badge_name"
@@ -3656,6 +3679,7 @@ ATTR_DASHBOARD_CHORES: Final = "chores"
 ATTR_DASHBOARD_REWARDS: Final = "rewards"
 ATTR_DASHBOARD_BONUSES: Final = "bonuses"
 ATTR_DASHBOARD_PENALTIES: Final = "penalties"
+ATTR_DASHBOARD_RECENT_ADJUSTMENTS: Final = "recent_adjustments"
 ATTR_DASHBOARD_ACHIEVEMENTS: Final = "achievements"
 ATTR_DASHBOARD_CHALLENGES: Final = "challenges"
 ATTR_DASHBOARD_BADGES: Final = "badges"

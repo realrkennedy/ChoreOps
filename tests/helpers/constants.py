@@ -559,9 +559,15 @@ from custom_components.choreops.const import (
     # =========================================================================
     # SERVICE NAMES
     # =========================================================================
+    SERVICE_CREATE_BONUS,
     SERVICE_CREATE_CHORE,
+    SERVICE_CREATE_PENALTY,
     SERVICE_UPDATE_CHORE,
+    SERVICE_UPDATE_BONUS,
+    SERVICE_UPDATE_PENALTY,
+    SERVICE_DELETE_BONUS,
     SERVICE_DELETE_CHORE,
+    SERVICE_DELETE_PENALTY,
     SERVICE_CREATE_REWARD,
     SERVICE_DELETE_REWARD,
     SERVICE_UPDATE_REWARD,

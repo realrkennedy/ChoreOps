@@ -5021,6 +5021,61 @@ class AssigneeDashboardHelperSensor(ChoreOpsCoordinatorEntity, SensorEntity):
             )
         }
 
+    @staticmethod
+    def _build_recent_adjustments(
+        assignee_info: AssigneeData,
+    ) -> list[dict[str, Any]]:
+        """Build a bounded newest-first bonus and penalty transaction feed."""
+        raw_ledger = assignee_info.get(const.DATA_USER_LEDGER, [])
+        if not isinstance(raw_ledger, list):
+            return []
+
+        economy_sources = {
+            const.POINTS_SOURCE_BONUSES,
+            const.POINTS_SOURCE_PENALTIES,
+        }
+        filtered_entries = [
+            entry
+            for entry in raw_ledger
+            if isinstance(entry, dict)
+            and entry.get(const.DATA_LEDGER_SOURCE) in economy_sources
+        ]
+        filtered_entries.sort(
+            key=lambda entry: str(entry.get(const.DATA_LEDGER_TIMESTAMP, "")),
+            reverse=True,
+        )
+
+        recent_adjustments: list[dict[str, Any]] = []
+        for entry in filtered_entries[: const.DEFAULT_DASHBOARD_RECENT_ADJUSTMENTS]:
+            try:
+                amount = float(entry.get(const.DATA_LEDGER_AMOUNT, 0.0))
+                balance_after = float(entry.get(const.DATA_LEDGER_BALANCE_AFTER, 0.0))
+            except (TypeError, ValueError):
+                continue
+
+            source = str(entry.get(const.DATA_LEDGER_SOURCE, ""))
+            recent_adjustments.append(
+                {
+                    const.DATA_LEDGER_TIMESTAMP: entry.get(
+                        const.DATA_LEDGER_TIMESTAMP, ""
+                    ),
+                    const.DATA_LEDGER_AMOUNT: amount,
+                    const.DATA_LEDGER_BALANCE_AFTER: balance_after,
+                    const.DATA_LEDGER_SOURCE: source,
+                    "source_label": const.LEDGER_SOURCE_LABELS.get(
+                        source, const.POINTS_SOURCE_OTHER
+                    ),
+                    const.DATA_LEDGER_ITEM_NAME: entry.get(
+                        const.DATA_LEDGER_ITEM_NAME, ""
+                    ),
+                    const.DATA_LEDGER_REFERENCE_ID: entry.get(
+                        const.DATA_LEDGER_REFERENCE_ID
+                    ),
+                }
+            )
+
+        return recent_adjustments
+
     def _build_payload(
         self,
         entity_registry,
@@ -5373,12 +5428,18 @@ class AssigneeDashboardHelperSensor(ChoreOpsCoordinatorEntity, SensorEntity):
         ui_control = self.coordinator.ui_manager.get_dashboard_ui_control(
             self._assignee_id
         )
+        recent_adjustments = (
+            self._build_recent_adjustments(assignee_info)
+            if gamification_enabled
+            else []
+        )
 
         return {
             const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_DASHBOARD_HELPER,
             "chores": self._sanitize_dashboard_chore_rows(chores_attr),
             "rewards": rewards_attr,
             const.ATTR_UI_CONTROL: ui_control,
+            const.ATTR_DASHBOARD_RECENT_ADJUSTMENTS: recent_adjustments,
             "badges": badges_attr,
             "bonuses": bonuses_attr,
             "penalties": penalties_attr,

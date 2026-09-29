@@ -778,6 +778,96 @@ DELETE_REWARD_SCHEMA = vol.Schema(
     )
 )
 
+# ==============================================================================
+# BONUS AND PENALTY CRUD SCHEMAS
+# ==============================================================================
+
+CREATE_BONUS_SCHEMA = vol.Schema(
+    _with_service_target_fields(
+        {
+            vol.Required(const.SERVICE_FIELD_BONUS_CRUD_NAME): cv.string,
+            vol.Required(const.SERVICE_FIELD_BONUS_CRUD_POINTS): vol.Coerce(float),
+            vol.Optional(
+                const.SERVICE_FIELD_BONUS_CRUD_DESCRIPTION, default=""
+            ): cv.string,
+            vol.Optional(
+                const.SERVICE_FIELD_BONUS_CRUD_ICON, default=const.SENTINEL_EMPTY
+            ): vol.Any(None, "", cv.icon),
+            vol.Optional(const.SERVICE_FIELD_BONUS_CRUD_LABELS, default=[]): vol.All(
+                cv.ensure_list, [cv.string]
+            ),
+        }
+    )
+)
+
+UPDATE_BONUS_SCHEMA = vol.Schema(
+    _with_service_target_fields(
+        {
+            vol.Required(const.SERVICE_FIELD_BONUS_CRUD_ID): cv.string,
+            vol.Optional(const.SERVICE_FIELD_BONUS_CRUD_NAME): cv.string,
+            vol.Optional(const.SERVICE_FIELD_BONUS_CRUD_POINTS): vol.Coerce(float),
+            vol.Optional(const.SERVICE_FIELD_BONUS_CRUD_DESCRIPTION): cv.string,
+            vol.Optional(const.SERVICE_FIELD_BONUS_CRUD_ICON): vol.Any(
+                None, "", cv.icon
+            ),
+            vol.Optional(const.SERVICE_FIELD_BONUS_CRUD_LABELS): vol.All(
+                cv.ensure_list, [cv.string]
+            ),
+        }
+    )
+)
+
+DELETE_BONUS_SCHEMA = vol.Schema(
+    _with_service_target_fields(
+        {
+            vol.Required(const.SERVICE_FIELD_BONUS_CRUD_ID): cv.string,
+        }
+    )
+)
+
+CREATE_PENALTY_SCHEMA = vol.Schema(
+    _with_service_target_fields(
+        {
+            vol.Required(const.SERVICE_FIELD_PENALTY_CRUD_NAME): cv.string,
+            vol.Required(const.SERVICE_FIELD_PENALTY_CRUD_POINTS): vol.Coerce(float),
+            vol.Optional(
+                const.SERVICE_FIELD_PENALTY_CRUD_DESCRIPTION, default=""
+            ): cv.string,
+            vol.Optional(
+                const.SERVICE_FIELD_PENALTY_CRUD_ICON, default=const.SENTINEL_EMPTY
+            ): vol.Any(None, "", cv.icon),
+            vol.Optional(const.SERVICE_FIELD_PENALTY_CRUD_LABELS, default=[]): vol.All(
+                cv.ensure_list, [cv.string]
+            ),
+        }
+    )
+)
+
+UPDATE_PENALTY_SCHEMA = vol.Schema(
+    _with_service_target_fields(
+        {
+            vol.Required(const.SERVICE_FIELD_PENALTY_CRUD_ID): cv.string,
+            vol.Optional(const.SERVICE_FIELD_PENALTY_CRUD_NAME): cv.string,
+            vol.Optional(const.SERVICE_FIELD_PENALTY_CRUD_POINTS): vol.Coerce(float),
+            vol.Optional(const.SERVICE_FIELD_PENALTY_CRUD_DESCRIPTION): cv.string,
+            vol.Optional(const.SERVICE_FIELD_PENALTY_CRUD_ICON): vol.Any(
+                None, "", cv.icon
+            ),
+            vol.Optional(const.SERVICE_FIELD_PENALTY_CRUD_LABELS): vol.All(
+                cv.ensure_list, [cv.string]
+            ),
+        }
+    )
+)
+
+DELETE_PENALTY_SCHEMA = vol.Schema(
+    _with_service_target_fields(
+        {
+            vol.Required(const.SERVICE_FIELD_PENALTY_CRUD_ID): cv.string,
+        }
+    )
+)
+
 # ============================================================================
 # CHORE CRUD SCHEMAS
 # ============================================================================
@@ -1090,6 +1180,22 @@ _SERVICE_TO_REWARD_DATA_MAPPING: dict[str, str] = {
     const.SERVICE_FIELD_REWARD_CRUD_ASSIGNED_USER_IDS: (
         const.DATA_REWARD_ASSIGNED_USER_IDS
     ),
+}
+
+_SERVICE_TO_BONUS_DATA_MAPPING: dict[str, str] = {
+    const.SERVICE_FIELD_BONUS_CRUD_NAME: const.DATA_BONUS_NAME,
+    const.SERVICE_FIELD_BONUS_CRUD_POINTS: const.DATA_BONUS_POINTS,
+    const.SERVICE_FIELD_BONUS_CRUD_DESCRIPTION: const.DATA_BONUS_DESCRIPTION,
+    const.SERVICE_FIELD_BONUS_CRUD_ICON: const.DATA_BONUS_ICON,
+    const.SERVICE_FIELD_BONUS_CRUD_LABELS: const.DATA_BONUS_LABELS,
+}
+
+_SERVICE_TO_PENALTY_DATA_MAPPING: dict[str, str] = {
+    const.SERVICE_FIELD_PENALTY_CRUD_NAME: const.DATA_PENALTY_NAME,
+    const.SERVICE_FIELD_PENALTY_CRUD_POINTS: const.DATA_PENALTY_POINTS,
+    const.SERVICE_FIELD_PENALTY_CRUD_DESCRIPTION: const.DATA_PENALTY_DESCRIPTION,
+    const.SERVICE_FIELD_PENALTY_CRUD_ICON: const.DATA_PENALTY_ICON,
+    const.SERVICE_FIELD_PENALTY_CRUD_LABELS: const.DATA_PENALTY_LABELS,
 }
 
 
@@ -2791,6 +2897,282 @@ def async_setup_services(hass: HomeAssistant):
         supports_response=SupportsResponse.OPTIONAL,
     )
 
+    # ==========================================================================
+    # BONUS CRUD SERVICE HANDLERS
+    # ==========================================================================
+
+    async def handle_create_bonus(call: ServiceCall) -> dict[str, Any]:
+        """Create a bonus item and return its internal UUID."""
+        from . import data_builders as db
+        from .data_builders import EntityValidationError
+
+        entry_id = _resolve_target_entry_id(hass, dict(call.data))
+        if not entry_id:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND,
+            )
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
+        data_input = _map_service_to_data_keys(
+            dict(call.data), _SERVICE_TO_BONUS_DATA_MAPPING
+        )
+        validation_errors = db.validate_bonus_or_penalty_data(
+            data_input,
+            const.ITEM_TYPE_BONUS,
+            coordinator.bonuses_data,
+            is_update=False,
+        )
+        if validation_errors:
+            _error_field, error_key = next(iter(validation_errors.items()))
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=error_key,
+            )
+
+        try:
+            bonus = coordinator.economy_manager.create_bonus(
+                data_input, immediate_persist=True
+            )
+            bonus_id = str(bonus[const.DATA_BONUS_INTERNAL_ID])
+            await coordinator.async_sync_entities_after_service_mutation()
+            const.LOGGER.info(
+                "Service created bonus '%s' with ID: %s",
+                bonus[const.DATA_BONUS_NAME],
+                bonus_id,
+            )
+            return {const.SERVICE_FIELD_BONUS_CRUD_ID: bonus_id}
+        except EntityValidationError as err:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=err.translation_key,
+                translation_placeholders=err.placeholders,
+            ) from err
+
+    hass.services.async_register(
+        const.DOMAIN,
+        const.SERVICE_CREATE_BONUS,
+        handle_create_bonus,
+        schema=CREATE_BONUS_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
+    async def handle_update_bonus(call: ServiceCall) -> dict[str, Any]:
+        """Update a bonus item identified by its stable UUID."""
+        from . import data_builders as db
+        from .data_builders import EntityValidationError
+
+        entry_id = _resolve_target_entry_id(hass, dict(call.data))
+        if not entry_id:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND,
+            )
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
+        service_data = dict(call.data)
+        bonus_id = str(service_data[const.SERVICE_FIELD_BONUS_CRUD_ID])
+        data_input = _map_service_to_data_keys(
+            service_data, _SERVICE_TO_BONUS_DATA_MAPPING
+        )
+        validation_errors = db.validate_bonus_or_penalty_data(
+            data_input,
+            const.ITEM_TYPE_BONUS,
+            coordinator.bonuses_data,
+            is_update=True,
+            current_entity_id=bonus_id,
+        )
+        if validation_errors:
+            _error_field, error_key = next(iter(validation_errors.items()))
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=error_key,
+            )
+
+        try:
+            bonus = coordinator.economy_manager.update_bonus(
+                bonus_id, data_input, immediate_persist=True
+            )
+            const.LOGGER.info(
+                "Service updated bonus '%s' with ID: %s",
+                bonus[const.DATA_BONUS_NAME],
+                bonus_id,
+            )
+            return {const.SERVICE_FIELD_BONUS_CRUD_ID: bonus_id}
+        except EntityValidationError as err:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=err.translation_key,
+                translation_placeholders=err.placeholders,
+            ) from err
+
+    hass.services.async_register(
+        const.DOMAIN,
+        const.SERVICE_UPDATE_BONUS,
+        handle_update_bonus,
+        schema=UPDATE_BONUS_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
+    async def handle_delete_bonus(call: ServiceCall) -> dict[str, Any]:
+        """Delete a bonus item identified by its stable UUID."""
+        entry_id = _resolve_target_entry_id(hass, dict(call.data))
+        if not entry_id:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND,
+            )
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
+        bonus_id = str(call.data[const.SERVICE_FIELD_BONUS_CRUD_ID])
+        coordinator.economy_manager.delete_bonus(bonus_id, immediate_persist=True)
+        await coordinator.async_sync_entities_after_service_mutation()
+        const.LOGGER.info("Service deleted bonus with ID: %s", bonus_id)
+        return {const.SERVICE_FIELD_BONUS_CRUD_ID: bonus_id}
+
+    hass.services.async_register(
+        const.DOMAIN,
+        const.SERVICE_DELETE_BONUS,
+        handle_delete_bonus,
+        schema=DELETE_BONUS_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
+    # ==========================================================================
+    # PENALTY CRUD SERVICE HANDLERS
+    # ==========================================================================
+
+    async def handle_create_penalty(call: ServiceCall) -> dict[str, Any]:
+        """Create a penalty item and return its internal UUID."""
+        from . import data_builders as db
+        from .data_builders import EntityValidationError
+
+        entry_id = _resolve_target_entry_id(hass, dict(call.data))
+        if not entry_id:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND,
+            )
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
+        data_input = _map_service_to_data_keys(
+            dict(call.data), _SERVICE_TO_PENALTY_DATA_MAPPING
+        )
+        validation_errors = db.validate_bonus_or_penalty_data(
+            data_input,
+            const.ITEM_TYPE_PENALTY,
+            coordinator.penalties_data,
+            is_update=False,
+        )
+        if validation_errors:
+            _error_field, error_key = next(iter(validation_errors.items()))
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=error_key,
+            )
+
+        try:
+            penalty = coordinator.economy_manager.create_penalty(
+                data_input, immediate_persist=True
+            )
+            penalty_id = str(penalty[const.DATA_PENALTY_INTERNAL_ID])
+            await coordinator.async_sync_entities_after_service_mutation()
+            const.LOGGER.info(
+                "Service created penalty '%s' with ID: %s",
+                penalty[const.DATA_PENALTY_NAME],
+                penalty_id,
+            )
+            return {const.SERVICE_FIELD_PENALTY_CRUD_ID: penalty_id}
+        except EntityValidationError as err:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=err.translation_key,
+                translation_placeholders=err.placeholders,
+            ) from err
+
+    hass.services.async_register(
+        const.DOMAIN,
+        const.SERVICE_CREATE_PENALTY,
+        handle_create_penalty,
+        schema=CREATE_PENALTY_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
+    async def handle_update_penalty(call: ServiceCall) -> dict[str, Any]:
+        """Update a penalty item identified by its stable UUID."""
+        from . import data_builders as db
+        from .data_builders import EntityValidationError
+
+        entry_id = _resolve_target_entry_id(hass, dict(call.data))
+        if not entry_id:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND,
+            )
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
+        service_data = dict(call.data)
+        penalty_id = str(service_data[const.SERVICE_FIELD_PENALTY_CRUD_ID])
+        data_input = _map_service_to_data_keys(
+            service_data, _SERVICE_TO_PENALTY_DATA_MAPPING
+        )
+        validation_errors = db.validate_bonus_or_penalty_data(
+            data_input,
+            const.ITEM_TYPE_PENALTY,
+            coordinator.penalties_data,
+            is_update=True,
+            current_entity_id=penalty_id,
+        )
+        if validation_errors:
+            _error_field, error_key = next(iter(validation_errors.items()))
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=error_key,
+            )
+
+        try:
+            penalty = coordinator.economy_manager.update_penalty(
+                penalty_id, data_input, immediate_persist=True
+            )
+            const.LOGGER.info(
+                "Service updated penalty '%s' with ID: %s",
+                penalty[const.DATA_PENALTY_NAME],
+                penalty_id,
+            )
+            return {const.SERVICE_FIELD_PENALTY_CRUD_ID: penalty_id}
+        except EntityValidationError as err:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=err.translation_key,
+                translation_placeholders=err.placeholders,
+            ) from err
+
+    hass.services.async_register(
+        const.DOMAIN,
+        const.SERVICE_UPDATE_PENALTY,
+        handle_update_penalty,
+        schema=UPDATE_PENALTY_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
+    async def handle_delete_penalty(call: ServiceCall) -> dict[str, Any]:
+        """Delete a penalty item identified by its stable UUID."""
+        entry_id = _resolve_target_entry_id(hass, dict(call.data))
+        if not entry_id:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND,
+            )
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
+        penalty_id = str(call.data[const.SERVICE_FIELD_PENALTY_CRUD_ID])
+        coordinator.economy_manager.delete_penalty(penalty_id, immediate_persist=True)
+        await coordinator.async_sync_entities_after_service_mutation()
+        const.LOGGER.info("Service deleted penalty with ID: %s", penalty_id)
+        return {const.SERVICE_FIELD_PENALTY_CRUD_ID: penalty_id}
+
+    hass.services.async_register(
+        const.DOMAIN,
+        const.SERVICE_DELETE_PENALTY,
+        handle_delete_penalty,
+        schema=DELETE_PENALTY_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
     async def handle_redeem_reward(call: ServiceCall):
         """Handle redeeming a reward (claiming without deduction)."""
         entry_id = _resolve_target_entry_id(hass, dict(call.data))
@@ -4126,9 +4508,13 @@ async def async_unload_services(hass: HomeAssistant) -> None:
     services = [
         const.SERVICE_CLAIM_CHORE,
         const.SERVICE_APPROVE_CHORE,
+        const.SERVICE_CREATE_BONUS,
         const.SERVICE_CREATE_CHORE,
+        const.SERVICE_CREATE_PENALTY,
         const.SERVICE_CREATE_REWARD,
+        const.SERVICE_DELETE_BONUS,
         const.SERVICE_DELETE_CHORE,
+        const.SERVICE_DELETE_PENALTY,
         const.SERVICE_DELETE_REWARD,
         const.SERVICE_DISAPPROVE_CHORE,
         const.SERVICE_REDEEM_REWARD,
@@ -4144,6 +4530,8 @@ async def async_unload_services(hass: HomeAssistant) -> None:
         # NOTE: SERVICE_RESET_PENALTIES, SERVICE_RESET_BONUSES, SERVICE_RESET_REWARDS
         # removed in v0.6.0 - superseded by SERVICE_RESET_TRANSACTIONAL_DATA
         const.SERVICE_UPDATE_CHORE,
+        const.SERVICE_UPDATE_BONUS,
+        const.SERVICE_UPDATE_PENALTY,
         const.SERVICE_UPDATE_REWARD,
         const.SERVICE_REMOVE_AWARDED_BADGES,
         const.SERVICE_SET_CHORE_DUE_DATE,
