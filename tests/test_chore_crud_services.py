@@ -485,7 +485,8 @@ class TestCreateChoreEndToEnd:
 
         helper_state = get_dashboard_helper_state(hass, "zoe")
         assert helper_state is not None
-        assert chore.get(const.ATTR_LABELS) == [
+        assert chore.get(const.ATTR_LABELS) == ["test", "e2e"]
+        assert chore.get(const.ATTR_CHORE_LABEL_ENTRIES) == [
             {"id": "test", "name": "test"},
             {"id": "e2e", "name": "e2e"},
         ]
