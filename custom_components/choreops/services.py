@@ -407,7 +407,6 @@ def _build_service_chore_validation_data(
 
 _CHORE_SCHEDULE_UPDATE_FIELDS: frozenset[str] = frozenset(
     {
-        const.SERVICE_FIELD_CHORE_CRUD_ASSIGNMENT_ACTION,
         const.SERVICE_FIELD_CHORE_CRUD_ASSIGNED_USER_NAMES,
         const.SERVICE_FIELD_CHORE_CRUD_ASSIGNED_USER_IDS,
         const.SERVICE_FIELD_CHORE_CRUD_FREQUENCY,
@@ -427,35 +426,48 @@ def _allow_unchanged_past_due_date_for_partial_update(
     service_data: dict[str, Any],
     existing_chore: "ChoreData | dict[str, Any]",
 ) -> None:
-    """Permit non-scheduling edits while preserving an existing past due date.
+    """Permit non-scheduling edits while preserving existing past due dates.
 
     The shared validator correctly rejects a past date when callers create a
     chore or change its schedule. An update that only changes metadata such
     as labels, points, or description must not become impossible merely
-    because the chore is currently due. Substitute a future date only in the
-    validation copy; the existing stored date and runtime state are unchanged.
+    because the chore is currently due. Substitute future dates only in the
+    validation copy; stored dates and runtime state are unchanged.
     """
     if _CHORE_SCHEDULE_UPDATE_FIELDS.intersection(service_data):
         return
-    if not _service_uses_chore_level_due_date(validation_data):
-        return
 
-    existing_due_date = existing_chore.get(const.DATA_CHORE_DUE_DATE)
-    if not existing_due_date:
-        return
-    parsed_due_date = dt_parse(
-        existing_due_date,
-        default_tzinfo=const.DEFAULT_TIME_ZONE,
-        return_type=const.HELPER_RETURN_DATETIME_UTC,
-    )
     now_utc = dt_util.utcnow()
-    if not isinstance(parsed_due_date, datetime) or parsed_due_date >= now_utc:
+
+    def _is_past(raw_due_date: Any) -> bool:
+        parsed_due_date = dt_parse(
+            raw_due_date,
+            default_tzinfo=const.DEFAULT_TIME_ZONE,
+            return_type=const.HELPER_RETURN_DATETIME_UTC,
+        )
+        return (
+            isinstance(parsed_due_date, datetime) and parsed_due_date < now_utc
+        )
+
+    validation_due_date = (now_utc + timedelta(days=1)).isoformat()
+    if _service_uses_chore_level_due_date(validation_data):
+        existing_due_date = existing_chore.get(const.DATA_CHORE_DUE_DATE)
+        if existing_due_date and _is_past(existing_due_date):
+            validation_data[const.DATA_CHORE_DUE_DATE] = validation_due_date
         return
 
-    validation_data[const.DATA_CHORE_DUE_DATE] = (
-        now_utc + timedelta(days=1)
-    ).isoformat()
-
+    per_assignee_due_dates = dict(
+        validation_data.get(const.DATA_CHORE_PER_ASSIGNEE_DUE_DATES, {})
+    )
+    changed = False
+    for assignee_id, due_date in per_assignee_due_dates.items():
+        if due_date and _is_past(due_date):
+            per_assignee_due_dates[assignee_id] = validation_due_date
+            changed = True
+    if changed:
+        validation_data[const.DATA_CHORE_PER_ASSIGNEE_DUE_DATES] = (
+            per_assignee_due_dates
+        )
 
 # --- Service Schemas ---
 
