@@ -1396,6 +1396,20 @@ def test_user_chores_template_renders_with_button_card_templates() -> None:
     assert "chore_row_v1" in rendered["button_card_templates"]
     assert "chore_row_kids_v1" in rendered["button_card_templates"]
 
+    pending: list[object] = [rendered]
+    activity_templates: list[str] = []
+    while pending:
+        value = pending.pop()
+        if isinstance(value, dict):
+            pending.extend(value.values())
+        elif isinstance(value, list):
+            pending.extend(value)
+        elif isinstance(value, str) and "recent_adjustments" in value:
+            activity_templates.append(value)
+
+    assert len(activity_templates) == 1
+    jinja2.Environment().parse(activity_templates[0])
+
 
 def test_user_chores_template_contains_ui_control_contract() -> None:
     """User chores template should reference the reviewed UI control contract."""
