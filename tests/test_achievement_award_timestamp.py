@@ -75,6 +75,7 @@ async def test_first_award_timestamp_is_preserved_and_exposed(
         achievement_id,
         achievement_name,
     )
-    assert sensor.extra_state_attributes[
-        const.DATA_USER_BADGES_EARNED_LAST_AWARDED
-    ] == first_award
+    assert (
+        sensor.extra_state_attributes[const.DATA_USER_BADGES_EARNED_LAST_AWARDED]
+        == first_award
+    )
