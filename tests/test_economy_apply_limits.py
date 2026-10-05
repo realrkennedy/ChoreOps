@@ -276,14 +276,16 @@ class TestApplyLimitEnforcement:
         mock_hass_users: dict[str, Any],
     ) -> None:
         coordinator = scenario_full.coordinator
+        bonus_id = scenario_full.bonus_ids["Extra Effort"]
         with patch.object(coordinator, "_persist", new=MagicMock()):
-            await _create(
-                hass,
-                SERVICE_CREATE_BONUS,
-                {"name": "Initiative", "points": 5, "max_per_day": 1},
+            await hass.services.async_call(
+                DOMAIN,
+                SERVICE_UPDATE_BONUS,
+                {"id": bonus_id, "max_per_day": 1},
+                blocking=True,
             )
         await hass.async_block_till_done()
-        eid = _helper_entry(hass, "bonuses", "Initiative")["eid"]
+        eid = _helper_entry(hass, "bonuses", "Extra Effort")["eid"]
         assert eid
         context = Context(user_id=mock_hass_users["approver1"].id)
         with patch.object(
