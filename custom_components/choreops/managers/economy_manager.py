@@ -499,7 +499,8 @@ class EconomyManager(BaseManager):
         if period is None:
             return
         limit_key = next(
-            key for key, key_period in const.ECONOMY_APPLY_LIMIT_PERIODS
+            key
+            for key, key_period in const.ECONOMY_APPLY_LIMIT_PERIODS
             if key_period == period
         )
         assignee_info = self._get_assignee(assignee_id) or {}

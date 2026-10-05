@@ -85,7 +85,11 @@ class TestApplyLimitCrud:
                 hass, SERVICE_CREATE_BONUS, {"name": "Initiative", "points": 5}
             )
         bonus = coordinator.bonuses_data[bonus_id]
-        assert (bonus["max_per_day"], bonus["max_per_week"], bonus["max_per_month"]) == (
+        assert (
+            bonus["max_per_day"],
+            bonus["max_per_week"],
+            bonus["max_per_month"],
+        ) == (
             0,
             0,
             0,
