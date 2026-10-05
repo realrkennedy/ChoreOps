@@ -448,7 +448,7 @@ class EconomyManager(BaseManager):
             else self._coordinator.penalties_data
         )
         definition: dict[str, Any] = dict(definitions.get(item_id) or {})
-        assignee_info = self._get_assignee(assignee_id) or {}
+        assignee_info: dict[str, Any] = dict(self._get_assignee(assignee_id) or {})
         applies_key = (
             const.DATA_USER_BONUS_APPLIES
             if is_bonus
@@ -503,7 +503,7 @@ class EconomyManager(BaseManager):
             for key, key_period in const.ECONOMY_APPLY_LIMIT_PERIODS
             if key_period == period
         )
-        assignee_info = self._get_assignee(assignee_id) or {}
+        assignee_info: dict[str, Any] = dict(self._get_assignee(assignee_id) or {})
         raise HomeAssistantError(
             translation_domain=const.DOMAIN,
             translation_key=const.TRANS_KEY_ERROR_APPLY_LIMIT_REACHED,
