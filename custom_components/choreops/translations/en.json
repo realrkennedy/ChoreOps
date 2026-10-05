@@ -5656,6 +5656,9 @@
     "already_claimed": {
       "message": "{entity} has already been claimed"
     },
+    "apply_limit_reached": {
+      "message": "Limit reached: {name} can be applied to {assignee} {limit} time(s) per {period}"
+    },
     "chore_claimed_by_other": {
       "message": "This chore has already been claimed by {claimed_by}"
     },

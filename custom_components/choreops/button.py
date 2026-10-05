@@ -1571,7 +1571,7 @@ class ApproverBonusApplyButton(ChoreOpsCoordinatorEntity, ButtonEntity):
 
         except HomeAssistantError as e:
             const.LOGGER.error(
-                "ERROR: Authorization failed to Apply Bonus '%s' for Assignee '%s': %s",
+                "ERROR: Refused to Apply Bonus '%s' for Assignee '%s': %s",
                 self._bonus_name,
                 self._assignee_name,
                 e,
@@ -1712,7 +1712,7 @@ class ApproverPenaltyApplyButton(ChoreOpsCoordinatorEntity, ButtonEntity):
 
         except HomeAssistantError as e:
             const.LOGGER.error(
-                "ERROR: Authorization failed to Apply Penalty '%s' for Assignee '%s': %s",
+                "ERROR: Refused to Apply Penalty '%s' for Assignee '%s': %s",
                 self._penalty_name,
                 self._assignee_name,
                 e,
