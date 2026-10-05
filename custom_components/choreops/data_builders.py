@@ -663,7 +663,7 @@ def build_bonus_or_penalty(
     else:
         internal_id = existing.get(internal_id_key, str(uuid.uuid4()))
 
-    return {
+    built: dict[str, Any] = {
         name_key: name,
         desc_key: str(get_field(desc_key, const.SENTINEL_EMPTY)),
         labels_key: list(get_field(labels_key, [])),
@@ -671,6 +671,24 @@ def build_bonus_or_penalty(
         icon_key: str(get_field(icon_key, default_icon)),
         internal_id_key: internal_id,
     }
+    # Fork: apply limits (0 = none) and the perfect-day review flag. Options
+    # flow edits do not send them, so get_field() keeps the stored values.
+    for limit_key, _period in const.ECONOMY_APPLY_LIMIT_PERIODS:
+        built[limit_key] = parse_apply_limit(get_field(limit_key, 0))
+    built[const.DATA_ECONOMY_PERFECT_DAY_CHECK] = bool(
+        get_field(const.DATA_ECONOMY_PERFECT_DAY_CHECK, False)
+    )
+    return built
+
+
+def parse_apply_limit(value: Any) -> int:
+    """Return a whole, non-negative apply limit; blank or None means 0 (none)."""
+    if value in (None, ""):
+        return 0
+    limit = int(value)
+    if limit < 0 or limit != float(value):
+        raise ValueError(f"Apply limit must be a whole number >= 0, got: {value!r}")
+    return limit
 
 
 # --- Bonus Data Reset Support ---
@@ -691,6 +709,10 @@ _BONUS_DATA_RESET_PRESERVE_FIELDS: frozenset[str] = frozenset(
         const.DATA_BONUS_DESCRIPTION,
         const.DATA_BONUS_ICON,
         const.DATA_BONUS_LABELS,
+        const.DATA_ECONOMY_MAX_PER_DAY,
+        const.DATA_ECONOMY_MAX_PER_WEEK,
+        const.DATA_ECONOMY_MAX_PER_MONTH,
+        const.DATA_ECONOMY_PERFECT_DAY_CHECK,
     }
 )
 
@@ -722,6 +744,10 @@ _PENALTY_DATA_RESET_PRESERVE_FIELDS: frozenset[str] = frozenset(
         const.DATA_PENALTY_DESCRIPTION,
         const.DATA_PENALTY_ICON,
         const.DATA_PENALTY_LABELS,
+        const.DATA_ECONOMY_MAX_PER_DAY,
+        const.DATA_ECONOMY_MAX_PER_WEEK,
+        const.DATA_ECONOMY_MAX_PER_MONTH,
+        const.DATA_ECONOMY_PERFECT_DAY_CHECK,
     }
 )
 

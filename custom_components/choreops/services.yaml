@@ -1323,6 +1323,36 @@ create_bonus:
       selector:
         text:
           multiple: true
+    max_per_day:
+      name: "Limit per day"
+      description: "Most times this bonus can be applied to one assignee per day. 0 means no limit."
+      required: false
+      selector:
+        number:
+          min: 0
+          mode: box
+    max_per_week:
+      name: "Limit per week"
+      description: "Most times this bonus can be applied to one assignee per week (Monday to Sunday). 0 means no limit."
+      required: false
+      selector:
+        number:
+          min: 0
+          mode: box
+    max_per_month:
+      name: "Limit per calendar"
+      description: "Most times this bonus can be applied to one assignee per calendar month. 0 means no limit."
+      required: false
+      selector:
+        number:
+          min: 0
+          mode: box
+    perfect_day_check:
+      name: "Perfect day check"
+      description: "Show the assignee's perfect-day status before this bonus is applied (display only)."
+      required: false
+      selector:
+        boolean:
 
 update_bonus:
   name: "Update Bonus"
@@ -1380,6 +1410,36 @@ update_bonus:
       selector:
         text:
           multiple: true
+    max_per_day:
+      name: "Limit per day"
+      description: "Most times this bonus can be applied to one assignee per day. 0 means no limit."
+      required: false
+      selector:
+        number:
+          min: 0
+          mode: box
+    max_per_week:
+      name: "Limit per week"
+      description: "Most times this bonus can be applied to one assignee per week (Monday to Sunday). 0 means no limit."
+      required: false
+      selector:
+        number:
+          min: 0
+          mode: box
+    max_per_month:
+      name: "Limit per calendar"
+      description: "Most times this bonus can be applied to one assignee per calendar month. 0 means no limit."
+      required: false
+      selector:
+        number:
+          min: 0
+          mode: box
+    perfect_day_check:
+      name: "Perfect day check"
+      description: "Show the assignee's perfect-day status before this bonus is applied (display only)."
+      required: false
+      selector:
+        boolean:
 
 delete_bonus:
   name: "Delete Bonus"
@@ -1457,6 +1517,36 @@ create_penalty:
       selector:
         text:
           multiple: true
+    max_per_day:
+      name: "Limit per day"
+      description: "Most times this penalty can be applied to one assignee per day. 0 means no limit."
+      required: false
+      selector:
+        number:
+          min: 0
+          mode: box
+    max_per_week:
+      name: "Limit per week"
+      description: "Most times this penalty can be applied to one assignee per week (Monday to Sunday). 0 means no limit."
+      required: false
+      selector:
+        number:
+          min: 0
+          mode: box
+    max_per_month:
+      name: "Limit per calendar"
+      description: "Most times this penalty can be applied to one assignee per calendar month. 0 means no limit."
+      required: false
+      selector:
+        number:
+          min: 0
+          mode: box
+    perfect_day_check:
+      name: "Perfect day check"
+      description: "Show the assignee's perfect-day status before this penalty is applied (display only)."
+      required: false
+      selector:
+        boolean:
 
 update_penalty:
   name: "Update Penalty"
@@ -1514,6 +1604,36 @@ update_penalty:
       selector:
         text:
           multiple: true
+    max_per_day:
+      name: "Limit per day"
+      description: "Most times this penalty can be applied to one assignee per day. 0 means no limit."
+      required: false
+      selector:
+        number:
+          min: 0
+          mode: box
+    max_per_week:
+      name: "Limit per week"
+      description: "Most times this penalty can be applied to one assignee per week (Monday to Sunday). 0 means no limit."
+      required: false
+      selector:
+        number:
+          min: 0
+          mode: box
+    max_per_month:
+      name: "Limit per calendar"
+      description: "Most times this penalty can be applied to one assignee per calendar month. 0 means no limit."
+      required: false
+      selector:
+        number:
+          min: 0
+          mode: box
+    perfect_day_check:
+      name: "Perfect day check"
+      description: "Show the assignee's perfect-day status before this penalty is applied (display only)."
+      required: false
+      selector:
+        boolean:
 
 delete_penalty:
   name: "Delete Penalty"

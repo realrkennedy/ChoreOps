@@ -222,6 +222,7 @@ class EconomyManager(BaseManager):
                     "Badge Award",
                     assignee_id,
                     penalty_id,
+                    enforce_limit=False,
                 )
 
     def _update_multiplier(
@@ -424,6 +425,98 @@ class EconomyManager(BaseManager):
             AssigneeData dict or None if not found
         """
         return self._coordinator.assignees_data.get(assignee_id)
+
+    def get_apply_limit_status(
+        self, assignee_id: str, item_type: str, item_id: str
+    ) -> dict[str, Any]:
+        """Return a bonus or penalty's apply limits and this period's use (fork).
+
+        Counts come from the same daily/weekly/monthly statistics buckets the
+        apply records, keyed by the local date, so a day ends at local
+        midnight, a week on Sunday night (ISO week) and a month on its last day.
+
+        Returns:
+            ``max_per_day``/``max_per_week``/``max_per_month`` (0 = no limit),
+            ``applied_today``/``applied_week``/``applied_month``, and
+            ``limit_reached``: the first exhausted period ("daily", "weekly",
+            "monthly") or None.
+        """
+        is_bonus = item_type == const.ITEM_TYPE_BONUS
+        definitions = (
+            self._coordinator.bonuses_data
+            if is_bonus
+            else self._coordinator.penalties_data
+        )
+        definition: dict[str, Any] = dict(definitions.get(item_id) or {})
+        assignee_info = self._get_assignee(assignee_id) or {}
+        applies_key = (
+            const.DATA_USER_BONUS_APPLIES
+            if is_bonus
+            else const.DATA_USER_PENALTY_APPLIES
+        )
+        entry = assignee_info.get(applies_key, {}).get(item_id) or {}
+        periods = entry.get(
+            const.DATA_USER_BONUS_PERIODS
+            if is_bonus
+            else const.DATA_USER_PENALTY_PERIODS,
+            {},
+        )
+        metric = (
+            const.DATA_USER_BONUS_PERIOD_APPLIES
+            if is_bonus
+            else const.DATA_USER_PENALTY_PERIOD_APPLIES
+        )
+        applied_names = {
+            const.PERIOD_DAILY: "applied_today",
+            const.PERIOD_WEEKLY: "applied_week",
+            const.PERIOD_MONTHLY: "applied_month",
+        }
+        status: dict[str, Any] = {const.ATTR_LIMIT_REACHED: None}
+        for limit_key, period in const.ECONOMY_APPLY_LIMIT_PERIODS:
+            try:
+                limit = db.parse_apply_limit(definition.get(limit_key, 0))
+            except (TypeError, ValueError):
+                limit = 0
+            applied = int(
+                self._coordinator.stats.get_period_total(periods, period, metric) or 0
+            )
+            status[limit_key] = limit
+            status[applied_names[period]] = applied
+            if limit and applied >= limit and status[const.ATTR_LIMIT_REACHED] is None:
+                status[const.ATTR_LIMIT_REACHED] = period
+        return status
+
+    def _raise_if_apply_limit_reached(
+        self,
+        assignee_id: str,
+        item_type: str,
+        item_id: str,
+        item_name: str,
+    ) -> None:
+        """Refuse a manual bonus/penalty apply once a period limit is used up."""
+        status = self.get_apply_limit_status(assignee_id, item_type, item_id)
+        period = status[const.ATTR_LIMIT_REACHED]
+        if period is None:
+            return
+        limit_key = next(
+            key for key, key_period in const.ECONOMY_APPLY_LIMIT_PERIODS
+            if key_period == period
+        )
+        assignee_info = self._get_assignee(assignee_id) or {}
+        raise HomeAssistantError(
+            translation_domain=const.DOMAIN,
+            translation_key=const.TRANS_KEY_ERROR_APPLY_LIMIT_REACHED,
+            translation_placeholders={
+                "name": item_name,
+                "assignee": str(assignee_info.get(const.DATA_USER_NAME, assignee_id)),
+                "limit": str(status[limit_key]),
+                "period": {
+                    const.PERIOD_DAILY: "day",
+                    const.PERIOD_WEEKLY: "week",
+                    const.PERIOD_MONTHLY: "month",
+                }[period],
+            },
+        )
 
     def _ensure_ledger(self, assignee_data: AssigneeData) -> list[LedgerEntry]:
         """Ensure assignee has a ledger list, creating if needed.
@@ -726,7 +819,12 @@ class EconomyManager(BaseManager):
     # =========================================================================
 
     async def apply_penalty(
-        self, approver_name: str, assignee_id: str, penalty_id: str
+        self,
+        approver_name: str,
+        assignee_id: str,
+        penalty_id: str,
+        *,
+        enforce_limit: bool = True,
     ) -> float:
         """Apply penalty to assignee - deducts points via withdraw().
 
@@ -741,12 +839,15 @@ class EconomyManager(BaseManager):
             approver_name: Name of approver applying penalty (for audit trail)
             assignee_id: The assignee's internal ID
             penalty_id: The penalty's internal ID
+            enforce_limit: False for automatic applies (badge awards), which
+                the definition's apply limits do not restrict (fork)
 
         Returns:
             New balance after penalty
 
         Raises:
-            HomeAssistantError: If assignee or penalty not found
+            HomeAssistantError: If assignee or penalty not found, or an apply
+                limit is already used up for this period
         """
         penalty_info = self._coordinator.penalties_data.get(penalty_id)
         if not penalty_info:
@@ -772,6 +873,10 @@ class EconomyManager(BaseManager):
 
         penalty_pts = penalty_info.get(const.DATA_PENALTY_POINTS, const.DEFAULT_ZERO)
         penalty_name = penalty_info.get(const.DATA_PENALTY_NAME, "")
+        if enforce_limit:
+            self._raise_if_apply_limit_reached(
+                assignee_id, const.ITEM_TYPE_PENALTY, penalty_id, penalty_name
+            )
 
         # Use withdraw() with allow_negative=True (default) for penalties
         # Approver authority actions can take balance negative
@@ -952,7 +1057,8 @@ class EconomyManager(BaseManager):
             New balance after bonus
 
         Raises:
-            HomeAssistantError: If assignee or bonus not found
+            HomeAssistantError: If assignee or bonus not found, or (for a
+                manual apply) an apply limit is already used up (fork)
         """
         bonus_info = self._coordinator.bonuses_data.get(bonus_id)
         if not bonus_info:
@@ -978,6 +1084,10 @@ class EconomyManager(BaseManager):
 
         bonus_pts = bonus_info.get(const.DATA_BONUS_POINTS, const.DEFAULT_ZERO)
         bonus_name = bonus_info.get(const.DATA_BONUS_NAME, "")
+        if not gamification_originated:
+            self._raise_if_apply_limit_reached(
+                assignee_id, const.ITEM_TYPE_BONUS, bonus_id, bonus_name
+            )
 
         # Use deposit for bonus (emits POINTS_CHANGED)
         new_balance = await self.deposit(

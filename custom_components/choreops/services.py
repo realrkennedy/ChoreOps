@@ -846,6 +846,16 @@ DELETE_REWARD_SCHEMA = vol.Schema(
 # BONUS AND PENALTY CRUD SCHEMAS
 # ==============================================================================
 
+# Fork: apply limits (0 = none) and the perfect-day review flag, shared by
+# bonus and penalty create/update.
+_APPLY_LIMIT = vol.All(vol.Coerce(int), vol.Range(min=0))
+_ECONOMY_LIMIT_FIELDS: dict[Any, Any] = {
+    vol.Optional(const.SERVICE_FIELD_ECONOMY_CRUD_MAX_PER_DAY): _APPLY_LIMIT,
+    vol.Optional(const.SERVICE_FIELD_ECONOMY_CRUD_MAX_PER_WEEK): _APPLY_LIMIT,
+    vol.Optional(const.SERVICE_FIELD_ECONOMY_CRUD_MAX_PER_MONTH): _APPLY_LIMIT,
+    vol.Optional(const.SERVICE_FIELD_ECONOMY_CRUD_PERFECT_DAY_CHECK): cv.boolean,
+}
+
 CREATE_BONUS_SCHEMA = vol.Schema(
     _with_service_target_fields(
         {
@@ -860,6 +870,7 @@ CREATE_BONUS_SCHEMA = vol.Schema(
             vol.Optional(const.SERVICE_FIELD_BONUS_CRUD_LABELS, default=[]): vol.All(
                 cv.ensure_list, [cv.string]
             ),
+            **_ECONOMY_LIMIT_FIELDS,
         }
     )
 )
@@ -877,6 +888,7 @@ UPDATE_BONUS_SCHEMA = vol.Schema(
             vol.Optional(const.SERVICE_FIELD_BONUS_CRUD_LABELS): vol.All(
                 cv.ensure_list, [cv.string]
             ),
+            **_ECONOMY_LIMIT_FIELDS,
         }
     )
 )
@@ -903,6 +915,7 @@ CREATE_PENALTY_SCHEMA = vol.Schema(
             vol.Optional(const.SERVICE_FIELD_PENALTY_CRUD_LABELS, default=[]): vol.All(
                 cv.ensure_list, [cv.string]
             ),
+            **_ECONOMY_LIMIT_FIELDS,
         }
     )
 )
@@ -920,6 +933,7 @@ UPDATE_PENALTY_SCHEMA = vol.Schema(
             vol.Optional(const.SERVICE_FIELD_PENALTY_CRUD_LABELS): vol.All(
                 cv.ensure_list, [cv.string]
             ),
+            **_ECONOMY_LIMIT_FIELDS,
         }
     )
 )
@@ -1272,6 +1286,12 @@ _SERVICE_TO_BONUS_DATA_MAPPING: dict[str, str] = {
     const.SERVICE_FIELD_BONUS_CRUD_DESCRIPTION: const.DATA_BONUS_DESCRIPTION,
     const.SERVICE_FIELD_BONUS_CRUD_ICON: const.DATA_BONUS_ICON,
     const.SERVICE_FIELD_BONUS_CRUD_LABELS: const.DATA_BONUS_LABELS,
+    const.SERVICE_FIELD_ECONOMY_CRUD_MAX_PER_DAY: const.DATA_ECONOMY_MAX_PER_DAY,
+    const.SERVICE_FIELD_ECONOMY_CRUD_MAX_PER_WEEK: const.DATA_ECONOMY_MAX_PER_WEEK,
+    const.SERVICE_FIELD_ECONOMY_CRUD_MAX_PER_MONTH: const.DATA_ECONOMY_MAX_PER_MONTH,
+    const.SERVICE_FIELD_ECONOMY_CRUD_PERFECT_DAY_CHECK: (
+        const.DATA_ECONOMY_PERFECT_DAY_CHECK
+    ),
 }
 
 _SERVICE_TO_PENALTY_DATA_MAPPING: dict[str, str] = {
@@ -1280,6 +1300,12 @@ _SERVICE_TO_PENALTY_DATA_MAPPING: dict[str, str] = {
     const.SERVICE_FIELD_PENALTY_CRUD_DESCRIPTION: const.DATA_PENALTY_DESCRIPTION,
     const.SERVICE_FIELD_PENALTY_CRUD_ICON: const.DATA_PENALTY_ICON,
     const.SERVICE_FIELD_PENALTY_CRUD_LABELS: const.DATA_PENALTY_LABELS,
+    const.SERVICE_FIELD_ECONOMY_CRUD_MAX_PER_DAY: const.DATA_ECONOMY_MAX_PER_DAY,
+    const.SERVICE_FIELD_ECONOMY_CRUD_MAX_PER_WEEK: const.DATA_ECONOMY_MAX_PER_WEEK,
+    const.SERVICE_FIELD_ECONOMY_CRUD_MAX_PER_MONTH: const.DATA_ECONOMY_MAX_PER_MONTH,
+    const.SERVICE_FIELD_ECONOMY_CRUD_PERFECT_DAY_CHECK: (
+        const.DATA_ECONOMY_PERFECT_DAY_CHECK
+    ),
 }
 
 

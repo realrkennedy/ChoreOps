@@ -144,6 +144,10 @@ class PenaltyData(TypedDict):
     description: str
     icon: str
     penalty_labels: list[str]
+    max_per_day: NotRequired[int]  # Fork: 0 = no daily apply limit
+    max_per_week: NotRequired[int]  # Fork: 0 = no weekly apply limit
+    max_per_month: NotRequired[int]  # Fork: 0 = no monthly apply limit
+    perfect_day_check: NotRequired[bool]  # Fork: console shows perfect-day status
     periods: NotRequired[dict[str, Any]]  # Phase 4C: Period tracking
 
 
@@ -156,6 +160,10 @@ class BonusData(TypedDict):
     description: str
     icon: str
     bonus_labels: list[str]
+    max_per_day: NotRequired[int]  # Fork: 0 = no daily apply limit
+    max_per_week: NotRequired[int]  # Fork: 0 = no weekly apply limit
+    max_per_month: NotRequired[int]  # Fork: 0 = no monthly apply limit
+    perfect_day_check: NotRequired[bool]  # Fork: console shows perfect-day status
     periods: NotRequired[dict[str, Any]]  # Phase 4C: Period tracking
 
 

@@ -5040,6 +5040,25 @@ class AssigneeDashboardHelperSensor(ChoreOpsCoordinatorEntity, SensorEntity):
             )
         }
 
+    def _economy_limit_fields(
+        self, item_type: str, item_id: str, item_info: Any
+    ) -> dict[str, Any]:
+        """Return a bonus/penalty's description, icon, limits and use (fork).
+
+        Lets dashboards show the catalog read-only and lock a definition whose
+        limit is used up; EconomyManager enforces the same limits on apply.
+        """
+        return {
+            const.ATTR_DESCRIPTION: item_info.get(const.DATA_BONUS_DESCRIPTION, ""),
+            const.ATTR_ICON: item_info.get(const.DATA_BONUS_ICON, ""),
+            const.ATTR_PERFECT_DAY_CHECK: bool(
+                item_info.get(const.DATA_ECONOMY_PERFECT_DAY_CHECK, False)
+            ),
+            **self.coordinator.economy_manager.get_apply_limit_status(
+                self._assignee_id, item_type, item_id
+            ),
+        }
+
     @staticmethod
     def _build_recent_adjustments(
         assignee_info: AssigneeData,
@@ -5292,6 +5311,9 @@ class AssigneeDashboardHelperSensor(ChoreOpsCoordinatorEntity, SensorEntity):
                         const.ATTR_NAME: bonus_name,
                         const.ATTR_POINTS: bonus_info.get(const.DATA_BONUS_POINTS, 0),
                         const.ATTR_APPLIED: bonus_applied_count,
+                        **self._economy_limit_fields(
+                            const.ITEM_TYPE_BONUS, bonus_id, bonus_info
+                        ),
                     }
                 )
 
@@ -5338,6 +5360,9 @@ class AssigneeDashboardHelperSensor(ChoreOpsCoordinatorEntity, SensorEntity):
                             const.DATA_PENALTY_POINTS, 0
                         ),
                         const.ATTR_APPLIED: penalty_applied_count,
+                        **self._economy_limit_fields(
+                            const.ITEM_TYPE_PENALTY, penalty_id, penalty_info
+                        ),
                     }
                 )
 

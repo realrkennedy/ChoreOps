@@ -1746,6 +1746,19 @@ DATA_BONUS_LABELS: Final = "bonus_labels"
 DATA_BONUS_NAME: Final = "name"
 DATA_BONUS_POINTS: Final = "points"
 
+# Apply limits and review flag shared by bonuses and penalties (fork).
+# A limit of 0 means no limit for that period.
+DATA_ECONOMY_MAX_PER_DAY: Final = "max_per_day"
+DATA_ECONOMY_MAX_PER_WEEK: Final = "max_per_week"
+DATA_ECONOMY_MAX_PER_MONTH: Final = "max_per_month"
+DATA_ECONOMY_PERFECT_DAY_CHECK: Final = "perfect_day_check"
+# Limit field -> statistics period it counts in, in the order they are checked
+ECONOMY_APPLY_LIMIT_PERIODS: Final = (
+    (DATA_ECONOMY_MAX_PER_DAY, PERIOD_DAILY),
+    (DATA_ECONOMY_MAX_PER_WEEK, PERIOD_WEEKLY),
+    (DATA_ECONOMY_MAX_PER_MONTH, PERIOD_MONTHLY),
+)
+
 # Bonus period tracking (item-level only, no aggregate bucket at assignee level)
 DATA_USER_BONUS_PERIODS: Final = "periods"
 DATA_USER_BONUS_PERIOD_APPLIES: Final = "applies"
@@ -2880,6 +2893,10 @@ ATTR_CLAIMS: Final = "claims"
 ATTR_APPROVALS: Final = "approvals"
 ATTR_POINTS: Final = "points"
 ATTR_APPLIED: Final = "applied"
+# Fork: dashboard helper fields for bonus/penalty apply limits
+ATTR_LIMIT_REACHED: Final = "limit_reached"
+ATTR_ICON: Final = "icon"
+ATTR_PERFECT_DAY_CHECK: Final = "perfect_day_check"
 ATTR_BADGE_EARNED: Final = "earned"
 ATTR_EARNED_COUNT: Final = "earned_count"
 
@@ -3279,6 +3296,12 @@ SERVICE_FIELD_BONUS_CRUD_DESCRIPTION: Final = "description"
 SERVICE_FIELD_BONUS_CRUD_ICON: Final = "icon"
 SERVICE_FIELD_BONUS_CRUD_LABELS: Final = "labels"
 
+# Bonus and penalty CRUD fields for apply limits (fork)
+SERVICE_FIELD_ECONOMY_CRUD_MAX_PER_DAY: Final = "max_per_day"
+SERVICE_FIELD_ECONOMY_CRUD_MAX_PER_WEEK: Final = "max_per_week"
+SERVICE_FIELD_ECONOMY_CRUD_MAX_PER_MONTH: Final = "max_per_month"
+SERVICE_FIELD_ECONOMY_CRUD_PERFECT_DAY_CHECK: Final = "perfect_day_check"
+
 # Badge service fields
 SERVICE_FIELD_BADGE_NAME: Final = "badge_name"
 # Target streak count to restore. See the repair_badge_streak service.
@@ -3503,6 +3526,9 @@ TRANS_KEY_ERROR_INSUFFICIENT_POINTS: Final = (
     "insufficient_points"  # {assignee} has {current}, needs {required}
 )
 TRANS_KEY_ERROR_ALREADY_CLAIMED: Final = "already_claimed"  # {entity} already claimed
+TRANS_KEY_ERROR_APPLY_LIMIT_REACHED: Final = (
+    "apply_limit_reached"  # {name} for {assignee}: {limit} per {period}
+)
 TRANS_KEY_ERROR_INVALID_FREQUENCY: Final = (
     "invalid_frequency"  # Recurring frequency '{frequency}' is not valid
 )
